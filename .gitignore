@@ -129,6 +129,6 @@ Temporary Items
 .nfs*
 
 # =========================
-# NOTE: dependencies/ and binaries/ are NOT ignored
-# They contain bundled third-party code needed for builds
+# Project-specific
 # =========================
+session-context.md

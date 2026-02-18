@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SimOpt.Basics/SimOpt.Basics.csproj" />
+    <Project Path="src/SimOpt.Learning/SimOpt.Learning.csproj" />
+    <Project Path="src/SimOpt.Logging/SimOpt.Logging.csproj" />
+    <Project Path="src/SimOpt.Mathematics/SimOpt.Mathematics.csproj" />
+    <Project Path="src/SimOpt.Optimization/SimOpt.Optimization.csproj" />
+    <Project Path="src/SimOpt.Simulation/SimOpt.Simulation.csproj" />
+    <Project Path="src/SimOpt.Statistics/SimOpt.Statistics.csproj" />
+  </Folder>
+</Solution>

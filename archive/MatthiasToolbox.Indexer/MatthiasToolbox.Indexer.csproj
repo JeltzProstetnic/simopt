@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{22197925-1B69-4BA1-92DC-C9D2DDB6E991}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MatthiasToolbox.Indexer</RootNamespace>
+    <AssemblyName>MatthiasToolbox.Indexer</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\MatthiasToolbox.SearchIndex.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>Signature.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>bin\x86\Release\MatthiasToolbox.Indexer.XML</DocumentationFile>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>bin\x64\Release\MatthiasToolbox.Indexer.XML</DocumentationFile>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Configuration.Install" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.Linq" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Attributes\DocumentResolverAttribute.cs" />
+    <Compile Include="Database\Document.Mapping.cs" />
+    <Compile Include="Database\IndexDatabase.cs" />
+    <Compile Include="Database\Document.Logic.cs" />
+    <Compile Include="Database\FrequentQuery.Mapping.cs" />
+    <Compile Include="Database\FrequentQuery.Logic.cs" />
+    <Compile Include="Database\MetaData.Mapping.cs" />
+    <Compile Include="Database\ResultEvaluation.Logic.cs" />
+    <Compile Include="Database\ResultEvaluation.Mapping.cs" />
+    <Compile Include="Database\WhiteList.Mapping.cs" />
+    <Compile Include="Database\Token.Logic.cs" />
+    <Compile Include="Database\TokenOccurrence.Logic.cs" />
+    <Compile Include="Database\StopWord.Mapping.cs" />
+    <Compile Include="Database\Token.Mapping.cs" />
+    <Compile Include="Database\TokenOccurrence.Mapping.cs" />
+    <Compile Include="Enumerations\DocumentType.cs" />
+    <Compile Include="Enumerations\PathType.cs" />
+    <Compile Include="Enumerations\ServiceCommand.cs" />
+    <Compile Include="Global.cs" />
+    <Compile Include="Interfaces\IDocumentProcessor.cs" />
+    <Compile Include="Interfaces\IDocumentResolver.cs" />
+    <Compile Include="Interfaces\IUpdateCallback.cs" />
+    <Compile Include="Interfaces\IUpdateService.cs" />
+    <Compile Include="Interfaces\IVariableContainer.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Include="Service\DefaultProcessor.cs" />
+    <Compile Include="Service\DocumentResolver.cs" />
+    <Compile Include="Service\IndexUpdateService.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Service\IndexUpdateServiceInstaller.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Service\SearchHelper.cs" />
+    <Compile Include="Service\SearchQuery.cs" />
+    <Compile Include="Service\UpdateWorkerState.cs" />
+    <Compile Include="Service\StringVariableContainer.cs" />
+    <Compile Include="TokenContainers\FileInfoTokenContainer.cs" />
+    <Compile Include="TokenContainers\StringTokenContainer.cs" />
+    <Compile Include="Tools\Filter.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="Signature.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MatthiasToolbox.Basics\MatthiasToolbox.Basics.csproj">
+      <Project>{A586114F-2020-42B5-A7FB-06B49D58A193}</Project>
+      <Name>MatthiasToolbox.Basics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Delta\MatthiasToolbox.Delta.csproj">
+      <Project>{870E94DE-04CC-4418-B979-1954114DB5E1}</Project>
+      <Name>MatthiasToolbox.Delta</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Logging\MatthiasToolbox.Logging.csproj">
+      <Project>{2E84A9E4-4AFF-4C8C-86DF-CF9A2F76E13F}</Project>
+      <Name>MatthiasToolbox.Logging</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Mathematics\MatthiasToolbox.Mathematics.csproj">
+      <Project>{D58A644A-F535-433A-AE39-886205788944}</Project>
+      <Name>MatthiasToolbox.Mathematics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Semantics\MatthiasToolbox.Semantics.csproj">
+      <Project>{9919CB6A-B891-4312-A7DB-2AC64DCE7C56}</Project>
+      <Name>MatthiasToolbox.Semantics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Utilities\MatthiasToolbox.Utilities.csproj">
+      <Project>{B8661FC0-252E-4905-ADB6-6B5F22811756}</Project>
+      <Name>MatthiasToolbox.Utilities</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

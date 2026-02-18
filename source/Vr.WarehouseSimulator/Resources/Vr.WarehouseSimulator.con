@@ -1,3 +1,0 @@
-Layout|Data Source=vresdb01/orcl;User ID=dynapro;Password=dynapro
-Order|Data Source=vresdb01/orcl;User ID=dynaproorder;Password=dynapro
-Process|Data Source=vresdb01/orcl;User ID=process;Password=flexsim

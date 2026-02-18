@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>SimOpt.Simulation</RootNamespace>
+    <AssemblyName>SimOpt.Simulation</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimOpt.Basics\SimOpt.Basics.csproj" />
+    <ProjectReference Include="..\SimOpt.Logging\SimOpt.Logging.csproj" />
+    <ProjectReference Include="..\SimOpt.Mathematics\SimOpt.Mathematics.csproj" />
+  </ItemGroup>
+</Project>
