@@ -1,0 +1,41 @@
+﻿<Window x:Class="MatthiasToolbox.NetworkDriver.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="650" Width="850" ContentRendered="Window_ContentRendered">
+    
+    <Grid>
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+        </Grid.RowDefinitions>
+        
+        <ScrollViewer>
+            <Canvas Name="canvasModel"></Canvas>
+        </ScrollViewer>
+        
+        <Grid Grid.Row="1">
+            
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"></ColumnDefinition>
+                <ColumnDefinition Width="2*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            
+            <TextBlock Name="textSpeed"></TextBlock>
+            
+            <Slider Name="sliderSpeed" Grid.Column="1" ValueChanged="Slider_ValueChanged" Maximum="100000" IsEnabled="False" Margin="0,0,108,0"></Slider>
+            
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Width="Auto">
+                <Button Name="buttonSave" Width="Auto" Margin="3" Click="buttonSave_Click" Content="Save"></Button>
+                <Button Name="buttonLaod" Width="Auto" Margin="3" Content="Load" Click="buttonLaod_Click"></Button>
+                <Button Name="buttonInit" Width="Auto" Margin="3" Content="Init" Click="buttonInit_Click"></Button>
+                <Button Name="buttonRun" Width="Auto" Margin="3" Click="buttonRun_Click">Run</Button>
+                <Button Name="buttonRunAsync" Width="Auto" Margin="3" Click="buttonRunAsync_Click">Run Async</Button>
+            </StackPanel>
+            
+        </Grid>
+        
+    </Grid>
+    
+</Window>

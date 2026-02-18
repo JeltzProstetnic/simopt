@@ -1,0 +1,110 @@
+﻿<UserControl x:Class="MatthiasToolbox.GraphDesigner.GraphControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:DiagramDesigner="clr-namespace:MatthiasToolbox.GraphDesigner.DiagramDesigner" 
+             xmlns:Controls="clr-namespace:MatthiasToolbox.Presentation.Controls;assembly=MatthiasToolbox.Presentation" 
+             x:Name="ucGraphControl"
+             mc:Ignorable="d" 
+             d:DesignHeight="341" d:DesignWidth="805">
+
+    <!--doesn't find scroller: FocusManager.FocusedElement="{Binding ElementName=ucGraphControl,Path=Scroller}"-->
+
+    <UserControl.Resources>
+
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/Shared.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/ToolBar.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/GroupBox.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/Expander.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/ApplicationToolbar.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/DesignerItem.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/ToolboxItem.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/Toolbox.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/Connection.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/FlowChartStencils.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/ShapeStencils.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/AutomationStencils.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/SymbolStencils.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <RoutedUICommand x:Key="Commands.ZoomOut" />
+            <RoutedUICommand x:Key="Commands.ZoomIn" />
+            <RoutedUICommand x:Key="Commands.JumpBackToPrevZoom" />
+            <RoutedUICommand x:Key="Commands.Fill" />
+            <RoutedUICommand x:Key="Commands.OneHundredPercent" />
+
+            <ContextMenu x:Key="DesignerCanvasContextMenu">
+                <MenuItem Header="Paste" Command="{x:Static ApplicationCommands.Paste}">
+                    <MenuItem.Icon>
+                        <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/Paste.png" Width="16"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Select All" Command="{x:Static DiagramDesigner:DesignerCanvas.SelectAll}"/>
+            </ContextMenu>
+
+
+
+        </ResourceDictionary>
+
+    </UserControl.Resources>
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="Minus" Command="{StaticResource Commands.ZoomOut}" />
+        <KeyBinding Key="Plus" Command="{StaticResource Commands.ZoomIn}" />
+        <KeyBinding Key="Backspace" Command="{StaticResource Commands.JumpBackToPrevZoom}" />
+    </UserControl.InputBindings>
+
+    <UserControl.CommandBindings>
+        <CommandBinding Command="{StaticResource Commands.ZoomOut}"  Executed="ZoomOut_Executed" />
+        <CommandBinding Command="{StaticResource Commands.ZoomIn}"  Executed="ZoomIn_Executed" />
+        <CommandBinding Command="{StaticResource Commands.JumpBackToPrevZoom}" Executed="JumpBackToPrevZoom_Executed" CanExecute="JumpBackToPrevZoom_CanExecuted" />
+        <CommandBinding Command="{StaticResource Commands.Fill}" Executed="Fill_Executed" />
+        <CommandBinding Command="{StaticResource Commands.OneHundredPercent}" Executed="OneHundredPercent_Executed" />
+    </UserControl.CommandBindings>
+
+    <ScrollViewer x:Name="scroller" CanContentScroll="True" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Visible">
+        <Controls:ZoomPanControl x:Name="zoomPanControl" Background="White" MouseDown="zoomPanControl_MouseDown" MouseUp="zoomPanControl_MouseUp"
+                        MouseMove="zoomPanControl_MouseMove" MouseWheel="zoomPanControl_MouseWheel" PreviewMouseDoubleClick="zoomPanControl_MouseDoubleClick">
+            <Grid Name="gridContent">
+
+                <DiagramDesigner:DesignerCanvas 
+                    x:Name="canvasModel" 
+                    Focusable="true"
+                    ContextMenu="{StaticResource DesignerCanvasContextMenu}"
+                    MouseDown="canvasModel_MouseDown" 
+                    MouseUp="canvasModel_MouseUp" 
+                    MouseMove="canvasModel_MouseMove" 
+                    DesignerItemCreated="canvasModel_DesignerItemCreated"
+                    EdgeCreated="canvasModel_EdgeCreated"
+                    DesignerItemRemoved="canvasModel_DesignerItemRemoved"
+                    EdgeRemoved="canvasModel_EdgeRemoved"
+                    Background="Transparent" 
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch" 
+                    MinWidth="5000"
+                    MinHeight="5000"
+                     />
+
+                <!--MoveEnabled="True"
+                    ResizeEnabled="True"
+                    EditingMode="Select"-->
+
+                <!-- This Canvas and Border are used as a very 
+                simple way to render a drag rectangle that the 
+                user uses to specify an area to zoom in on. -->
+                <Canvas x:Name="dragZoomCanvas" Visibility="Collapsed">
+                    <Border 
+						            x:Name="dragZoomBorder"
+						            BorderBrush="Black"
+						            BorderThickness="1"
+						            Background="Silver"
+						            CornerRadius="1"
+						            Opacity="0" />
+                </Canvas>
+            </Grid>
+        </Controls:ZoomPanControl>
+    </ScrollViewer>
+</UserControl>

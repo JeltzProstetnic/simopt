@@ -1,0 +1,232 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{B1AFB3C1-E1B4-4026-87C5-DD6B58554447}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MatthiasToolbox.Simulation</RootNamespace>
+    <AssemblyName>MatthiasToolbox.Simulation</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\MatthiasToolbox.DiscreteSimulation.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>Signature.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>bin\x86\Release\MatthiasToolbox.Simulation.XML</DocumentationFile>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>bin\x64\Release\MatthiasToolbox.Simulation.XML</DocumentationFile>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization.Formatters.Soap" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Delegates.cs" />
+    <Compile Include="Engine\Entity.cs" />
+    <Compile Include="Engine\EventScheduler.cs" />
+    <Compile Include="Engine\IEntity.cs" />
+    <Compile Include="Engine\IEntityInitializationParams.cs" />
+    <Compile Include="Engine\IEvent.cs" />
+    <Compile Include="Engine\IEventInstance.cs" />
+    <Compile Include="Engine\IModel.cs" />
+    <Compile Include="Engine\IRandom.cs" />
+    <Compile Include="Engine\IResettable.cs" />
+    <Compile Include="Engine\ISeedSource.cs" />
+    <Compile Include="Engine\Model.cs" />
+    <Compile Include="Engine\Priority.cs" />
+    <Compile Include="Engine\Random.cs" />
+    <Compile Include="Entities\IResourceEntityInitializationParams.cs" />
+    <Compile Include="Entities\ISimpleEntityInitializationParams.cs" />
+    <Compile Include="Entities\IStateMachineEntityInitializationParams.cs" />
+    <Compile Include="Entities\IStochasticEntityInitializationParams.cs" />
+    <Compile Include="Entities\ITaskMachineEntityInitializationParams.cs" />
+    <Compile Include="Entities\IMovableEntityInitializationParams.cs" />
+    <Compile Include="Entities\MovableEntityInitializationParams.cs" />
+    <Compile Include="Entities\TaskMachineEntityInitializationParams.cs" />
+    <Compile Include="Entities\MovableEntity.cs" />
+    <Compile Include="Entities\MobileEntity.cs" />
+    <Compile Include="Entities\ResourceEntity.cs" />
+    <Compile Include="Entities\ResourceEntityInitializationParams.cs" />
+    <Compile Include="Entities\SimpleEntity.cs" />
+    <Compile Include="Entities\SimpleEntityInitializationParams.cs" />
+    <Compile Include="Entities\StateMachineEntity.cs" />
+    <Compile Include="Entities\StateMachineEntityInitializationParams.cs" />
+    <Compile Include="Entities\StochasticEntity.cs" />
+    <Compile Include="Entities\StochasticEntityInitializationParams.cs" />
+    <Compile Include="Entities\TaskMachineEntity.cs" />
+    <Compile Include="Enum\ExecutionState.cs" />
+    <Compile Include="Enum\PriorityType.cs" />
+    <Compile Include="Enum\QueueRule.cs" />
+    <Compile Include="Events\AbstractEvent.cs" />
+    <Compile Include="Events\AbstractEventInstance.cs" />
+    <Compile Include="Events\BinaryEvent.cs" />
+    <Compile Include="Events\BinaryEventInstance.cs" />
+    <Compile Include="Events\TernaryEvent.cs" />
+    <Compile Include="Events\TernaryEventInstance.cs" />
+    <Compile Include="Events\UnaryEvent.cs" />
+    <Compile Include="Events\UnaryEventInstance.cs" />
+    <Compile Include="Exceptions\CausalityException.cs" />
+    <Compile Include="Exceptions\HandlerAlreadyAddedException.cs" />
+    <Compile Include="Exceptions\ModelAlreadySetException.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="Interfaces\IContainer.cs" />
+    <Compile Include="Interfaces\IElectiveBuffer.cs" />
+    <Compile Include="Interfaces\IEntityBuffer.cs" />
+    <Compile Include="Interfaces\IItemBuffer.cs" />
+    <Compile Include="Interfaces\IEntitySink.cs" />
+    <Compile Include="Interfaces\IItemSink.cs" />
+    <Compile Include="Interfaces\IMovable.cs" />
+    <Compile Include="Interfaces\INamedIdentifiable.cs" />
+    <Compile Include="Interfaces\IPriorityContainer.cs" />
+    <Compile Include="Interfaces\IItemSource.cs" />
+    <Compile Include="Interfaces\ISaveable.cs" />
+    <Compile Include="Logger.cs" />
+    <Compile Include="Network\Connection.cs" />
+    <Compile Include="Network\ISimulationConnection.cs" />
+    <Compile Include="Network\ISimulationNetwork.cs" />
+    <Compile Include="Network\ISimulationNode.cs" />
+    <Compile Include="Network\ISimulationPath.cs" />
+    <Compile Include="Network\Network.cs" />
+    <Compile Include="Network\Node.cs" />
+    <Compile Include="Network\Path.cs" />
+    <Compile Include="Simulator.cs" />
+    <Compile Include="Interfaces\IAttachable.cs" />
+    <Compile Include="Interfaces\IEntitySource.cs" />
+    <Compile Include="Interfaces\INetworkLocatable.cs" />
+    <Compile Include="Interfaces\IResource.cs" />
+    <Compile Include="Interfaces\IResourceManager.cs" />
+    <Compile Include="Interfaces\IResourceReservation.cs" />
+    <Compile Include="Interfaces\ITaskManager.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Templates\Buffer.cs" />
+    <Compile Include="Templates\ConveyorInitializationParams.cs" />
+    <Compile Include="Templates\Delay.cs" />
+    <Compile Include="Templates\Conveyor.cs" />
+    <Compile Include="Templates\IConveyorInitializationParams.cs" />
+    <Compile Include="Templates\Server.cs" />
+    <Compile Include="Templates\SimpleBuffer.cs" />
+    <Compile Include="Templates\SimpleDelay.cs" />
+    <Compile Include="Templates\SimpleServer.cs" />
+    <Compile Include="Templates\SimpleSink.cs" />
+    <Compile Include="Templates\SimpleSource.cs" />
+    <Compile Include="Templates\Sink.cs" />
+    <Compile Include="Templates\Source.cs" />
+    <Compile Include="Templates\TwoAxisDriveUnit.cs" />
+    <Compile Include="Tools\AsyncModelRunner.cs" />
+    <Compile Include="Tools\BinaryCompoundEvent.cs" />
+    <Compile Include="Tools\DriveTask.cs" />
+    <Compile Include="Tools\EntityInitializationParams.cs" />
+    <Compile Include="Tools\HandlerInfo.cs" />
+    <Compile Include="Tools\ModelState.cs" />
+    <Compile Include="Tools\ResourceManager.cs" />
+    <Compile Include="Tools\ResourcePickupForwarder.cs" />
+    <Compile Include="Tools\ResourceReservation.cs" />
+    <Compile Include="Tools\Sensor.cs" />
+    <Compile Include="Tools\SimulationEventArgs.cs" />
+    <Compile Include="Tools\StateMachine.cs" />
+    <Compile Include="Tools\Task.cs" />
+    <Compile Include="Tools\TaskMachine.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Signature.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MatthiasToolbox.Basics\MatthiasToolbox.Basics.csproj">
+      <Project>{A586114F-2020-42B5-A7FB-06B49D58A193}</Project>
+      <Name>MatthiasToolbox.Basics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Logging\MatthiasToolbox.Logging.csproj">
+      <Project>{2E84A9E4-4AFF-4C8C-86DF-CF9A2F76E13F}</Project>
+      <Name>MatthiasToolbox.Logging</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Mathematics\MatthiasToolbox.Mathematics.csproj">
+      <Project>{D58A644A-F535-433A-AE39-886205788944}</Project>
+      <Name>MatthiasToolbox.Mathematics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Utilities\MatthiasToolbox.Utilities.csproj">
+      <Project>{B8661FC0-252E-4905-ADB6-6B5F22811756}</Project>
+      <Name>MatthiasToolbox.Utilities</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

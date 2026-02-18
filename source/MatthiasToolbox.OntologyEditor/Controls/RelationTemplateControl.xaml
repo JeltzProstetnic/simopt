@@ -1,0 +1,53 @@
+﻿<UserControl x:Class="MatthiasToolbox.OntologyEditor.Controls.RelationTemplateControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:PresentationUtils="clr-namespace:MatthiasToolbox.Presentation.Utilities;assembly=MatthiasToolbox.Presentation" 
+             xmlns:Controls="clr-namespace:MatthiasToolbox.OntologyEditor.Controls" mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300" FocusManager.IsFocusScope="True">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <TextBlock Height="23" HorizontalAlignment="Left" VerticalAlignment="Center">Name</TextBlock>
+        <TextBox Grid.Column="1" Name="txtName" VerticalAlignment="Center" Width="150" HorizontalAlignment="Left">
+            <TextBox.Text>
+                <Binding Path="Name" Mode="TwoWay" UpdateSourceTrigger="Explicit" >
+                    <Binding.ValidationRules>
+                        <PresentationUtils:IsNotNullOrEmptyValidation/>
+                    </Binding.ValidationRules>
+                </Binding>
+            </TextBox.Text>
+        </TextBox>
+        <TextBlock Grid.Row="1" Height="23" HorizontalAlignment="Left" VerticalAlignment="Center">Linienfarbe</TextBlock>        
+        <Controls:SimpleColorChooser Grid.Row="1" Grid.Column="1" DataContext="{Binding BackgroundColor, Mode=TwoWay, UpdateSourceTrigger=Explicit}"/>
+
+        <TextBlock Grid.Row="2" Height="23" HorizontalAlignment="Left" VerticalAlignment="Center">Textfarbe</TextBlock>
+        <Controls:SimpleColorChooser Grid.Row="2" Grid.Column="1" DataContext="{Binding ForegroundColor, Mode=TwoWay, UpdateSourceTrigger=Explicit}"/>
+
+        <TextBlock Grid.Row="3" HorizontalAlignment="Left" VerticalAlignment="Center">New Instance</TextBlock>
+        <Button Name="btnAddProperty" Grid.Row="3" Grid.Column="1" Click="btnAddProperty_Click"  VerticalAlignment="Center" HorizontalAlignment="Left">Add Property</Button>
+        
+        <TextBlock Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Center">Properties</TextBlock>
+        <ListBox Name="lbProperties" ItemsSource="{Binding Properties}" Grid.Row="4" Grid.Column="1" >
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Name}"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Button Grid.Row="6" Grid.ColumnSpan="2" Name="btnSave" Click="btnSave_Click" IsDefault="True" HorizontalAlignment="Right" Height="25" Width="70" Content="Save" />
+    </Grid>
+</UserControl>

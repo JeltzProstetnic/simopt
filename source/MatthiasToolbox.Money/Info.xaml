@@ -1,0 +1,28 @@
+﻿<Window x:Class="MatthiasToolbox.Money.Info"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+        WindowStyle="None" 
+        ShowInTaskbar="False" 
+        Topmost="True" 
+        WindowStartupLocation="CenterScreen" 
+        AllowsTransparency="True" 
+        Opacity="1" 
+        VisualOpacityMask="White" 
+        MaxWidth="536" MaxHeight="535" 
+        Width="535" Height="535"
+        Background="Transparent" 
+        MouseDown="Window_MouseDown">
+    <Canvas Name="canvas1" Width="535" Height="535">
+        <Image Width="535" Height="535" Name="image1" Source="/MatthiasToolbox.Money;component/Images/Coin.png" OpacityMask="White"></Image>
+        <Viewbox Name="viewBox1" Width="535" Height="535" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Width="Auto" Height="Auto" Margin="5,5,5,5" HorizontalAlignment="Center" TextAlignment="Center" VerticalAlignment="Center">
+                <TextBlock.Foreground><ImageBrush ImageSource="/MatthiasToolbox.Money;component/Images/metal.jpg" /></TextBlock.Foreground>
+                <TextBlock.Inlines>
+                    <Run FontWeight="Bold" FontSize="32" Text="FinanceManager v1.0" />
+                    <LineBreak />
+                    <Run FontWeight="Bold" FontSize="20" Text="(C) 2010 Matthias Gruber" />
+                </TextBlock.Inlines>
+            </TextBlock>
+        </Viewbox>
+    </Canvas>
+</Window>

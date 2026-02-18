@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{A586114F-2020-42B5-A7FB-06B49D58A193}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MatthiasToolbox.Basics</RootNamespace>
+    <AssemblyName>MatthiasToolbox.Basics</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\MatthiasToolbox.Basics.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>Signature.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>bin\x86\Release\MatthiasToolbox.Basics.XML</DocumentationFile>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>bin\x64\Release\MatthiasToolbox.Basics.XML</DocumentationFile>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Algorithms\LevenshteinDistance.cs" />
+    <Compile Include="Algorithms\MergeSort.cs" />
+    <Compile Include="Attributes\SimSerializationContainerAttribute.cs" />
+    <Compile Include="Datastructures\Cache.cs" />
+    <Compile Include="Datastructures\Collections\ReadOnlyDictionary.cs" />
+    <Compile Include="Datastructures\FibonacciHeap.cs" />
+    <Compile Include="Datastructures\Geometry\Point.cs" />
+    <Compile Include="Datastructures\Geometry\Vector.cs" />
+    <Compile Include="Datastructures\Graph\IGraph.cs" />
+    <Compile Include="Datastructures\Network\IConnection.cs" />
+    <Compile Include="Datastructures\Graph\IEdge.cs" />
+    <Compile Include="Datastructures\Network\INetwork.cs" />
+    <Compile Include="Datastructures\Network\INode.cs" />
+    <Compile Include="Datastructures\Network\IPath.cs" />
+    <Compile Include="Datastructures\Graph\IVertex.cs" />
+    <Compile Include="Datastructures\StateMachine\IState.cs" />
+    <Compile Include="Datastructures\StateMachine\IStateMachine.cs" />
+    <Compile Include="Datastructures\StateMachine\State.cs" />
+    <Compile Include="Datastructures\StateMachine\StateDictionary.cs" />
+    <Compile Include="Datastructures\StateMachine\StateMachine.cs" />
+    <Compile Include="Datastructures\StateMachine\Transition.cs" />
+    <Compile Include="Datastructures\Trees\ITree.cs" />
+    <Compile Include="Datastructures\Trees\ITreeItem.cs" />
+    <Compile Include="Exceptions\IdNotUniqueException.cs" />
+    <Compile Include="Exceptions\InfiniteRecursionException.cs" />
+    <Compile Include="Exceptions\InitializationException.cs" />
+    <Compile Include="Exceptions\ValueAlreadySetException.cs" />
+    <Compile Include="Interfaces\IClearable.cs" />
+    <Compile Include="Interfaces\IColoredUIElement.cs" />
+    <Compile Include="Interfaces\IColors.cs" />
+    <Compile Include="Interfaces\IHierarchyElement.cs" />
+    <Compile Include="Interfaces\IIdentifiable.cs" />
+    <Compile Include="Interfaces\ILayout2D.cs" />
+    <Compile Include="Interfaces\ILINQTable.cs" />
+    <Compile Include="Interfaces\INamedElement.cs" />
+    <Compile Include="Interfaces\IOpacity.cs" />
+    <Compile Include="Interfaces\IPoint2D.cs" />
+    <Compile Include="Interfaces\IPoint3D.cs" />
+    <Compile Include="Interfaces\IPosition.cs" />
+    <Compile Include="Interfaces\IPurgeable.cs" />
+    <Compile Include="Interfaces\ISerializableSimulation.cs" />
+    <Compile Include="Interfaces\ISize.cs" />
+    <Compile Include="Interfaces\ITemplate.cs" />
+    <Compile Include="Interfaces\IText.cs" />
+    <Compile Include="Interfaces\IThickness.cs" />
+    <Compile Include="Interfaces\ITitle.cs" />
+    <Compile Include="Interfaces\ITooltip.cs" />
+    <Compile Include="Interfaces\IUserInterfaceElement.cs" />
+    <Compile Include="Interfaces\IVisibility.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\CaseInvariantStringComparer.cs" />
+    <Compile Include="Utilities\ComparerDirection.cs" />
+    <Compile Include="Utilities\DelegateFactory.cs" />
+    <Compile Include="Utilities\ExceptionHelper.cs" />
+    <Compile Include="Utilities\FilteredEnumerator.cs" />
+    <Compile Include="Utilities\GeneralComparer.cs" />
+    <Compile Include="Utilities\ManipulatedEnumerator.cs" />
+    <Compile Include="Utilities\MultiEnumerable.cs" />
+    <Compile Include="Utilities\MultiEnumerator.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Signature.snk" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

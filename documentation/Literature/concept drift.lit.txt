@@ -1,0 +1,30 @@
+Dries, A., Rückert, U. Adaptive Concept Drift Detection, SIAM International Conference on Data Mining (SDM09) [Anton Dries and Ulrich Rückert, Adaptive Concept Drift Detection, SIAM International Conference on Data Mining (SDM09) PDF]
+
+Klinkenberg, Ralf and Renz, Ingrid: Adaptive Information Filtering: Learning in the Presence of Concept Drifts. In Sahami, Mehran and Craven, Mark and Joachims, Thorsten and McCallum, Andrew (editors), Workshop Notes of the ICML/AAAI-98 Workshop \em Learning for Text Categorization, pages 33--40, Menlo Park, CA, USA, AAAI Press, 1998.
+
+Koychev I. Gradual Forgetting for Adaptation to Concept Drift. In Proceedings of ECAI 2000 Workshop Current Issues in Spatio-Temporal Reasoning. Berlin, Germany, 2000, pp. 101-106.
+
+Schwab I., Pohl W. and Koychev I. Learning to Recommend from Positive Evidence, Proceedings of Intelligent User Interfaces 2000, ACM Press, 241 - 247.
+
+Widmer G. and Kubat M. Learning in the presence of concept drift and hidden contexts. Machine Learning 23, 1996, pp. 69-101.
+
+
+
+Tsymbal, A., The problem of concept drift: Definitions and related work. Technical Report. 2004, Department of Computer Science, Trinity College: Dublin, Ireland. PDF
+Widmer, G., Learning in Dynamically Changing Domains: Recent Contributions of Machine Learning. In Proceedings of the MLNet Workshop on Learning in Dynamically Changing Domains: Theory Revision and Context Dependence Issues, Prague, Czech Republic, 1997. PS
+Zliobaite, I., Learning under Concept Drift: an Overview. Technical Report. 2009, Faculty of Mathematics and Informatics, Vilnius University: Vilnius, Lithuania. PDF
+
+
+
+CIDUE 2011
+IEEE Symposium on Computational Intelligence in Dynamic and Uncertain Environments
+IEEE Symposium Series on Computational Intelligence, April 11-15, 2011, Paris
+http://www.soft-computing.de/CIDUE2011.html
+
+HaCDAIS 2010
+International Workshop on Handling Concept Drift in Adaptive Information Systems: Importance, Challenges and Solutions
+http://wwwis.win.tue.nl/hacdais2010/
+
+
+http://www.generalcadd.com/plugin-1.htm
+http://www.dotsoft.com/dwgsearch.htm

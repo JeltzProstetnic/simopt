@@ -1,0 +1,213 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="..\packages\NUnit.3.11.0\build\NUnit.props" Condition="Exists('..\packages\NUnit.3.11.0\build\NUnit.props')" />
+  <Import Project="..\packages\NUnit3TestAdapter.3.11.2\build\net35\NUnit3TestAdapter.props" Condition="Exists('..\packages\NUnit3TestAdapter.3.11.2\build\net35\NUnit3TestAdapter.props')" />
+  <PropertyGroup>
+    <ProjectGuid>{E8BECFCD-0138-4B48-A36B-9218639FCF51}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>MatthiasToolbox.Test</RootNamespace>
+    <AssemblyName>MatthiasToolbox.Test</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>Signature.snk</AssemblyOriginatorKeyFile>
+    <DelaySign>False</DelaySign>
+    <AssemblyOriginatorKeyMode>File</AssemblyOriginatorKeyMode>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Platform)' == 'x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <DebugSymbols>True</DebugSymbols>
+    <DebugType>Full</DebugType>
+    <Optimize>False</Optimize>
+    <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <DebugSymbols>False</DebugSymbols>
+    <DebugType>None</DebugType>
+    <Optimize>True</Optimize>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <DebugType>Full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>None</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <DebugType>Full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>None</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="Moq">
+      <HintPath>..\..\dependencies\Moq.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework, Version=3.11.0.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\packages\NUnit.3.11.0\lib\net40\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Basics\Collections\ReadOnlyDictionaryTest.cs" />
+    <Compile Include="Basics\Utilities\MultiEnumeratorTest.cs" />
+    <Compile Include="Cryptography\Adler32Test.cs" />
+    <Compile Include="Delta\BinaryCommandTest.cs" />
+    <Compile Include="Delta\BlockedHashSetTest.cs" />
+    <Compile Include="Delta\ConverterTest.cs" />
+    <Compile Include="Delta\DeltaTest.cs" />
+    <Compile Include="Delta\HashtableTest.cs" />
+    <Compile Include="Cryptography\MD4Test.cs" />
+    <Compile Include="Cryptography\MD5Test.cs" />
+    <Compile Include="Delta\MyersDiffTest.cs" />
+    <Compile Include="Cryptography\NETHashesTest.cs" />
+    <Compile Include="DiscreteSimulation\Serialization\Buffer.cs" />
+    <Compile Include="DiscreteSimulation\Serialization\Simulation.cs" />
+    <Compile Include="DiscreteSimulation\Serialization\Sink.cs" />
+    <Compile Include="DiscreteSimulation\Serialization\Source.cs" />
+    <Compile Include="Semantics\Engine\TaxonomyTest.cs" />
+    <Compile Include="Semantics\Engine\OntologyTest.cs" />
+    <Compile Include="Utilities\MockSeedSource.cs" />
+    <Compile Include="Utilities\PostfixStreamTest.cs" />
+    <Compile Include="Cryptography\RIPEMED160Test.cs" />
+    <Compile Include="Delta\SerializationProviderTest.cs" />
+    <Compile Include="Cryptography\SHA1Test.cs" />
+    <Compile Include="Cryptography\SHA256Test.cs" />
+    <Compile Include="Cryptography\SHA384Test.cs" />
+    <Compile Include="Cryptography\SHA512Test.cs" />
+    <Compile Include="Utilities\SlidingStreamWindowTest.cs" />
+    <Compile Include="Delta\TraceTest.cs" />
+    <Compile Include="Delta\TridgellDeltaTest.cs" />
+    <Compile Include="VSCodeGenAccessors.cs" />
+    <Compile Include="Delta\XmlSerializationProviderTest.cs" />
+    <Compile Include="DiscreteSimulation\Engine\EventSchedulerTest.cs" />
+    <Compile Include="DiscreteSimulation\Engine\ModelTest.cs" />
+    <Compile Include="DiscreteSimulation\Engine\PriorityTest.cs" />
+    <Compile Include="DiscreteSimulation\Engine\RandomTest.cs" />
+    <Compile Include="DiscreteSimulation\ExtensionsTest.cs" />
+    <Compile Include="Logging\DefaultLoggerSettingsTest.cs" />
+    <Compile Include="Logging\ExtensionsTest.cs" />
+    <Compile Include="Logging\LoggerTest.cs" />
+    <Compile Include="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Mathematics\Stochastics\DistributionsTest.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Logging\Loggers\" />
+    <Folder Include="Optimization\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MatthiasToolbox.Basics\MatthiasToolbox.Basics.csproj">
+      <Project>{A586114F-2020-42B5-A7FB-06B49D58A193}</Project>
+      <Name>MatthiasToolbox.Basics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Cryptography\MatthiasToolbox.Cryptography.csproj">
+      <Project>{62AB420B-D8C3-4A39-B352-4A6379F17AD1}</Project>
+      <Name>MatthiasToolbox.Cryptography</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Delta\MatthiasToolbox.Delta.csproj">
+      <Project>{870E94DE-04CC-4418-B979-1954114DB5E1}</Project>
+      <Name>MatthiasToolbox.Delta</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Simulation\MatthiasToolbox.Simulation.csproj">
+      <Project>{B1AFB3C1-E1B4-4026-87C5-DD6B58554447}</Project>
+      <Name>MatthiasToolbox.Simulation</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Logging\MatthiasToolbox.Logging.csproj">
+      <Project>{2E84A9E4-4AFF-4C8C-86DF-CF9A2F76E13F}</Project>
+      <Name>MatthiasToolbox.Logging</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Mathematics\MatthiasToolbox.Mathematics.csproj">
+      <Project>{D58A644A-F535-433A-AE39-886205788944}</Project>
+      <Name>MatthiasToolbox.Mathematics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Optimization\MatthiasToolbox.Optimization.csproj">
+      <Project>{889022C7-AC60-4DC3-8C23-5A9860D0363F}</Project>
+      <Name>MatthiasToolbox.Optimization</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Indexer\MatthiasToolbox.Indexer.csproj">
+      <Project>{22197925-1B69-4BA1-92DC-C9D2DDB6E991}</Project>
+      <Name>MatthiasToolbox.Indexer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Semantics\MatthiasToolbox.Semantics.csproj">
+      <Project>{9919CB6A-B891-4312-A7DB-2AC64DCE7C56}</Project>
+      <Name>MatthiasToolbox.Semantics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Statistics\MatthiasToolbox.Statistics.csproj">
+      <Project>{992F79F9-10BE-4B62-BCC0-FCA257F18286}</Project>
+      <Name>MatthiasToolbox.Statistics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MatthiasToolbox.Utilities\MatthiasToolbox.Utilities.csproj">
+      <Project>{B8661FC0-252E-4905-ADB6-6B5F22811756}</Project>
+      <Name>MatthiasToolbox.Utilities</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\NUnit3TestAdapter.3.11.2\build\net35\NUnit3TestAdapter.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\NUnit3TestAdapter.3.11.2\build\net35\NUnit3TestAdapter.props'))" />
+    <Error Condition="!Exists('..\packages\NUnit.3.11.0\build\NUnit.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\NUnit.3.11.0\build\NUnit.props'))" />
+  </Target>
+</Project>

@@ -1,0 +1,4 @@
+1 Best threshold = 0,810000000000001
+1 false positive = 158
+1 false negatives = 5354
+1 Observations: 78010

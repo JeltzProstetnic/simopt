@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Interface Name="OwlDotNetApi.IOwlAnnotationProperty" Collapsed="true">
+    <Position X="1.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlAnnotationProperty.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlXmlParser" Collapsed="true">
+    <Position X="0.5" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlXmlParser.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlClass" Collapsed="true">
+    <Position X="12.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlClass.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlCollection" Collapsed="true">
+    <Position X="17.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlCollection.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlDatatype" Collapsed="true">
+    <Position X="19.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlDatatype.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlDatatypeProperty" Collapsed="true">
+    <Position X="3.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlDatatypeProperty.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlEdge" Collapsed="true">
+    <Position X="24.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIAgAAAAAAQAgIAAAAAAAACAAAAAAAgCAAAAAAAQAAA=</HashCode>
+      <FileName>Interfaces\IOwlEdge.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlGenerator" Collapsed="true">
+    <Position X="0.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgQAAAAgAAAQAAAAAAAAAAAAAAQAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlGenerator.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlGraph" Collapsed="true">
+    <Position X="24.25" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAggAIAAAAAAAAACAAAAAUAAAAAAAAAAAAAIAAIAAA=</HashCode>
+      <FileName>Interfaces\IOwlGraph.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlIndividual" Collapsed="true">
+    <Position X="10.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlIndividual.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlLiteral" Collapsed="true">
+    <Position X="21.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAgAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlLiteral.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlNode" Collapsed="true">
+    <Position X="11.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIAoAAgASIAAgAAACAAAAACAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlNode.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlObjectProperty" Collapsed="true">
+    <Position X="6" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlObjectProperty.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlOntology" Collapsed="true">
+    <Position X="15" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlOntology.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlOntologyProperty" Collapsed="true">
+    <Position X="8.25" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlOntologyProperty.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlParser" Collapsed="true">
+    <Position X="0.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgQAAAEAAAAQAAAAAAAAAAAAAAQAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlParser.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlProperty" Collapsed="true">
+    <Position X="4.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlProperty.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlResource" Collapsed="true">
+    <Position X="10.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlResource.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlRestriction" Collapsed="true">
+    <Position X="12.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlRestriction.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlVisitor" Collapsed="true">
+    <Position X="24.25" Y="2" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlVisitor.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="OwlDotNetApi.IOwlXmlGenerator" Collapsed="true">
+    <Position X="0.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\IOwlXmlGenerator.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

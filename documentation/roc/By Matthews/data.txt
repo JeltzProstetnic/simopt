@@ -1,0 +1,19 @@
+1 Best threshold = 0,816000000000001
+1 false positive = 1271
+1 false negatives = 7578
+1 Observations: 78010
+
+2 Best threshold = 0,35
+2 false positive = 7814
+2 false negatives = 5247
+2 Observations: 78010
+
+3 Best threshold = 0,59
+3 false positive = 4
+3 false negatives = 8952
+3 Observations: 78010
+
+4 Best threshold = 0,53
+4 false positive = 999
+4 false negatives = 6836
+4 Observations: 78010

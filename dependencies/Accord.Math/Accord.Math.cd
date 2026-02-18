@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Accord.Math.Decompositions.CholeskyDecomposition">
+    <Position X="6.25" Y="6.25" Width="2" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAQAAAAAAAAAAAAAAAAAIAAAAACAAgAEAAIQAAAA=</HashCode>
+      <FileName>Decompositions\CholeskyDecomposition.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.Decompositions.EigenvalueDecomposition">
+    <Position X="8.75" Y="0.5" Width="3" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>ICAiAAAAAAAAAAAAAAEAAAQAACIAAAAGEAAAAMBQBCA=</HashCode>
+      <FileName>Decompositions\EigenvalueDecomposition.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.Decompositions.LuDecomposition">
+    <Position X="6.25" Y="3" Width="2" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAgAAABAAAAAAAAAAAJAAAAIIAIAQCAgAAAAAAAAAAA=</HashCode>
+      <FileName>Decompositions\LuDecomposition.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.Decompositions.QrDecomposition">
+    <Position X="6.25" Y="0.5" Width="2" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAAAAAAAAAAIMACQAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Decompositions\QrDecomposition.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.Decompositions.SingularValueDecomposition">
+    <Position X="8.75" Y="4" Width="3" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAABAAAAAACAAAAgAEKAAAAIAAAAAgAAEpIgAAAAAAA=</HashCode>
+      <FileName>Decompositions\SingularValueDecomposition.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.Distance">
+    <Position X="0.5" Y="10" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AgAAAAAAAAAEAAABAAAAAACgAAAAAAAAAAAAAAAABAA=</HashCode>
+      <FileName>Distance.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.HilbertTransform">
+    <Position X="6.25" Y="10" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HilbertTransform.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.Matrix">
+    <Position X="2.75" Y="0.5" Width="2.75" />
+    <TypeIdentifier>
+      <HashCode>AQYCwAAQiVCAygQEkUIXACIIAAQICNARCEABAQtBBAQ=</HashCode>
+      <FileName>Matrix.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.Special">
+    <Position X="0.5" Y="3.75" Width="2" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AgAAAAAACAgAAUAIIAFICGFMwACIAggEgAQCEAAFAAQ=</HashCode>
+      <FileName>Special.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.Tools">
+    <Position X="0.5" Y="0.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAQAAAAAEAAIAAAAAAAYAAABAAQCAAAAAACQ=</HashCode>
+      <FileName>Tools.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Accord.Math.GeneralComparer" BaseTypeListCollapsed="true">
+    <Position X="9.5" Y="10.25" Width="1.75" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAIABAAAAAAAA=</HashCode>
+      <FileName>Tools.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Enum Name="Accord.Math.ComparerDirection">
+    <Position X="9.5" Y="8.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Tools.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

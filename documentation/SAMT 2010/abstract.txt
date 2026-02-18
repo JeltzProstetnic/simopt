@@ -1,0 +1,6 @@
+Practical Token Retrieval and Indexing of CAD Documents via Binary Data
+
+In many commercial applications proprietary file formats make it difficult to access the generated data. In the worst case interoperability is impeded even further by shortcomings in interface technology. The objective of this work is to find out whether it is possible to retrieve textual data from certain binary files in a quality which is sufficient to build a useful index. 
+We propose a method to parse and filter binary data in multiple stages. Besides stop-words, we use whitelists and phonetic as well as phonotactic criteria to cre-ate token data while minimizing noise. The results are promising: with a few simple steps we are able to filter most of the invalid tokens while preserving terms like company names even though they are not in the dictionary.
+
+binary data, indexing, token retrieval, phonotactics, full-text search

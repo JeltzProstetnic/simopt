@@ -1,0 +1,66 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="MatthiasToolbox.Indexer.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="ServiceName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">MatthiasToolbox.Indexer.IndexUpdateService</Value>
+    </Setting>
+    <Setting Name="DataPaths" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"&gt;
+  &lt;string&gt;C:\TestData&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
+    </Setting>
+    <Setting Name="ServiceDisplayName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">MatthiasToolbox Index Update Service</Value>
+    </Setting>
+    <Setting Name="EventLogName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">MatthiasToolbox.Indexer.IndexUpdateService</Value>
+    </Setting>
+    <Setting Name="ServiceStartMode" Type="System.ServiceProcess.ServiceStartMode" Scope="User">
+      <Value Profile="(Default)">Automatic</Value>
+    </Setting>
+    <Setting Name="ServiceAccountType" Type="System.ServiceProcess.ServiceAccount" Scope="User">
+      <Value Profile="(Default)">LocalSystem</Value>
+    </Setting>
+    <Setting Name="IndexConnectionString" Type="System.String" Scope="User">
+      <Value Profile="(Default)">MatthiasToolbox.IndexDatabase.sdf</Value>
+    </Setting>
+    <Setting Name="DocumentResolverPluginName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">DocumentResolverPlugin.dll</Value>
+    </Setting>
+    <Setting Name="IndexUpdatingInterval" Type="System.TimeSpan" Scope="User">
+      <Value Profile="(Default)">1.00:00:00</Value>
+    </Setting>
+    <Setting Name="IndexUpdatingTime" Type="System.DateTime" Scope="User">
+      <Value Profile="(Default)">01/01/0001 01:00:00</Value>
+    </Setting>
+    <Setting Name="ControllerApplication" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="LastUpdate" Type="System.DateTime" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="UseDefaultResolversAsFallback" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="InstallPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Program Files\MatthiasToolbox\Indexer</Value>
+    </Setting>
+    <Setting Name="CurrentDocuments" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="MultiThreadingEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="MaxThreadNumber" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="ReadUncommitted" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ThreadNumber" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
