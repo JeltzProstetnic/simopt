@@ -1,0 +1,10 @@
+﻿<Window x:Class="Vr.WarehouseSimulator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+        <RichTextBox Height="203" HorizontalAlignment="Left" Margin="42,38,0,0" Name="richTextBox1" VerticalAlignment="Top" Width="417" />
+        <Button Content="Start" Height="28" HorizontalAlignment="Left" Margin="338,270,0,0" Name="button1" VerticalAlignment="Top" Width="101" IsEnabled="False" Click="button1_Click" />
+        <Button Content="Build" Height="32" HorizontalAlignment="Left" Margin="234,268,0,0" Name="button2" VerticalAlignment="Top" Width="86" Click="button2_Click" />
+    </Grid>
+</Window>

@@ -1,0 +1,255 @@
+﻿<Window x:Class="MatthiasToolbox.Writer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:MatthiasToolbox.Writer.ViewModel"
+        xmlns:ctrl="http://www.matthiasgruber.com/presentation/controls"
+        Title="MatthiasToolbox.Writer" Height="436" Width="869">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+            <ColumnDefinition Width="5"></ColumnDefinition>
+            <ColumnDefinition Width="2*"></ColumnDefinition>
+            <ColumnDefinition Width="5"></ColumnDefinition>
+            <ColumnDefinition Width="0"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        
+        <Menu Name="menuMain" Grid.Row="0" Grid.ColumnSpan="5">
+            <MenuItem Header="Main">
+                <MenuItem Header="Open"/>
+                <MenuItem Header="Save"/>
+                <MenuItem Header="Save as"/>
+                <Separator />
+                <MenuItem Header="Import"/>
+                <MenuItem Header="Export">
+                    <MenuItem Header="Plaintext"/>
+                    <MenuItem Header="MS Word"/>
+                    <MenuItem Header="Openoffice"/>
+                    <MenuItem Header="Website"/>
+                    <MenuItem Header="PDF"/>
+                    <MenuItem Header="RTF"/>
+                    <MenuItem Header="XML"/>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="Quit"/>
+            </MenuItem>
+            <MenuItem Header="Help">
+                <MenuItem Header="Info"/>
+            </MenuItem>
+        </Menu>
+
+        <ToolBarTray Grid.Row="1" Grid.ColumnSpan="5">
+            <ToolBar>
+                <Button>
+                    <Image Source="/MatthiasToolbox.Writer;component/Images/046.png"></Image>
+                </Button>
+                <Button>
+                    <Image Source="/MatthiasToolbox.Writer;component/Images/096.png"></Image>
+                </Button>
+                <Button>
+                    <Image Source="/MatthiasToolbox.Writer;component/Images/062.png"></Image>
+                </Button>
+            </ToolBar>
+            <ToolBar>
+                <Button>
+                    <Image Source="/MatthiasToolbox.Writer;component/Images/acrobatreader.ico" Width="18" Height="18"></Image>
+                </Button>
+                <Button Click="Button_Click">
+                    <Image Source="/MatthiasToolbox.Writer;component/Images/word.ico" Width="18" Height="18"></Image>
+                </Button>
+            </ToolBar>
+        </ToolBarTray>
+
+        <TabControl Grid.Row="2">
+            <TabItem Header="Stories">
+                <DockPanel>
+                    <ToolBarTray DockPanel.Dock="Top" Grid.Row="1" Grid.ColumnSpan="3">
+                        <ToolBar>
+                            <Button>
+                                <Image Source="/MatthiasToolbox.Writer;component/Images/103.png"></Image>
+                            </Button>
+                            <Button>
+                                <Image Source="/MatthiasToolbox.Writer;component/Images/108.png"></Image>
+                            </Button>
+                            <Button>
+                                <Image Source="/MatthiasToolbox.Writer;component/Images/107.png"></Image>
+                            </Button>
+                            <Button>
+                                <Image Source="/MatthiasToolbox.Writer;component/Images/106.png"></Image>
+                            </Button>
+                            <Button>
+                                <Image Source="/MatthiasToolbox.Writer;component/Images/105.png"></Image>
+                            </Button>
+                        </ToolBar>
+                    </ToolBarTray>
+
+                    <TreeView Name="treeViewStories" ItemsSource="{Binding CurrentProject.RootContainers}">
+                        
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="{x:Type TreeViewItem}">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                                <Setter Property="FontWeight" Value="Normal" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="FontWeight" Value="Bold" />
+                                        <Setter Property="Background" Value="White" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        
+                        <TreeView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Add"></MenuItem>
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
+
+                        <TreeView.Resources>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}" DataType="{x:Type views:ContainerTreeViewModel}">
+                                <Grid>
+                                    <Border BorderBrush="Blue" CornerRadius="5" x:Name="innerBorder">
+                                        <Border.Style>
+                                            <Style TargetType="{x:Type Border}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="BorderThickness" Value="1"/>
+                                                        <Setter Property="BorderBrush" Value="Black"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelectionActive}" Value="True">
+                                                        <Setter Property="BorderThickness" Value="1"/>
+                                                        <Setter Property="BorderBrush" Value="Black"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition MinWidth="19" Width="Auto"></ColumnDefinition>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition MinWidth="5" Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <BulletDecorator Grid.Column="0" Grid.Row="0">
+                                                <BulletDecorator.Style>
+                                                    <Style TargetType="{x:Type BulletDecorator}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="Background" Value="{StaticResource BackBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsSelectionActive}" Value="True">
+                                                                <Setter Property="Background" Value="{StaticResource BackBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </BulletDecorator.Style>
+                                                <BulletDecorator.Bullet>
+                                                    <Ellipse  Margin="5,5,0,0" Width="6" Height="6" VerticalAlignment="Center" Fill="SteelBlue"></Ellipse>
+                                                </BulletDecorator.Bullet>
+                                            </BulletDecorator>
+
+                                            <TextBlock Grid.Column="1" Grid.ColumnSpan="1" Grid.Row="0" Text="{Binding Name}">
+                                              <TextBlock.Style>
+                                                <Style TargetType="{x:Type TextBlock}">
+                                                  <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                      <Setter Property="Background" Value="{StaticResource BackBrush}"/>
+                                                      <Setter Property="Foreground" Value="Black"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelectionActive}" Value="True">
+                                                      <Setter Property="Background" Value="{StaticResource BackBrush}"/>
+                                                      <Setter Property="Foreground" Value="Black"/>
+                                                    </DataTrigger>
+                                                  </Style.Triggers>
+                                                </Style>
+                                              </TextBlock.Style>
+                                            </TextBlock>
+
+                                            <!-- this one is invisible on the right to make the selection area broader -->
+                                            <BulletDecorator Grid.Column="2" Grid.ColumnSpan="1" Grid.Row="0">
+                                                <BulletDecorator.Style>
+                                                    <Style TargetType="{x:Type BulletDecorator}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="Background" Value="{StaticResource BackBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsSelectionActive}" Value="True">
+                                                                <Setter Property="Background" Value="{StaticResource BackBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </BulletDecorator.Style>
+                                                <BulletDecorator.Bullet>
+                                                    <Ellipse  Margin="0,5,0,0" Width="8" Height="8" VerticalAlignment="Center" Fill="Transparent"></Ellipse>
+                                                </BulletDecorator.Bullet>
+                                            </BulletDecorator>
+
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </HierarchicalDataTemplate>
+                        </TreeView.Resources>
+                        
+                    </TreeView>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Chapters">
+                <TreeView Name="treeViewChapters">
+                    <TreeView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Add"></MenuItem>
+                        </ContextMenu>
+                    </TreeView.ContextMenu>
+                </TreeView>
+            </TabItem>
+            <TabItem Header="Actors">
+                <TreeView Name="treeViewActors">
+                    <TreeView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Add"></MenuItem>
+                        </ContextMenu>
+                    </TreeView.ContextMenu>
+                </TreeView>
+            </TabItem>
+            <TabItem Header="Places">
+                <TreeView Name="treeViewPlaces">
+                    <TreeView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Add"></MenuItem>
+                        </ContextMenu>
+                    </TreeView.ContextMenu>
+                </TreeView>
+            </TabItem>
+            <TabItem Header="Times">
+                <TreeView Name="treeViewTimes">
+                    <TreeView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Add"></MenuItem>
+                        </ContextMenu>
+                    </TreeView.ContextMenu>
+                </TreeView>
+            </TabItem>
+        </TabControl>
+        
+        <GridSplitter Grid.Column="1" Grid.Row="2" HorizontalAlignment="Stretch"></GridSplitter>
+        
+        <ctrl:RichTextEditor Name="richTextEditor1" Grid.Row="2" Grid.Column="2"></ctrl:RichTextEditor>
+
+        <GridSplitter Grid.Column="3" Grid.Row="2" HorizontalAlignment="Stretch"></GridSplitter>
+        
+        <StatusBar Grid.Row="3" Grid.ColumnSpan="5">
+            <StatusBarItem>
+                <Label>Ready.</Label>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

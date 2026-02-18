@@ -1,0 +1,146 @@
+﻿// Accord Math Library
+// Accord.NET framework
+// http://www.crsouza.com
+//
+// Copyright © César Souza, 2009
+// cesarsouza at gmail.com
+//
+
+namespace SimOpt.Mathematics.Utilities
+{
+    using System;
+    using SimOpt.Mathematics.Numerics;
+
+	/// <summary>
+	///   Hilbert Transformation
+	/// </summary>
+    /// <remarks>
+    ///   The Fast Hilbert transform is a time-domain to time-domain transformation which
+    ///   shifts the phase of a signal by 90 degrees. Positive frequency components are
+    ///   shifted by +90 degrees, and negative frequency components are shifted by –90
+    ///   degrees. Applying a Hilbert transform to a signal twice in succession shifts
+    ///   the phases of all of the components by 180 degrees, and so produces the negative
+    ///   of the original signal.
+    /// 
+    ///   The hilbert transform may be implemented efficiently using the fast Fourier
+    ///   transform. Following Fourier transformation, the negative frequencies are
+    ///   zeroed. An inverse Fourier transform will then yield a 90-degree-phase-shifted
+    ///   version of the original waveform. Each corresponding pair of samples from these
+    ///   two waveforms are interpreted as Cartesian coordinates for Cartesian-to-polar
+    ///   coordinate conversion. The resulting angular and magnitude values are the
+    ///   instantaneous phase and amplitude values.
+    ///   
+    ///   References:
+    ///    - http://www.scholarpedia.org/article/Hilbert_transform_for_brain_waves
+    /// </remarks>
+	public static class HilbertTransform
+	{
+        /// <summary>
+		///   Performs the transformation over a double[] array.
+		/// </summary>
+		public static void FHT(double[] data, FourierTransform.Direction direction)
+		{
+			int N = data.Length;
+			
+			
+			// Forward operation
+			if (direction == FourierTransform.Direction.Forward)
+			{
+				// Copy the input to a complex array which can be processed
+				//  in the complex domain by the FFT
+				Complex[] cdata = new Complex[N];
+				for (int i = 0; i < N; i++)
+					cdata[i].Re = data[i];
+				
+				// Perform FFT
+				FourierTransform.FFT(cdata, FourierTransform.Direction.Forward);
+
+				//double positive frequencies
+				for (int i = 0; i < (N/2); i++)
+				{
+					cdata[i].Re *= 2.0;
+					cdata[i].Im *= 2.0;
+				}
+				// zero out negative frequencies
+				//  (leaving out the dc component)
+				for (int i = (N/2)+1; i < N; i++)
+				{
+					cdata[i].Re = 0.0;
+					cdata[i].Im = 0.0;
+				}
+				
+				// Reverse the FFT
+				FourierTransform.FFT(cdata, FourierTransform.Direction.Backward);
+
+				// Convert back to our initial double array
+				for (int i = 0; i < N; i++)
+					data[i] = cdata[i].Re;
+			}
+			
+			else // Backward operation
+			{
+				// The inverse Hilbert can be calculated by
+				//  negating the transform and reapplying the
+				//  transformation.
+				//
+				// H^–1{h(t)} = –H{h(t)}
+				
+				for (int i = 0; i < data.Length; i++)
+					data[i] = -data[i];
+				
+				FHT(data, FourierTransform.Direction.Forward);
+			}
+		}
+
+
+        /// <summary>
+        ///   Performs the transformation over a complex[] array.
+        /// </summary>
+		public static void FHT(Complex[] data, FourierTransform.Direction direction)
+		{
+			int N = data.Length;
+			
+			// Forward operation
+			if (direction == FourierTransform.Direction.Forward)
+			{
+				// Makes a copy of the data so we don't lose the
+				//  original information to build our final signal
+				Complex[] shift = new Complex[N];
+				data.CopyTo(shift,0);
+				
+				// Perform FFT
+				FourierTransform.FFT(shift, FourierTransform.Direction.Forward);
+
+				//double positive frequencies
+				for (int i = 0; i < (N/2); i++)
+				{
+					shift[i].Re *= 2.0;
+					shift[i].Im *= 2.0;
+				}
+				// zero out negative frequencies
+				//  (leaving out the dc component)
+				for (int i = (N/2)+1; i < N; i++)
+				{
+					shift[i].Re = 0.0;
+					shift[i].Im = 0.0;
+				}
+				
+				// Reverse the FFT
+				FourierTransform.FFT(shift, FourierTransform.Direction.Backward);
+
+				// Put the Hilbert transform in the Imaginary part
+				//  of the input signal, creating a Analytic Signal
+				for (int i = 0; i < N; i++)
+					data[i].Im = shift[i].Re;
+			}
+			
+			else // Backward operation
+			{
+				// Just discard the imaginary part
+				for (int i = 0; i < data.Length; i++)
+					data[i].Im = 0.0;
+			}
+		}
+		
+	}
+}

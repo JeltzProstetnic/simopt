@@ -1,0 +1,48 @@
+﻿<Window x:Class="Vr.WarehouseSimulator.TestWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TestWindow" Height="300" Width="300" Loaded="Window_Loaded">
+    <Grid>
+        <TabControl>
+            <TabItem Name="tabLayout" Header="Layout">
+                <DataGrid Grid.Column="0" Grid.Row="0" Name="dataGridLayout" AutoGenerateColumns="True" 
+                CanUserAddRows="True" CanUserDeleteRows="True" IsManipulationEnabled="True" 
+                IsTextSearchEnabled="True" MinRowHeight="21">
+                </DataGrid>
+            </TabItem>
+            <TabItem Name="tabGeometry" Header="Geomertry">
+                <DataGrid Grid.Column="0" Grid.Row="0" Name="dataGridGeometry" AutoGenerateColumns="True" 
+                CanUserAddRows="True" CanUserDeleteRows="True" IsManipulationEnabled="True" 
+                IsTextSearchEnabled="True" MinRowHeight="21">
+                </DataGrid>
+            </TabItem>
+            <TabItem Name="tabArticle" Header="Articles">
+                <DataGrid Grid.Column="0" Grid.Row="0" Name="dataGridArticle" AutoGenerateColumns="True" 
+                CanUserAddRows="True" CanUserDeleteRows="True" IsManipulationEnabled="True" 
+                IsTextSearchEnabled="True" MinRowHeight="21">
+                </DataGrid>
+            </TabItem>
+            <TabItem Name="tabOrders" Header="Orders">
+              <DataGrid Grid.Column="0" Grid.Row="0" Name="dataGridOrder" AutoGenerateColumns="True"
+              CanUserAddRows="True" CanUserDeleteRows="True" IsManipulationEnabled="True"
+              IsTextSearchEnabled="True" MinRowHeight="21">
+              </DataGrid>
+            </TabItem>
+            <TabItem Name="tabProcessNodes" Header="ProcessNodes">
+              <DataGrid Grid.Column="0" Grid.Row="0" Name="dataGridPNode" AutoGenerateColumns="True"
+              CanUserAddRows="True" CanUserDeleteRows="True" IsManipulationEnabled="True"
+              IsTextSearchEnabled="True" MinRowHeight="21">
+              </DataGrid>
+            </TabItem>
+            <TabItem Name="tabProcessData" Header="ProcessData">
+              <DataGrid Grid.Column="0" Grid.Row="0" Name="dataGridPData" AutoGenerateColumns="True"
+              CanUserAddRows="True" CanUserDeleteRows="True" IsManipulationEnabled="True"
+              IsTextSearchEnabled="True" MinRowHeight="21">
+              </DataGrid>
+            </TabItem>
+            <TabItem Name="tabProcessTree" Header="ProcessTree">
+              <TreeView Name="processTree1"></TreeView>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

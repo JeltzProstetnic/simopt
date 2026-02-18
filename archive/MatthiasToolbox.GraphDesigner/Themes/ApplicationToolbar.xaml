@@ -1,0 +1,432 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:This="clr-namespace:MatthiasToolbox.GraphDesigner"
+                    xmlns:DiagramDesigner="clr-namespace:MatthiasToolbox.GraphDesigner.DiagramDesigner">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/Shared.xaml"/>
+        <ResourceDictionary Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Themes/ToolBar.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- DataContext has to be set to a GraphControl -->
+    <ToolBar x:Key="GraphControlStandardToolbar" Height="120" Style="{StaticResource GraphControlToolBar}">
+        <!--Mouse Mode-->
+        <GroupBox Header="Mouse" Style="{StaticResource ToolbarGroup}" Margin="5,3,3,3">
+            <StackPanel Grid.Row="1" Orientation="Horizontal">
+                <Button Margin="3" Width="55" Style="{StaticResource ToolBarButtonBaseStyle}"
+                        ToolTip="Pan, zoom and select"
+                        HorizontalContentAlignment="Center"
+                        Command="{x:Static This:GraphControl.SetDefaultMouseMode}"
+                        CommandTarget="{Binding Designer}">
+                    <Button.Content>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="4*"/>
+                                <RowDefinition Height="1*"/>
+                            </Grid.RowDefinitions>
+                            <Image Source="pack://application:,,,/MatthiasToolbox.Presentation;component/Resources/mouse_pointer.png" Width="45"/>
+                            <TextBlock Grid.Row="1" Text="Edit" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+                        </Grid>
+                    </Button.Content>
+                </Button>
+                <StackPanel Orientation="Vertical" Margin="0,2,0,2">
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            ToolTip="Select all elements in a region"
+                            Command="{x:Static This:GraphControl.SetRectangleSelectionMode}"
+                            CommandTarget="{Binding Designer}" >
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.Presentation;component/Resources/selectrect.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Select" VerticalAlignment="Center"  Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            ToolTip="Zoom into a region"
+                            Command="{x:Static ApplicationCommands.Save}"
+                            CommandTarget="{Binding Designer}"
+                            IsEnabled="False">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.Presentation;component/Resources/Zoom.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Zoom" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            ToolTip="Arrange items"
+                            Command="{x:Static ApplicationCommands.Save}"
+                            CommandTarget="{Binding Designer}"
+                            IsEnabled="False">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.Presentation;component/Resources/arrow4way.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Arrange" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+        
+        <!--File-->
+        <GroupBox Header="File" Style="{StaticResource ToolbarGroup}" Margin="5,3,3,3">
+            <StackPanel Grid.Row="1" Orientation="Horizontal">
+                <Button Margin="3" Width="55" Style="{StaticResource ToolBarButtonBaseStyle}"
+                        HorizontalContentAlignment="Center"
+                        Command="{x:Static ApplicationCommands.New}"
+                        CommandTarget="{Binding Designer}">
+                    <Button.Content>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="4*"/>
+                                <RowDefinition Height="1*"/>
+                            </Grid.RowDefinitions>
+                            <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/GenericDocument.png" Width="45"/>
+                            <TextBlock Grid.Row="1" Text="New" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+                        </Grid>
+                    </Button.Content>
+                </Button>
+                <StackPanel Orientation="Vertical" Margin="0,2,0,2">
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static ApplicationCommands.Open}"
+                            CommandTarget="{Binding Designer}"
+                            IsEnabled="False">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/OpenFolder.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Open" VerticalAlignment="Center"  Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static ApplicationCommands.Save}"
+                            CommandTarget="{Binding Designer}"
+                            IsEnabled="False">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/Save.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Save" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static ApplicationCommands.Print}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/Print.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Print" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!--Edit-->
+        <GroupBox Header="Edit" Style="{StaticResource ToolbarGroup}" Margin="3">
+            <StackPanel Grid.Row="1" Orientation="Horizontal">
+                <Button Margin="3" Width="55"
+                        Style="{StaticResource ToolBarButtonBaseStyle}"
+                        Command="{x:Static ApplicationCommands.Paste}"
+                        CommandTarget="{Binding Designer}" IsEnabled="False">
+                    <Button.Content>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="4*"/>
+                                <RowDefinition Height="1*"/>
+                            </Grid.RowDefinitions>
+                            <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/PasteBig.png" Width="45"/>
+                            <TextBlock Grid.Row="1" Text="Paste" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+                        </Grid>
+                    </Button.Content>
+                </Button>
+                <StackPanel Orientation="Vertical" Margin="0,2,0,2">
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static ApplicationCommands.Cut}"
+                            CommandTarget="{Binding Designer}" IsEnabled="False">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/Cut.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Cut" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static ApplicationCommands.Copy}"
+                            CommandTarget="{Binding Designer}" IsEnabled="False">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/Copy.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Copy" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="1" Padding="2" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static ApplicationCommands.Delete}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/Delete.png" Width="16"/>
+                                <TextBlock Margin="3,0,3,0" Text="Delete" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!--Alignment-->
+        <GroupBox Header="Alignment" Style="{StaticResource ToolbarGroup}" Margin="3">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Vertical">
+                    <Border BorderBrush="{StaticResource ToolbarBorderBrush}" BorderThickness="1" CornerRadius="2" Margin="3">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Padding="5" Style="{StaticResource ToolBarButtonBaseStyle}"
+                                    Command="{x:Static DiagramDesigner:DesignerCanvas.AlignLeft}"
+                                    CommandTarget="{Binding Designer}">
+                                <Button.Content>
+                                    <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/AlignObjectsLeft.png" Width="16"/>
+                                </Button.Content>
+                            </Button>
+                            <Button Padding="5" Style="{StaticResource ToolBarButtonBaseStyle}"
+                                    Command="{x:Static DiagramDesigner:DesignerCanvas.AlignHorizontalCenters}"
+                                    CommandTarget="{Binding Designer}">
+                                <Button.Content>
+                                    <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/AlignObjectsCenteredHorizontal.png" Width="16"/>
+                                </Button.Content>
+                            </Button>
+                            <Button Padding="5" Style="{StaticResource ToolBarButtonBaseStyle}"
+                                    Command="{x:Static DiagramDesigner:DesignerCanvas.AlignRight}"
+                                    CommandTarget="{Binding Designer}">
+                                <Button.Content>
+                                    <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/AlignObjectsRight.png" Width="16"/>
+                                </Button.Content>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    <Border BorderBrush="{StaticResource ToolbarBorderBrush}" BorderThickness="1" CornerRadius="2" Margin="3">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Padding="5" Style="{StaticResource ToolBarButtonBaseStyle}"
+                                    Command="{x:Static DiagramDesigner:DesignerCanvas.AlignTop}"
+                                    CommandTarget="{Binding Designer}">
+                                <Button.Content>
+                                    <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/AlignObjectsTop.png" Width="16"/>
+                                </Button.Content>
+                            </Button>
+                            <Button Padding="5" Style="{StaticResource ToolBarButtonBaseStyle}"
+                                    Command="{x:Static DiagramDesigner:DesignerCanvas.AlignVerticalCenters}"
+                                    CommandTarget="{Binding Designer}">
+                                <Button.Content>
+                                    <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/AlignObjectsCenteredVertical.png" Width="16"/>
+                                </Button.Content>
+                            </Button>
+                            <Button Padding="5" Style="{StaticResource ToolBarButtonBaseStyle}"
+                                    Command="{x:Static DiagramDesigner:DesignerCanvas.AlignBottom}"
+                                    CommandTarget="{Binding Designer}">
+                                <Button.Content>
+                                    <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/AlignObjectsBottom.png" Width="16"/>
+                                </Button.Content>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Vertical" Margin="5,0,0,0">
+                    <Button Margin="3" Padding="5" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static DiagramDesigner:DesignerCanvas.DistributeHorizontal}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/DistributeObjectsHorizontal.png" Width="16"/>
+                                <TextBlock Margin="3" Text="Horizontal" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="3" Padding="5" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static DiagramDesigner:DesignerCanvas.DistributeVertical}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/DistributeObjectsVertical.png" Width="16"/>
+                                <TextBlock Margin="3" Text="Vertical" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+                <Line Stroke="{StaticResource ToolbarBorderBrush}" StrokeThickness="1" X1="0" Y1="0" X2="0" Y2="20" Stretch="Fill" HorizontalAlignment="Left"
+              Margin="3,0,0,0" Grid.Column="1"/>
+            </Grid>
+        </GroupBox>
+
+        <!--Arrange-->
+        <GroupBox Header="Arrange" Style="{StaticResource ToolbarGroup}" Margin="3">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <Button Margin="0,3,0,3" Padding="5" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static DiagramDesigner:DesignerCanvas.Group}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/Group.png" Width="16"/>
+                                <TextBlock Margin="3" Text="Group" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="0,3,0,3" Padding="5" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static DiagramDesigner:DesignerCanvas.Ungroup}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/Ungroup.png" Width="16"/>
+                                <TextBlock Margin="3" Text="Ungroup" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="7,0,0,0">
+                    <Button Margin="0,3,0,3" Padding="5" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static DiagramDesigner:DesignerCanvas.BringForward}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/BringForward.png" Width="16"/>
+                                <TextBlock Margin="3" Text="Forward" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="0,3,0,3" Padding="5" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static DiagramDesigner:DesignerCanvas.BringToFront}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/BringToFront.png" Width="16"/>
+                                <TextBlock Margin="3" Text="To Front" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+                <Line Stroke="{StaticResource ToolbarBorderBrush}" 
+                      StrokeThickness="1" X1="0" Y1="0" X2="0" Y2="20" 
+                      Stretch="Fill" HorizontalAlignment="Left"
+                      Grid.Column="1" Margin="3,0,0,0"/>
+                <StackPanel Grid.Column="2">
+                    <Button Margin="0,3,0,3" Padding="5" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static DiagramDesigner:DesignerCanvas.SendBackward}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/SendBackward.png" Width="16"/>
+                                <TextBlock Margin="3" Text="Backward" VerticalAlignment="Center"  Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button Margin="0,3,0,3" Padding="5" HorizontalContentAlignment="Left"
+                            Style="{StaticResource ToolBarButtonBaseStyle}"
+                            Command="{x:Static DiagramDesigner:DesignerCanvas.SendToBack}"
+                            CommandTarget="{Binding Designer}">
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/MatthiasToolbox.GraphDesigner;component/Images/SendToBack.png" Width="16"/>
+                                <TextBlock Margin="3" Text="To Back" VerticalAlignment="Center" Grid.Column="1"/>
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+    </ToolBar>
+</ResourceDictionary>

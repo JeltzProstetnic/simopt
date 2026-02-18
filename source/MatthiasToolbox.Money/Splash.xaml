@@ -1,5 +1,0 @@
-﻿<Window x:Class="MatthiasToolbox.Money.Splash"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" WindowStyle="None" ShowInTaskbar="False" Topmost="True" WindowStartupLocation="CenterScreen" AllowsTransparency="True" Opacity="0.85" Cursor="Wait" VisualOpacityMask="White" MaxWidth="536" MaxHeight="535" Background="Transparent">
-    <Image Source="/MatthiasToolbox.Money;component/Images/Coin.png" OpacityMask="White"></Image>
-</Window>
