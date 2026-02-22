@@ -6,6 +6,7 @@ using SimOpt.Optimization.Interfaces;
 
 namespace SimOpt.Optimization.Strategies.ParticleSwarm
 {
+    [Obsolete("Not implemented. PSO support is planned for a future release.")]
     public class SwarmingAlgorithm : IStrategy
     {
         #region IStrategy Member
