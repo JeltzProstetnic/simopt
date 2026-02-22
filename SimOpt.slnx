@@ -8,4 +8,7 @@
     <Project Path="src/SimOpt.Simulation/SimOpt.Simulation.csproj" />
     <Project Path="src/SimOpt.Statistics/SimOpt.Statistics.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SimOpt.Tests/SimOpt.Tests.csproj" />
+  </Folder>
 </Solution>

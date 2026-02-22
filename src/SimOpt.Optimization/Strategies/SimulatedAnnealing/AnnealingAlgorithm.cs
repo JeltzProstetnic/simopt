@@ -181,7 +181,7 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
 
         protected virtual void OnBestSolutionChanged(BestSolutionChangedEventArgs e)
         {
-            BestSolutionChanged.Invoke(this, e);
+            BestSolutionChanged?.Invoke(this, e);
         }
 
         #endregion

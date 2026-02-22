@@ -57,6 +57,7 @@ namespace SimOpt.Optimization.Strategies.RandomSearch
 
             CurrentConfiguration = parameters as IConfiguration;
             iterationsRemaining = CurrentConfiguration.NumberOfIterations;
+            IsInitialized = true;
             return true;
         }
 
@@ -116,7 +117,7 @@ namespace SimOpt.Optimization.Strategies.RandomSearch
 
         protected virtual void OnBestSolutionChanged(BestSolutionChangedEventArgs e)
         {
-            BestSolutionChanged.Invoke(this, e);
+            BestSolutionChanged?.Invoke(this, e);
         }
 
         #endregion

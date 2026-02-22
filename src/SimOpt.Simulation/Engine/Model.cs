@@ -993,7 +993,7 @@ namespace SimOpt.Simulation.Engine
         /// <param name="evnt"></param>
         public void TryRemoveEvent(IEventInstance evnt)
         {
-            if (evnt.Time != double.NaN) return;
+            if (double.IsNaN(evnt.Time)) return;
             else if (evnt.Time.CompareTo(currentTime) <= 0) return;
             eventScheduler.Remove(evnt);
         }
