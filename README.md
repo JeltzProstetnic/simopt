@@ -58,14 +58,38 @@ Requires [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
 dotnet build SimOpt.slnx
 ```
 
+## Testing
+
+151 tests across 7 domains (xUnit + FluentAssertions):
+
+| Domain | Tests | Coverage |
+|--------|-------|----------|
+| Simulation Engine | 27 | EventScheduler, Model lifecycle |
+| Simulation Templates | 5 | Source-Sink integration |
+| Optimization Strategies | 22 | Random search, SA, EA |
+| State Machine | 10 | State transitions |
+| Mathematics | 30 | Complex numbers, distributions, distances, utilities |
+| Statistics | 15 | ConfusionMatrix metrics |
+| Basics/Geometry | 22 | Point, Vector arithmetic |
+
+```bash
+dotnet test SimOpt.slnx
+```
+
 ## Project Status
 
-SimOpt is under active modernization. The codebase originated as an academic framework (dissertation research) and is being updated for modern .NET. Current focus areas:
+SimOpt is under active modernization. The codebase originated as an academic framework (dissertation research) and is being updated for modern .NET.
 
-- Test infrastructure (xUnit)
-- API cleanup and nullable annotation fixes
-- Additional optimization strategies
-- Documentation improvements
+Completed:
+- .NET 9 SDK-style migration (Phase 1)
+- xUnit test infrastructure with 151 tests (Phase 2-3)
+- 5 bug fixes across Simulation, Optimization, and Basics
+- CI/CD via GitHub Actions
+
+Current focus:
+- Additional optimization strategies (PSO)
+- Nullable annotation cleanup
+- Extended test coverage for Mathematics and template entities
 
 ## Documentation
 

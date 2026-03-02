@@ -67,22 +67,20 @@ public class RandomStrategyTests
     }
 
     [Fact]
-    public void BestSolutionChanged_FiresWhenBetterFound()
+    public void Solve_ProducesDifferentCandidatesAcrossIterations()
     {
-        // NOTE: RandomStrategy passes the same seed to GenerateCandidates every iteration,
-        // producing identical candidates. This means BestSolutionChanged never fires.
-        // This is a latent bug in RandomStrategy (out of Phase 2 scope).
-        // For now, verify the event mechanism works by checking it fires >= 0 times.
+        // With varied seeds, GenerateCandidates should produce different solutions
         var strategy = new RandomStrategy();
-        strategy.Initialize(TestConfiguration.CreateRandom(iterations: 100));
+        strategy.Initialize(TestConfiguration.CreateRandom(iterations: 50));
         var problem = new TestProblem();
-        int changeCount = 0;
+        var fitnesses = new List<double>();
 
-        strategy.BestSolutionChanged += (sender, e) => changeCount++;
+        strategy.BestSolutionChanged += (sender, e) => fitnesses.Add(e.NewValue.Fitness);
 
         strategy.Solve(problem).ToList();
 
-        changeCount.Should().BeGreaterThanOrEqualTo(0);
+        // With 50 random iterations on a sphere function, we should see at least one improvement
+        fitnesses.Should().NotBeEmpty("varied seeds should produce different candidates, triggering at least one improvement");
     }
 
     [Fact]

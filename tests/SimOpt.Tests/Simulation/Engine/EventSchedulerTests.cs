@@ -106,15 +106,14 @@ public class EventSchedulerTests
     }
 
     [Fact]
-    public void Remove_LastEvent_CrashesWithEmptySequence()
+    public void Remove_LastEvent_DoesNotThrow()
     {
-        // Documents a bug: Remove calls .First() on empty eventList
-        // after removing the last event. This should be fixed.
         var evt = CreateEventMock();
         _scheduler.Add(1.0, evt.Object);
 
         var act = () => _scheduler.Remove(evt.Object);
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().NotThrow();
+        _scheduler.EventfulMomentsCount.Should().Be(0);
     }
 
     [Fact]

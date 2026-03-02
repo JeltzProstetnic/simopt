@@ -69,13 +69,14 @@ namespace SimOpt.Optimization.Strategies.RandomSearch
 
         public IEnumerable<ISolution> Solve(IProblem problem)
         {
-            ISolution candidate = problem.GenerateCandidates(CurrentConfiguration.Seed, 1).First();
+            var seedGenerator = new Random(CurrentConfiguration.Seed);
+            ISolution candidate = problem.GenerateCandidates(seedGenerator.Next(), 1).First();
             if (!candidate.HasFitness) problem.Evaluate(candidate);
             ISolution bestSolution = candidate;
 
             while (iterationsRemaining > 0)
             {
-                candidate = problem.GenerateCandidates(CurrentConfiguration.Seed, 1).First();
+                candidate = problem.GenerateCandidates(seedGenerator.Next(), 1).First();
                 if (!candidate.HasFitness) problem.Evaluate(candidate);
                 if (candidate.Fitness > bestSolution.Fitness)
                 {

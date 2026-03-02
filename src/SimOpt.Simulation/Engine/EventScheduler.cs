@@ -246,7 +246,8 @@ namespace SimOpt.Simulation.Engine
             if (tmpEventsAtTheTimeRemove.Count == 0) eventList.Remove(evnt.Time);
 
             // calculate next point in time with events
-            timeOfNextScheduledEvent = eventList.First<KeyValuePair<double, SortedDictionary<Priority, IEventInstance>>>().Key;
+            if (eventList.Count > 0)
+                timeOfNextScheduledEvent = eventList.First<KeyValuePair<double, SortedDictionary<Priority, IEventInstance>>>().Key;
         }
 
         #endregion

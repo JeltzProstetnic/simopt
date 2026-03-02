@@ -242,7 +242,7 @@ namespace SimOpt.Basics.Datastructures.Geometry
         {
             if (other == null) return false;
             return (this.X == other.X && this.Y == other.Y &&
-                (this.Z == other.Z || (double.IsNaN(this.Z) && double.IsNaN(this.Z))));
+                (this.Z == other.Z || (double.IsNaN(this.Z) && double.IsNaN(other.Z))));
         }
 
         public override bool Equals(object obj)
