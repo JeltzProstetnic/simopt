@@ -44,3 +44,4 @@
 - [ ] **SIM-31** Statistics panel + polish: utilization bars per station, throughput, WIP, bottleneck highlighting, zoom/pan, time-lapse mode (size: L)
 - [x] **SIM-32** Realistic factory floor renderer: toggle between schematic and realistic 2D view (size: XL) — concrete floor, metallic machines, rack buffers, dock bays, belt conveyors, iso entities, R-key toggle
 - [ ] **SIM-33** Realistic renderer v2: organic factory layout (non-grid), realistic node sizes, building features (walls, doors, corridors, pillars), walkways between stations (size: L)
+- [ ] **SIM-34** Human agent entity: mobile worker that walks between stations, repairs damaged machines, unsticks conveyors, pulls items from machines/belts. Extends simulation primitives with pathfinding + task queue (size: XL)
