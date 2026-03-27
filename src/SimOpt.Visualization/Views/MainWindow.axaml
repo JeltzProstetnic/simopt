@@ -10,6 +10,7 @@
         Title="SimOpt Visualization"
         Width="960" Height="540"
         MinWidth="700" MinHeight="400"
+        CanResize="True"
         Background="#161620">
 
     <Design.DataContext>
