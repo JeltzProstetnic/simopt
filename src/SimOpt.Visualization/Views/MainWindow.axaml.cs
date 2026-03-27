@@ -47,6 +47,10 @@ public partial class MainWindow : Window
                 vm.DetachControlsCommand.Execute(null);
                 e.Handled = true;
                 break;
+            case Key.R:
+                vm.ToggleRenderModeCommand.Execute(null);
+                e.Handled = true;
+                break;
             case Key.Escape:
                 if (vm.IsFullscreen)
                 {

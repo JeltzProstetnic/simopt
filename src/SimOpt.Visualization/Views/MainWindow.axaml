@@ -48,6 +48,8 @@
 
                 <Border Width="1" Background="#333345" Margin="4,2"/>
 
+                <Button Content="{Binding RenderModeLabel}" Command="{Binding ToggleRenderModeCommand}"
+                        Padding="10,6" FontSize="11" ToolTip.Tip="Toggle render mode (R)"/>
                 <Button Content="⛶" Command="{Binding ToggleFullscreenCommand}"
                         Padding="8,6" FontSize="12" ToolTip.Tip="Fullscreen (F)"/>
                 <Button Content="⇱" Command="{Binding DetachControlsCommand}"

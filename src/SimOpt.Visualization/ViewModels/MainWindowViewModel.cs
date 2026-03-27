@@ -28,6 +28,12 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isFullscreen;
 
+    [ObservableProperty]
+    private bool _isRealistic;
+
+    [ObservableProperty]
+    private string _renderModeLabel = "Realistic";
+
     public SimulationCanvas? Canvas { get; set; }
     public Window? OwnerWindow { get; set; }
 
@@ -71,6 +77,17 @@ public partial class MainWindowViewModel : ViewModelBase
         Canvas?.StopSimulation();
         IsRunning = false;
         StatusText = "Stopped  |  Space=start  -/+=speed  F=fullscreen";
+    }
+
+    [RelayCommand]
+    private void ToggleRenderMode()
+    {
+        if (Canvas == null) return;
+        IsRealistic = !IsRealistic;
+        Canvas.Mode = IsRealistic
+            ? SimOpt.Visualization.Controls.RenderMode.Realistic
+            : SimOpt.Visualization.Controls.RenderMode.Schematic;
+        RenderModeLabel = IsRealistic ? "Schematic" : "Realistic";
     }
 
     [RelayCommand]

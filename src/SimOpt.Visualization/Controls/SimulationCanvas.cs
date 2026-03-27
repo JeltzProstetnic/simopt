@@ -16,6 +16,8 @@ namespace SimOpt.Visualization.Controls;
 /// Phase B: professional industrial/SCADA rendering with gradients, shadows,
 /// conveyor animation, glow effects, legend, and scale bar.
 /// </summary>
+public enum RenderMode { Schematic, Realistic }
+
 public class SimulationCanvas : Control
 {
     private SimulationModel? _sim;
@@ -26,6 +28,14 @@ public class SimulationCanvas : Control
     private int _stepCount;
     private int _frame;
     private int _speedMs = 30;
+    private RenderMode _renderMode = RenderMode.Schematic;
+    private readonly Random _floorRng = new(12345); // deterministic floor tiles
+
+    public RenderMode Mode
+    {
+        get => _renderMode;
+        set { _renderMode = value; InvalidateVisual(); }
+    }
 
     // Throughput tracking
     private int _lastSinkTotal;
@@ -334,55 +344,10 @@ public class SimulationCanvas : Control
         double scale = AutoLayout.ComputeScale(_topology, b.Width, b.Height - 60);
         bool isPhysical = _topology.Nodes.Any(n => n.HasPhysicalPosition);
 
-        // Draw floor grid for physical layouts
-        if (isPhysical)
-            DrawFloorGrid(ctx, b, scale);
-
-        // Draw connections (conveyors for factory, arrows for others)
-        foreach (var conn in _topology.Connections)
-        {
-            if (!_positions.TryGetValue(conn.From, out var p1) || !_positions.TryGetValue(conn.To, out var p2))
-                continue;
-            var fromNode = _topology.Nodes.FirstOrDefault(n => n.Id == conn.From);
-            var toNode = _topology.Nodes.FirstOrDefault(n => n.Id == conn.To);
-            var sz1 = fromNode != null ? AutoLayout.GetNodeSize(fromNode, scale) : new Size(NW, NH);
-            var sz2 = toNode != null ? AutoLayout.GetNodeSize(toNode, scale) : new Size(NW, NH);
-            // Connect from edge of source to edge of target
-            double dx = p2.X - p1.X;
-            double dy = p2.Y - p1.Y;
-            double dist = Math.Sqrt(dx * dx + dy * dy);
-            if (dist < 1) continue;
-            double nx = dx / dist, ny = dy / dist;
-            double x1 = p1.X + nx * sz1.Width / 2;
-            double y1 = p1.Y + ny * sz1.Height / 2;
-            double x2 = p2.X - nx * sz2.Width / 2;
-            double y2 = p2.Y - ny * sz2.Height / 2;
-
-            if (isPhysical)
-                DrawConveyor(ctx, x1, y1, x2, y2);
-            else
-                Arrow(ctx, x1, y1, x2, y2);
-        }
-
-        // Draw entity shapes (colored diamonds)
-        foreach (var dot in _dots)
-        {
-            if (!_positions.TryGetValue(dot.FromId, out var fp) || !_positions.TryGetValue(dot.ToId, out var tp))
-                continue;
-            double x = fp.X + (tp.X - fp.X) * dot.Progress;
-            double y = fp.Y + (tp.Y - fp.Y) * dot.Progress + Math.Sin(dot.Progress * Math.PI * 2) * 3;
-            DrawDiamond(ctx, new Point(x, y), 5, new SolidColorBrush(dot.DotColor), null);
-        }
-
-        // Draw nodes with shadows, gradients, and glow
-        foreach (var node in _topology.Nodes)
-        {
-            if (!_positions.TryGetValue(node.Id, out var pos)) continue;
-            var state = _nodeStates.FirstOrDefault(n => n.Id == node.Id);
-            var sz = AutoLayout.GetNodeSize(node, scale);
-            var rect = new Rect(pos.X - sz.Width / 2, pos.Y - sz.Height / 2, sz.Width, sz.Height);
-            DrawNode(ctx, rect, node, state);
-        }
+        if (_renderMode == RenderMode.Realistic && isPhysical)
+            RenderRealistic(ctx, b, scale);
+        else
+            RenderSchematic(ctx, b, scale, isPhysical);
 
         // Header
         Txt(ctx, $"SimOpt — {_topology.Name}", b.Width / 2, 22, 17, White, true);
@@ -651,6 +616,431 @@ public class SimulationCanvas : Control
         ctx.DrawLine(ScaleBarPen, new Point(bx + barPx, by - 4), new Point(bx + barPx, by + 4));
         // Label
         Txt(ctx, $"{barMeters:F0} m", bx + barPx / 2, by - 10, 9, ScaleBarClr);
+    }
+
+    #endregion
+
+    #region Render Dispatch
+
+    private void RenderSchematic(DrawingContext ctx, Rect b, double scale, bool isPhysical)
+    {
+        if (isPhysical) DrawFloorGrid(ctx, b, scale);
+
+        foreach (var conn in _topology!.Connections)
+        {
+            if (!GetConnectionEndpoints(conn, scale, out var x1, out var y1, out var x2, out var y2)) continue;
+            if (isPhysical) DrawConveyor(ctx, x1, y1, x2, y2);
+            else Arrow(ctx, x1, y1, x2, y2);
+        }
+
+        foreach (var dot in _dots)
+        {
+            if (!_positions.TryGetValue(dot.FromId, out var fp) || !_positions.TryGetValue(dot.ToId, out var tp)) continue;
+            double x = fp.X + (tp.X - fp.X) * dot.Progress;
+            double y = fp.Y + (tp.Y - fp.Y) * dot.Progress + Math.Sin(dot.Progress * Math.PI * 2) * 3;
+            DrawDiamond(ctx, new Point(x, y), 5, new SolidColorBrush(dot.DotColor), null);
+        }
+
+        foreach (var node in _topology.Nodes)
+        {
+            if (!_positions.TryGetValue(node.Id, out var pos)) continue;
+            var state = _nodeStates.FirstOrDefault(n => n.Id == node.Id);
+            var sz = AutoLayout.GetNodeSize(node, scale);
+            var rect = new Rect(pos.X - sz.Width / 2, pos.Y - sz.Height / 2, sz.Width, sz.Height);
+            DrawNode(ctx, rect, node, state);
+        }
+
+        if (isPhysical) DrawScaleBar(ctx, b, scale);
+        DrawLegend(ctx, b, isPhysical);
+    }
+
+    private bool GetConnectionEndpoints(VizConnection conn, double scale,
+        out double x1, out double y1, out double x2, out double y2)
+    {
+        x1 = y1 = x2 = y2 = 0;
+        if (!_positions.TryGetValue(conn.From, out var p1) || !_positions.TryGetValue(conn.To, out var p2)) return false;
+        var fromNode = _topology!.Nodes.FirstOrDefault(n => n.Id == conn.From);
+        var toNode = _topology.Nodes.FirstOrDefault(n => n.Id == conn.To);
+        var sz1 = fromNode != null ? AutoLayout.GetNodeSize(fromNode, scale) : new Size(NW, NH);
+        var sz2 = toNode != null ? AutoLayout.GetNodeSize(toNode, scale) : new Size(NW, NH);
+        double dx = p2.X - p1.X, dy = p2.Y - p1.Y;
+        double dist = Math.Sqrt(dx * dx + dy * dy);
+        if (dist < 1) return false;
+        double nx = dx / dist, ny = dy / dist;
+        x1 = p1.X + nx * sz1.Width / 2; y1 = p1.Y + ny * sz1.Height / 2;
+        x2 = p2.X - nx * sz2.Width / 2; y2 = p2.Y - ny * sz2.Height / 2;
+        return true;
+    }
+
+    #endregion
+
+    #region Realistic Renderer
+
+    // Realistic palette
+    private static readonly IBrush RFloorBase = new SolidColorBrush(Color.FromRgb(58, 58, 62));
+    private static readonly Pen RJointPen = new(new SolidColorBrush(Color.FromRgb(42, 42, 46)), 0.5);
+    private static readonly Pen RBeltRailPen = new(new SolidColorBrush(Color.FromRgb(90, 95, 105)), 2);
+    private static readonly IBrush RBeltSurface = new SolidColorBrush(Color.FromRgb(35, 35, 40));
+    private static readonly Pen RRollerPen = new(new SolidColorBrush(Color.FromRgb(75, 78, 85)), 1.5);
+    private static readonly Pen RHazardPen = new(new SolidColorBrush(Color.FromArgb(60, 255, 200, 0)), 2) { DashStyle = DashStyle.Dash };
+    private static readonly IBrush RMachineCasing = MakeGrad(120, 125, 135, 70, 72, 78);
+    private static readonly IBrush RMachineInset = new SolidColorBrush(Color.FromRgb(40, 42, 48));
+    private static readonly Pen RMachineBorder = new(new SolidColorBrush(Color.FromRgb(100, 105, 115)), 1.5);
+    private static readonly IBrush RDockBay = MakeGrad(80, 85, 92, 55, 58, 64);
+    private static readonly IBrush RDockOpen = new SolidColorBrush(Color.FromRgb(30, 30, 35));
+    private static readonly Pen RDockBorder = new(new SolidColorBrush(Color.FromRgb(90, 95, 100)), 1);
+    private static readonly IBrush RRackSlotEmpty = new SolidColorBrush(Color.FromRgb(45, 48, 55));
+    private static readonly IBrush RRackSlotFull = new SolidColorBrush(Color.FromRgb(70, 130, 180));
+    private static readonly Pen RRackBorder = new(new SolidColorBrush(Color.FromRgb(80, 85, 95)), 1);
+    private static readonly IBrush RLedGreen = new SolidColorBrush(Color.FromRgb(40, 220, 80));
+    private static readonly IBrush RLedAmber = new SolidColorBrush(Color.FromRgb(240, 180, 30));
+    private static readonly IBrush RLedRed = new SolidColorBrush(Color.FromRgb(230, 50, 40));
+    private static readonly IBrush RLedOff = new SolidColorBrush(Color.FromRgb(50, 50, 55));
+    private static readonly IBrush RVignette = new SolidColorBrush(Color.FromArgb(60, 0, 0, 0));
+
+    private void RenderRealistic(DrawingContext ctx, Rect b, double scale)
+    {
+        DrawConcreteFloor(ctx, b, scale);
+        DrawHazardMarkings(ctx, scale);
+
+        // Conveyors (behind nodes)
+        foreach (var conn in _topology!.Connections)
+        {
+            if (!GetConnectionEndpoints(conn, scale, out var x1, out var y1, out var x2, out var y2)) continue;
+            DrawRealisticBelt(ctx, x1, y1, x2, y2);
+        }
+
+        // Entities as 3D boxes
+        foreach (var dot in _dots)
+        {
+            if (!_positions.TryGetValue(dot.FromId, out var fp) || !_positions.TryGetValue(dot.ToId, out var tp)) continue;
+            double x = fp.X + (tp.X - fp.X) * dot.Progress;
+            double y = fp.Y + (tp.Y - fp.Y) * dot.Progress;
+            DrawIsoBox(ctx, new Point(x, y), 7, dot.DotColor);
+        }
+
+        // Nodes
+        foreach (var node in _topology.Nodes)
+        {
+            if (!_positions.TryGetValue(node.Id, out var pos)) continue;
+            var state = _nodeStates.FirstOrDefault(n => n.Id == node.Id);
+            var sz = AutoLayout.GetNodeSize(node, scale);
+            var rect = new Rect(pos.X - sz.Width / 2, pos.Y - sz.Height / 2, sz.Width, sz.Height);
+            DrawRealisticNode(ctx, rect, node, state);
+        }
+
+        // Vignette overlay (darkens edges)
+        DrawVignette(ctx, b);
+        DrawScaleBar(ctx, b, scale);
+    }
+
+    private void DrawConcreteFloor(DrawingContext ctx, Rect b, double scale)
+    {
+        ctx.DrawRectangle(RFloorBase, null, new Rect(0, 0, b.Width, b.Height));
+
+        // Concrete slabs — deterministic per-tile variation
+        double tileSize = Math.Max(30, 2.0 * scale); // ~2m tiles
+        var rng = new Random(12345); // reset each frame for determinism
+        for (double ty = 0; ty < b.Height; ty += tileSize)
+        {
+            for (double tx = 0; tx < b.Width; tx += tileSize)
+            {
+                int v = rng.Next(-8, 9);
+                byte c = (byte)Math.Clamp(58 + v, 40, 75);
+                var tileBrush = new SolidColorBrush(Color.FromRgb(c, c, (byte)(c + 2)));
+                ctx.DrawRectangle(tileBrush, null, new Rect(tx + 0.5, ty + 0.5, tileSize - 1, tileSize - 1));
+            }
+        }
+
+        // Expansion joints
+        for (double ty = 0; ty < b.Height; ty += tileSize)
+            ctx.DrawLine(RJointPen, new Point(0, ty), new Point(b.Width, ty));
+        for (double tx = 0; tx < b.Width; tx += tileSize)
+            ctx.DrawLine(RJointPen, new Point(tx, 0), new Point(tx, b.Height));
+    }
+
+    private void DrawHazardMarkings(DrawingContext ctx, double scale)
+    {
+        foreach (var node in _topology!.Nodes)
+        {
+            if (!node.HasPhysicalPosition || !_positions.TryGetValue(node.Id, out var pos)) continue;
+            if (node.Type != "server") continue;
+            var sz = AutoLayout.GetNodeSize(node, scale);
+            var r = new Rect(pos.X - sz.Width / 2 - 4, pos.Y - sz.Height / 2 - 4, sz.Width + 8, sz.Height + 8);
+            ctx.DrawRectangle(null, RHazardPen, r, 2, 2);
+        }
+    }
+
+    private void DrawRealisticBelt(DrawingContext ctx, double x1, double y1, double x2, double y2)
+    {
+        double dx = x2 - x1, dy = y2 - y1;
+        double dist = Math.Sqrt(dx * dx + dy * dy);
+        if (dist < 5) return;
+        double nx = dx / dist, ny = dy / dist;
+        double px = -ny, py = nx;
+        double hw = 4; // half-width of belt
+
+        // Belt surface
+        var geo = new StreamGeometry();
+        using (var gc = geo.Open())
+        {
+            gc.BeginFigure(new Point(x1 + px * hw, y1 + py * hw), true);
+            gc.LineTo(new Point(x2 + px * hw, y2 + py * hw));
+            gc.LineTo(new Point(x2 - px * hw, y2 - py * hw));
+            gc.LineTo(new Point(x1 - px * hw, y1 - py * hw));
+            gc.EndFigure(true);
+        }
+        ctx.DrawGeometry(RBeltSurface, null, geo);
+
+        // Side rails
+        ctx.DrawLine(RBeltRailPen, new Point(x1 + px * hw, y1 + py * hw), new Point(x2 + px * hw, y2 + py * hw));
+        ctx.DrawLine(RBeltRailPen, new Point(x1 - px * hw, y1 - py * hw), new Point(x2 - px * hw, y2 - py * hw));
+
+        // Animated rollers
+        double rollerSpacing = 12;
+        double offset = (_frame * 1.0) % rollerSpacing;
+        for (double t = offset; t < dist; t += rollerSpacing)
+        {
+            double rx = x1 + nx * t, ry = y1 + ny * t;
+            ctx.DrawLine(RRollerPen,
+                new Point(rx + px * (hw - 1), ry + py * (hw - 1)),
+                new Point(rx - px * (hw - 1), ry - py * (hw - 1)));
+        }
+    }
+
+    private void DrawRealisticNode(DrawingContext ctx, Rect r, VizNode def, NodeState? state)
+    {
+        string label = def.Label ?? def.Id;
+        double fontSize = Math.Min(11, Math.Max(7, r.Height / 6));
+
+        switch (def.Type.ToLowerInvariant())
+        {
+            case "source":
+                DrawDockNode(ctx, r, label, fontSize, true, _frame);
+                break;
+            case "sink":
+                DrawDockNode(ctx, r, label, fontSize, false, _frame);
+                Txt(ctx, $"{state?.Count ?? 0}", r.Center.X, r.Bottom - fontSize - 2,
+                    Math.Max(8, fontSize), White, true, TfMono);
+                break;
+            case "buffer":
+                DrawRackNode(ctx, r, label, fontSize, state);
+                break;
+            case "server":
+                DrawMachineNode(ctx, r, label, fontSize, def, state);
+                break;
+            default:
+                DrawMachineNode(ctx, r, label, fontSize, def, state);
+                break;
+        }
+    }
+
+    private void DrawMachineNode(DrawingContext ctx, Rect r, string label, double fontSize,
+        VizNode def, NodeState? state)
+    {
+        bool busy = state?.Working ?? false;
+        bool dmg = state?.Damaged ?? false;
+
+        // Shadow
+        ctx.DrawRectangle(ShadowBrush, null, new Rect(r.X + 2, r.Y + 2, r.Width, r.Height), 4, 4);
+
+        // Busy glow
+        if (busy)
+        {
+            byte ga = (byte)(20 + 12 * Math.Sin(_frame * 0.15));
+            ctx.DrawRectangle(new SolidColorBrush(Color.FromArgb(ga, 255, 180, 40)), null, r.Inflate(5), 8, 8);
+        }
+
+        // Outer casing — metallic gradient
+        IBrush casing = RMachineCasing;
+        if (def.Color != null)
+            try { casing = MakeGradFromHex(def.Color); } catch { }
+        ctx.DrawRectangle(casing, RMachineBorder, r, 4, 4);
+
+        // Inner work surface
+        var inset = new Rect(r.X + 3, r.Y + 3, r.Width - 6, r.Height - 6);
+        ctx.DrawRectangle(RMachineInset, null, inset, 2, 2);
+
+        // Control panel (small strip at bottom)
+        double panelH = Math.Min(8, r.Height * 0.15);
+        var panel = new Rect(r.X + 3, r.Bottom - panelH - 3, r.Width - 6, panelH);
+        ctx.DrawRectangle(new SolidColorBrush(Color.FromRgb(30, 32, 38)), null, panel, 1, 1);
+
+        // LEDs on control panel
+        double ledY = panel.Center.Y;
+        double ledX = panel.X + 6;
+        double ledR = Math.Min(2.5, panelH / 3);
+        // Power LED
+        ctx.DrawEllipse(RLedGreen, null, new Point(ledX, ledY), ledR, ledR);
+        ledX += ledR * 3;
+        // Status LED
+        IBrush statusLed = dmg ? RLedRed : busy ? RLedAmber : RLedOff;
+        ctx.DrawEllipse(statusLed, null, new Point(ledX, ledY), ledR, ledR);
+        ledX += ledR * 3;
+        // Activity LED (blinks when busy)
+        IBrush actLed = busy && _frame % 6 < 3 ? RLedAmber : RLedOff;
+        ctx.DrawEllipse(actLed, null, new Point(ledX, ledY), ledR, ledR);
+
+        // Label
+        DrawLabel(ctx, label, new Rect(r.X, r.Y, r.Width, r.Height - panelH - 4), fontSize, White);
+    }
+
+    private static void DrawDockNode(DrawingContext ctx, Rect r, string label, double fontSize,
+        bool isSource, int frame)
+    {
+        // Shadow
+        ctx.DrawRectangle(ShadowBrush, null, new Rect(r.X + 2, r.Y + 2, r.Width, r.Height), 3, 3);
+
+        // Bay
+        ctx.DrawRectangle(RDockBay, RDockBorder, r, 3, 3);
+
+        // Open end (darker strip at top for source, bottom for sink)
+        double openH = Math.Min(6, r.Height * 0.12);
+        var openRect = isSource
+            ? new Rect(r.X + 2, r.Y + 2, r.Width - 4, openH)
+            : new Rect(r.X + 2, r.Bottom - openH - 2, r.Width - 4, openH);
+        ctx.DrawRectangle(RDockOpen, null, openRect, 1, 1);
+
+        // Truck bed / interior hatching
+        var interior = new Rect(r.X + 4, r.Y + openH + 4, r.Width - 8, r.Height - openH - 8);
+        ctx.DrawRectangle(new SolidColorBrush(Color.FromRgb(50, 52, 58)), null, interior, 2, 2);
+        var hatchPen = new Pen(new SolidColorBrush(Color.FromRgb(60, 62, 68)), 0.5);
+        for (double hy = interior.Y + 4; hy < interior.Bottom - 2; hy += 5)
+            ctx.DrawLine(hatchPen, new Point(interior.X + 2, hy), new Point(interior.Right - 2, hy));
+
+        // Flashing indicator for source
+        if (isSource && frame % 10 < 5)
+        {
+            var ledBrush = new SolidColorBrush(Color.FromArgb(180, 40, 220, 80));
+            ctx.DrawEllipse(ledBrush, null, new Point(r.Right - 6, r.Top + 6), 3, 3);
+        }
+
+        DrawLabel(ctx, label, r, fontSize, White);
+    }
+
+    private void DrawRackNode(DrawingContext ctx, Rect r, string label, double fontSize, NodeState? state)
+    {
+        // Shadow
+        ctx.DrawRectangle(ShadowBrush, null, new Rect(r.X + 2, r.Y + 2, r.Width, r.Height), 3, 3);
+
+        // Rack body
+        ctx.DrawRectangle(new SolidColorBrush(Color.FromRgb(55, 58, 65)), RRackBorder, r, 3, 3);
+
+        int cnt = state?.Count ?? 0;
+        int cap = state?.Capacity ?? 1;
+        if (cap == int.MaxValue) cap = 20;
+
+        // Compute grid: aim for ~square slots
+        double slotSize = Math.Min(r.Width / 6, r.Height / 8);
+        if (slotSize < 4) slotSize = 4;
+        int cols = Math.Max(1, (int)((r.Width - 6) / (slotSize + 2)));
+        int rows = Math.Max(1, (int)((r.Height - fontSize - 10) / (slotSize + 2)));
+        int totalSlots = Math.Min(cols * rows, cap);
+
+        double gridW = cols * (slotSize + 2) - 2;
+        double gridH = rows * (slotSize + 2) - 2;
+        double startX = r.X + (r.Width - gridW) / 2;
+        double startY = r.Y + 4;
+
+        int filled = Math.Min(cnt, totalSlots);
+        int slotIdx = 0;
+        for (int row = rows - 1; row >= 0; row--)
+        {
+            for (int col = 0; col < cols; col++)
+            {
+                if (slotIdx >= totalSlots) break;
+                double sx = startX + col * (slotSize + 2);
+                double sy = startY + row * (slotSize + 2);
+                bool isFull = slotIdx < filled;
+                var slotBrush = isFull ? RRackSlotFull : RRackSlotEmpty;
+                ctx.DrawRectangle(slotBrush, null, new Rect(sx, sy, slotSize, slotSize), 1, 1);
+                slotIdx++;
+            }
+        }
+
+        // Count text
+        string capTxt = cap < 100 ? $"{cnt}/{cap}" : $"{cnt}";
+        Txt(ctx, capTxt, r.Center.X, r.Bottom - 6, Math.Max(7, fontSize - 1), White, false, TfMono);
+    }
+
+    private static void DrawIsoBox(DrawingContext ctx, Point p, double size, Color baseColor)
+    {
+        byte dr = (byte)Math.Max(0, baseColor.R - 50);
+        byte dg = (byte)Math.Max(0, baseColor.G - 50);
+        byte db = (byte)Math.Max(0, baseColor.B - 50);
+        byte sr = (byte)Math.Max(0, baseColor.R - 30);
+        byte sg = (byte)Math.Max(0, baseColor.G - 30);
+        byte sb = (byte)Math.Max(0, baseColor.B - 30);
+        double s = size * 0.5;
+
+        // Top face (brightest)
+        var top = new StreamGeometry();
+        using (var gc = top.Open())
+        {
+            gc.BeginFigure(new Point(p.X, p.Y - s * 1.2), true);
+            gc.LineTo(new Point(p.X + s, p.Y - s * 0.4));
+            gc.LineTo(new Point(p.X, p.Y + s * 0.2));
+            gc.LineTo(new Point(p.X - s, p.Y - s * 0.4));
+            gc.EndFigure(true);
+        }
+        ctx.DrawGeometry(new SolidColorBrush(baseColor), null, top);
+
+        // Right face
+        var right = new StreamGeometry();
+        using (var gc = right.Open())
+        {
+            gc.BeginFigure(new Point(p.X, p.Y + s * 0.2), true);
+            gc.LineTo(new Point(p.X + s, p.Y - s * 0.4));
+            gc.LineTo(new Point(p.X + s, p.Y + s * 0.3));
+            gc.LineTo(new Point(p.X, p.Y + s * 0.9));
+            gc.EndFigure(true);
+        }
+        ctx.DrawGeometry(new SolidColorBrush(Color.FromRgb(sr, sg, sb)), null, right);
+
+        // Left face (darkest)
+        var left = new StreamGeometry();
+        using (var gc = left.Open())
+        {
+            gc.BeginFigure(new Point(p.X, p.Y + s * 0.2), true);
+            gc.LineTo(new Point(p.X - s, p.Y - s * 0.4));
+            gc.LineTo(new Point(p.X - s, p.Y + s * 0.3));
+            gc.LineTo(new Point(p.X, p.Y + s * 0.9));
+            gc.EndFigure(true);
+        }
+        ctx.DrawGeometry(new SolidColorBrush(Color.FromRgb(dr, dg, db)), null, left);
+    }
+
+    private static void DrawVignette(DrawingContext ctx, Rect b)
+    {
+        double v = 40;
+        // Top
+        ctx.DrawRectangle(new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Color.FromArgb(80, 0, 0, 0), 0), new GradientStop(Colors.Transparent, 1) }
+        }, null, new Rect(0, 0, b.Width, v));
+        // Bottom
+        ctx.DrawRectangle(new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Color.FromArgb(80, 0, 0, 0), 0), new GradientStop(Colors.Transparent, 1) }
+        }, null, new Rect(0, b.Height - v, b.Width, v));
+        // Left
+        ctx.DrawRectangle(new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Color.FromArgb(60, 0, 0, 0), 0), new GradientStop(Colors.Transparent, 1) }
+        }, null, new Rect(0, 0, v, b.Height));
+        // Right
+        ctx.DrawRectangle(new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Color.FromArgb(60, 0, 0, 0), 0), new GradientStop(Colors.Transparent, 1) }
+        }, null, new Rect(b.Width - v, 0, v, b.Height));
     }
 
     #endregion
