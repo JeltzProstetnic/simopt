@@ -18,8 +18,9 @@
     </Design.DataContext>
 
     <DockPanel>
-        <!-- Control bar -->
-        <Border DockPanel.Dock="Bottom" Background="#1C1C2A" Padding="12,8">
+        <!-- Control bar (hideable via F key / detach) -->
+        <Border x:Name="ControlBar" DockPanel.Dock="Bottom" Background="#1C1C2A" Padding="12,8"
+                IsVisible="{Binding ControlBarVisible}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <!-- Topology selector -->
                 <ComboBox ItemsSource="{Binding TopologyNames}"
@@ -37,13 +38,20 @@
                 <Border Width="1" Background="#333345" Margin="4,2"/>
 
                 <Button Content="-" Command="{Binding FasterCommand}"
-                        Padding="8,6" FontSize="12" ToolTip.Tip="Faster"/>
+                        Padding="8,6" FontSize="12" ToolTip.Tip="Faster (-)"/>
                 <TextBlock Text="{Binding Speed, StringFormat='{}{0}ms'}"
                            VerticalAlignment="Center" FontSize="11"
                            Foreground="#8888A4" FontFamily="Cascadia Mono, Consolas, monospace"
                            Width="40" TextAlignment="Center"/>
                 <Button Content="+" Command="{Binding SlowerCommand}"
-                        Padding="8,6" FontSize="12" ToolTip.Tip="Slower"/>
+                        Padding="8,6" FontSize="12" ToolTip.Tip="Slower (+)"/>
+
+                <Border Width="1" Background="#333345" Margin="4,2"/>
+
+                <Button Content="⛶" Command="{Binding ToggleFullscreenCommand}"
+                        Padding="8,6" FontSize="12" ToolTip.Tip="Fullscreen (F)"/>
+                <Button Content="⇱" Command="{Binding DetachControlsCommand}"
+                        Padding="8,6" FontSize="12" ToolTip.Tip="Detach controls (D)"/>
 
                 <Border Width="1" Background="#333345" Margin="4,2"/>
 
