@@ -93,6 +93,95 @@ public class VizTopology
             new() { From = "stage2", To = "finished" }
         }
     };
+
+    /// <summary>
+    /// Electronics assembly factory with physical layout (50m × 30m).
+    /// Two docks → inspection → 3 parallel assembly lines → QC → packing → shipping.
+    /// </summary>
+    public static VizTopology FactoryFloor(int seed = 42) => new()
+    {
+        Name = "Electronics Assembly Factory",
+        Seed = seed,
+        Nodes = new List<VizNode>
+        {
+            // Receiving docks (top)
+            new() { Id = "dock_a", Type = "source", Label = "Dock A\n(PCBs)",
+                X = 8, Y = 2, Width = 4, Height = 3,
+                Params = new() { ["mean_interval"] = 0.75 }, Color = "#4CAF50" },
+            new() { Id = "dock_b", Type = "source", Label = "Dock B\n(Casings)",
+                X = 20, Y = 2, Width = 4, Height = 3,
+                Params = new() { ["mean_interval"] = 0.85 }, Color = "#2196F3" },
+
+            // Incoming buffer
+            new() { Id = "incoming", Type = "buffer", Label = "Incoming\nStaging",
+                X = 14, Y = 6, Width = 5, Height = 3,
+                Params = new() { ["capacity"] = 40 } },
+
+            // Inspection
+            new() { Id = "inspect", Type = "server", Label = "Inspection",
+                X = 14, Y = 11, Width = 5, Height = 3,
+                Params = new() { ["service_time"] = 0.33 } },
+
+            // Pre-assembly buffer
+            new() { Id = "staging", Type = "buffer", Label = "Assembly\nStaging",
+                X = 14, Y = 15.5, Width = 5, Height = 3,
+                Params = new() { ["capacity"] = 30 } },
+
+            // 3 parallel assembly lines
+            new() { Id = "asm1", Type = "server", Label = "Assembly\nLine 1",
+                X = 5, Y = 20, Width = 5, Height = 3,
+                Params = new() { ["service_time"] = 1.5 }, Color = "#FF9800" },
+            new() { Id = "asm2", Type = "server", Label = "Assembly\nLine 2",
+                X = 14, Y = 20, Width = 5, Height = 3,
+                Params = new() { ["service_time"] = 1.5 }, Color = "#FF9800" },
+            new() { Id = "asm3", Type = "server", Label = "Assembly\nLine 3",
+                X = 23, Y = 20, Width = 5, Height = 3,
+                Params = new() { ["service_time"] = 1.5 }, Color = "#FF9800" },
+
+            // QC buffer
+            new() { Id = "qc_buf", Type = "buffer", Label = "QC Queue",
+                X = 14, Y = 24.5, Width = 5, Height = 2,
+                Params = new() { ["capacity"] = 20 } },
+
+            // Quality control
+            new() { Id = "qc", Type = "server", Label = "Quality\nControl",
+                X = 14, Y = 28, Width = 5, Height = 3,
+                Params = new() { ["service_time"] = 0.5 } },
+
+            // Packing
+            new() { Id = "packing", Type = "server", Label = "Packing",
+                X = 14, Y = 33, Width = 5, Height = 3,
+                Params = new() { ["service_time"] = 0.25 } },
+
+            // Shipping dock
+            new() { Id = "shipping", Type = "sink", Label = "Shipping\nDock",
+                X = 14, Y = 38, Width = 6, Height = 3,
+                Color = "#F44336" },
+
+            // Waste bin
+            new() { Id = "waste", Type = "sink", Label = "Waste",
+                X = 28, Y = 11, Width = 3, Height = 2,
+                Color = "#9E9E9E" },
+        },
+        Connections = new List<VizConnection>
+        {
+            new() { From = "dock_a", To = "incoming" },
+            new() { From = "dock_b", To = "incoming" },
+            new() { From = "incoming", To = "inspect" },
+            new() { From = "inspect", To = "staging" },
+            // Parallel assembly
+            new() { From = "staging", To = "asm1" },
+            new() { From = "staging", To = "asm2" },
+            new() { From = "staging", To = "asm3" },
+            new() { From = "asm1", To = "qc_buf" },
+            new() { From = "asm2", To = "qc_buf" },
+            new() { From = "asm3", To = "qc_buf" },
+            // QC → Packing → Shipping
+            new() { From = "qc_buf", To = "qc" },
+            new() { From = "qc", To = "packing" },
+            new() { From = "packing", To = "shipping" },
+        }
+    };
 }
 
 public class VizNode
@@ -105,6 +194,33 @@ public class VizNode
 
     [JsonPropertyName("params")]
     public Dictionary<string, double> Params { get; set; } = new();
+
+    // Physical layout (meters). If set, auto-layout is skipped for this node.
+    [JsonPropertyName("x")]
+    public double? X { get; set; }
+
+    [JsonPropertyName("y")]
+    public double? Y { get; set; }
+
+    [JsonPropertyName("width")]
+    public double? Width { get; set; }
+
+    [JsonPropertyName("height")]
+    public double? Height { get; set; }
+
+    /// <summary>
+    /// Display label override. If null, uses Id.
+    /// </summary>
+    [JsonPropertyName("label")]
+    public string? Label { get; set; }
+
+    /// <summary>
+    /// Color hint for rendering (hex, e.g. "#4CAF50"). Null = default per type.
+    /// </summary>
+    [JsonPropertyName("color")]
+    public string? Color { get; set; }
+
+    public bool HasPhysicalPosition => X.HasValue && Y.HasValue;
 }
 
 public class VizConnection

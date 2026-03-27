@@ -27,13 +27,15 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         "SQSS (Source-Queue-Server-Sink)",
         "Parallel Servers",
-        "Production Line"
+        "Production Line",
+        "Factory Floor (Physical Layout)"
     };
 
     private VizTopology GetSelectedTopology() => SelectedTopology switch
     {
         1 => VizTopology.ParallelServers(),
         2 => VizTopology.ProductionLine(),
+        3 => VizTopology.FactoryFloor(),
         _ => VizTopology.Sqss()
     };
 

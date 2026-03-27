@@ -240,11 +240,34 @@ public class SimulationCanvas : Control
             _lastHeight = b.Height;
         }
 
+        // Compute scale for physical layouts
+        double scale = AutoLayout.ComputeScale(_topology, b.Width, b.Height - 60);
+        bool isPhysical = _topology.Nodes.Any(n => n.HasPhysicalPosition);
+
+        // Draw floor grid for physical layouts
+        if (isPhysical)
+            DrawFloorGrid(ctx, b, scale);
+
         // Draw connections (arrows)
         foreach (var conn in _topology.Connections)
         {
-            if (_positions.TryGetValue(conn.From, out var p1) && _positions.TryGetValue(conn.To, out var p2))
-                Arrow(ctx, p1.X + NW / 2, p1.Y, p2.X - NW / 2, p2.Y);
+            if (!_positions.TryGetValue(conn.From, out var p1) || !_positions.TryGetValue(conn.To, out var p2))
+                continue;
+            var fromNode = _topology.Nodes.FirstOrDefault(n => n.Id == conn.From);
+            var toNode = _topology.Nodes.FirstOrDefault(n => n.Id == conn.To);
+            var sz1 = fromNode != null ? AutoLayout.GetNodeSize(fromNode, scale) : new Size(NW, NH);
+            var sz2 = toNode != null ? AutoLayout.GetNodeSize(toNode, scale) : new Size(NW, NH);
+            // Connect from edge of source to edge of target
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            if (dist < 1) continue;
+            double nx = dx / dist, ny = dy / dist;
+            double x1 = p1.X + nx * sz1.Width / 2;
+            double y1 = p1.Y + ny * sz1.Height / 2;
+            double x2 = p2.X - nx * sz2.Width / 2;
+            double y2 = p2.Y - ny * sz2.Height / 2;
+            Arrow(ctx, x1, y1, x2, y2);
         }
 
         // Draw dots
@@ -252,17 +275,18 @@ public class SimulationCanvas : Control
         {
             if (!_positions.TryGetValue(dot.FromId, out var fp) || !_positions.TryGetValue(dot.ToId, out var tp))
                 continue;
-            double x = (fp.X + NW / 2) + ((tp.X - NW / 2) - (fp.X + NW / 2)) * dot.Progress;
-            double y = (fp.Y + tp.Y) / 2 + Math.Sin(dot.Progress * Math.PI * 2) * 4;
+            double x = fp.X + (tp.X - fp.X) * dot.Progress;
+            double y = fp.Y + (tp.Y - fp.Y) * dot.Progress + Math.Sin(dot.Progress * Math.PI * 2) * 3;
             ctx.DrawEllipse(DotClr, DPen, new Point(x, y), 4, 4);
         }
 
-        // Draw nodes
+        // Draw nodes with physical sizes
         foreach (var node in _topology.Nodes)
         {
             if (!_positions.TryGetValue(node.Id, out var pos)) continue;
             var state = _nodeStates.FirstOrDefault(n => n.Id == node.Id);
-            var rect = new Rect(pos.X - NW / 2, pos.Y - NH / 2, NW, NH);
+            var sz = AutoLayout.GetNodeSize(node, scale);
+            var rect = new Rect(pos.X - sz.Width / 2, pos.Y - sz.Height / 2, sz.Width, sz.Height);
             DrawNode(ctx, rect, node, state);
         }
 
@@ -289,56 +313,97 @@ public class SimulationCanvas : Control
 
     private void DrawNode(DrawingContext ctx, Rect r, VizNode def, NodeState? state)
     {
+        // Custom color from node definition
+        IBrush? customBrush = null;
+        if (def.Color != null)
+        {
+            try { customBrush = new SolidColorBrush(Color.Parse(def.Color)); } catch { }
+        }
+
+        string label = def.Label ?? def.Id;
+        // Adjust font size based on node size (smaller nodes = smaller text)
+        double fontSize = Math.Min(11, Math.Max(7, r.Height / 6));
+
         switch (def.Type.ToLowerInvariant())
         {
             case "source":
-                ctx.DrawRectangle(SourceFill, NPen, r, 10, 10);
-                Txt(ctx, "SOURCE", r.Center.X, r.Center.Y - 10, 11, White, true);
-                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 8, 9, Dim);
-                if (_frame % 8 < 4) // pulse
-                    ctx.DrawEllipse(DotClr, null, new Point(r.Right - 10, r.Top + 10), 4, 4);
+                ctx.DrawRectangle(customBrush ?? SourceFill, NPen, r, 8, 8);
+                DrawLabel(ctx, label, r, fontSize, White);
+                if (_frame % 8 < 4)
+                    ctx.DrawEllipse(DotClr, null, new Point(r.Right - 8, r.Top + 8), 3, 3);
                 break;
 
             case "buffer":
-                ctx.DrawRectangle(QueueEmpty, NPen, r, 5, 5);
+                ctx.DrawRectangle(QueueEmpty, NPen, r, 4, 4);
                 int cnt = state?.Count ?? 0;
                 int cap = state?.Capacity ?? 1;
                 double fill = cap > 0 ? (double)cnt / cap : 0;
                 if (fill > 0)
                 {
-                    var br = fill > 0.8 ? QueueCritical : QueueFill;
+                    var br = fill > 0.8 ? QueueCritical : (customBrush ?? QueueFill);
                     double fh = (r.Height - 4) * Math.Min(1.0, fill);
                     ctx.DrawRectangle(br, null, new Rect(r.X + 2, r.Bottom - 2 - fh, r.Width - 4, fh), 2, 2);
                 }
-                Txt(ctx, "BUFFER", r.Center.X, r.Center.Y - 10, 11, White, true);
-                Txt(ctx, cap < int.MaxValue ? $"{cnt}/{cap}" : $"{cnt}", r.Center.X, r.Center.Y + 8, 10, White, false, TfMono);
-                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 22, 8, Dim);
+                DrawLabel(ctx, label, r, fontSize, White);
+                string capTxt = cap < int.MaxValue ? $"{cnt}/{cap}" : $"{cnt}";
+                Txt(ctx, capTxt, r.Center.X, r.Bottom - 8, Math.Max(7, fontSize - 2), White, false, TfMono);
                 break;
 
             case "server":
                 bool busy = state?.Working ?? false;
                 bool dmg = state?.Damaged ?? false;
-                var bg = dmg ? ServerDamaged : busy ? ServerBusy : ServerIdle;
-                ctx.DrawRectangle(bg, NPen, r, 10, 10);
-                Txt(ctx, "SERVER", r.Center.X, r.Center.Y - 10, 11, White, true);
-                string st = dmg ? "DMG" : busy ? "BUSY" : "IDLE";
-                Txt(ctx, st, r.Center.X, r.Center.Y + 8, 10, busy ? White : Dim, false, TfMono);
-                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 22, 8, Dim);
+                IBrush bg = dmg ? ServerDamaged : busy ? (customBrush ?? ServerBusy) : ServerIdle;
+                ctx.DrawRectangle(bg, NPen, r, 8, 8);
+                DrawLabel(ctx, label, r, fontSize, White);
+                // Status dot: green=idle, orange=busy, red=damaged
+                var dotColor = dmg ? ServerDamaged : busy ? ServerBusy : DotClr;
+                ctx.DrawEllipse(dotColor, null, new Point(r.Right - 8, r.Top + 8), 4, 4);
                 break;
 
             case "sink":
-                ctx.DrawRectangle(SinkFill, NPen, r, 10, 10);
-                Txt(ctx, "SINK", r.Center.X, r.Center.Y - 10, 11, White, true);
-                Txt(ctx, $"{state?.Count ?? 0}", r.Center.X, r.Center.Y + 8, 13, White, true, TfMono);
-                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 22, 8, Dim);
+                ctx.DrawRectangle(customBrush ?? SinkFill, NPen, r, 8, 8);
+                DrawLabel(ctx, label, r, fontSize, White);
+                Txt(ctx, $"{state?.Count ?? 0}", r.Center.X, r.Bottom - 8, Math.Max(8, fontSize), White, true, TfMono);
                 break;
 
             default:
-                ctx.DrawRectangle(ServerIdle, NPen, r, 6, 6);
-                Txt(ctx, def.Type.ToUpperInvariant(), r.Center.X, r.Center.Y - 6, 11, White, true);
-                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 10, 9, Dim);
+                ctx.DrawRectangle(customBrush ?? ServerIdle, NPen, r, 6, 6);
+                DrawLabel(ctx, label, r, fontSize, White);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Draw multi-line label centered in a node rectangle.
+    /// </summary>
+    private static void DrawLabel(DrawingContext ctx, string label, Rect r, double fontSize, IBrush brush)
+    {
+        var lines = label.Split('\n');
+        double lineH = fontSize + 2;
+        double startY = r.Center.Y - (lines.Length * lineH) / 2 + lineH / 2;
+        bool first = true;
+        foreach (var line in lines)
+        {
+            Txt(ctx, line.Trim(), r.Center.X, startY, fontSize, brush, first);
+            startY += lineH;
+            first = false;
+        }
+    }
+
+    private static readonly IBrush GridBrush = new SolidColorBrush(Color.FromRgb(30, 30, 42));
+    private static readonly Pen GridPen = new(GridBrush, 0.5);
+
+    private void DrawFloorGrid(DrawingContext ctx, Rect bounds, double scale)
+    {
+        // Draw subtle grid lines representing 5m intervals
+        double gridStep = 5.0 * scale; // 5 meters in pixels
+        if (gridStep < 20) gridStep = 10.0 * scale;
+        if (gridStep < 10) return; // too dense
+
+        for (double x = 60; x < bounds.Width - 60; x += gridStep)
+            ctx.DrawLine(GridPen, new Point(x, 60), new Point(x, bounds.Height - 55));
+        for (double y = 60; y < bounds.Height - 55; y += gridStep)
+            ctx.DrawLine(GridPen, new Point(60, y), new Point(bounds.Width - 60, y));
     }
 
     private static void Arrow(DrawingContext ctx, double x1, double y1, double x2, double y2)
