@@ -1,6 +1,7 @@
 using Moq;
 using SimOpt.Optimization.Interfaces;
 using SimOpt.Optimization.Strategies.Evolutionary;
+using SimOpt.Optimization.Strategies.ParticleSwarm;
 using SimOpt.Optimization.Strategies.SimulatedAnnealing;
 
 namespace SimOpt.Tests.Helpers;
@@ -124,6 +125,32 @@ public static class TestConfiguration
             (List<ISolution> children, List<ISolution> parents, List<ISolution> elite) =>
                 children.Concat(parents).OrderByDescending(s => s.Fitness).Take(populationSize).AsEnumerable());
 
+        config.Setup(c => c.CompareTo(It.IsAny<ISolution>())).Returns(0);
+        config.Setup(c => c.Clone()).Returns(() => config.Object);
+        return config.Object;
+    }
+
+    /// <summary>
+    /// Creates a minimal IParticleSwarmConfiguration.
+    /// </summary>
+    public static IParticleSwarmConfiguration CreatePso(
+        int seed = 42,
+        int iterations = 50,
+        int swarmSize = 20,
+        double inertiaWeight = 0.7,
+        double cognitiveCoefficient = 2.0,
+        double socialCoefficient = 2.0)
+    {
+        var config = new Mock<IParticleSwarmConfiguration>();
+        config.SetupProperty(c => c.Seed, seed);
+        config.SetupProperty(c => c.NumberOfIterations, iterations);
+        config.SetupProperty(c => c.NumberOfEvaluations, iterations * swarmSize);
+        config.SetupProperty(c => c.Fitness, -double.MaxValue);
+        config.SetupProperty(c => c.HasFitness, false);
+        config.SetupProperty(c => c.SwarmSize, swarmSize);
+        config.SetupProperty(c => c.InertiaWeight, inertiaWeight);
+        config.SetupProperty(c => c.CognitiveCoefficient, cognitiveCoefficient);
+        config.SetupProperty(c => c.SocialCoefficient, socialCoefficient);
         config.Setup(c => c.CompareTo(It.IsAny<ISolution>())).Returns(0);
         config.Setup(c => c.Clone()).Returns(() => config.Object);
         return config.Object;

@@ -188,4 +188,93 @@ public class EventSchedulerTests
         _scheduler.EventCounter.Should().Be(0);
         _scheduler.HandlerCounter.Should().Be(0);
     }
+
+    // SIM-05: Remove duplicate-priority edge cases
+
+    [Fact]
+    public void Remove_SamePriorityNumber_RemovesCorrectEvent()
+    {
+        // Two events at same time with same priority number — each gets unique AddedOrder
+        var evt1 = CreateEventMock("E1", 5);
+        var evt2 = CreateEventMock("E2", 5);
+
+        _scheduler.Add(1.0, evt1.Object);
+        _scheduler.Add(1.0, evt2.Object);
+        _scheduler.EventfulMomentsCount.Should().Be(1);
+
+        _scheduler.Remove(evt1.Object);
+
+        // evt2 should still be scheduled — process and verify it fires
+        var fired = new List<string>();
+        evt2.Setup(e => e.Raise()).Callback(() => fired.Add("E2"));
+
+        _scheduler.ProcessNextPointInTime();
+        fired.Should().Equal("E2");
+    }
+
+    [Fact]
+    public void Remove_SharedPriorityObject_BothEventsPreserved()
+    {
+        // Two events sharing the SAME Priority object — second Add must not overwrite first
+        var sharedPriority = new Priority(0, PriorityType.User);
+        var evt1 = new Mock<IEventInstance>();
+        evt1.SetupProperty(e => e.Time);
+        evt1.Setup(e => e.Priority).Returns(sharedPriority);
+        evt1.Setup(e => e.Name).Returns("E1");
+        evt1.Setup(e => e.HandlerCount).Returns(1);
+        evt1.Setup(e => e.Log).Returns(false);
+
+        var evt2 = new Mock<IEventInstance>();
+        evt2.SetupProperty(e => e.Time);
+        evt2.Setup(e => e.Priority).Returns(sharedPriority);
+        evt2.Setup(e => e.Name).Returns("E2");
+        evt2.Setup(e => e.HandlerCount).Returns(1);
+        evt2.Setup(e => e.Log).Returns(false);
+
+        _scheduler.Add(1.0, evt1.Object);
+        _scheduler.Add(1.0, evt2.Object);
+
+        // Both events should be scheduled, not just the second one
+        var fired = new List<string>();
+        evt1.Setup(e => e.Raise()).Callback(() => fired.Add("E1"));
+        evt2.Setup(e => e.Raise()).Callback(() => fired.Add("E2"));
+
+        _scheduler.ProcessNextPointInTime();
+        fired.Should().Contain("E1");
+        fired.Should().Contain("E2");
+        fired.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Remove_SharedPriority_RemovesOnlyTargetEvent()
+    {
+        // With shared Priority, removing one event must not affect the other
+        var sharedPriority = new Priority(0, PriorityType.User);
+        var evt1 = new Mock<IEventInstance>();
+        evt1.SetupProperty(e => e.Time);
+        evt1.Setup(e => e.Priority).Returns(sharedPriority);
+        evt1.Setup(e => e.Name).Returns("E1");
+        evt1.Setup(e => e.HandlerCount).Returns(1);
+        evt1.Setup(e => e.Log).Returns(false);
+
+        var evt2 = new Mock<IEventInstance>();
+        evt2.SetupProperty(e => e.Time);
+        evt2.Setup(e => e.Priority).Returns(sharedPriority);
+        evt2.Setup(e => e.Name).Returns("E2");
+        evt2.Setup(e => e.HandlerCount).Returns(1);
+        evt2.Setup(e => e.Log).Returns(false);
+
+        _scheduler.Add(1.0, evt1.Object);
+        _scheduler.Add(1.0, evt2.Object);
+
+        _scheduler.Remove(evt1.Object);
+
+        // Only evt2 should fire
+        var fired = new List<string>();
+        evt2.Setup(e => e.Raise()).Callback(() => fired.Add("E2"));
+        evt1.Setup(e => e.Raise()).Callback(() => fired.Add("E1"));
+
+        _scheduler.ProcessNextPointInTime();
+        fired.Should().Equal("E2");
+    }
 }

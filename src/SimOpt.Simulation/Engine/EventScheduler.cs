@@ -82,6 +82,7 @@ namespace SimOpt.Simulation.Engine
         private SortedDictionary<Priority, IEventInstance> tmpEventsAtTheTimeAdd;
         private SortedDictionary<Priority, IEventInstance> tmpEventsAtTheTimeRemove;
         private List<IEventInstance> tmpHandledEvents;
+        private Dictionary<IEventInstance, Priority> eventKeyMap;
         private KeyValuePair<double, SortedDictionary<Priority, IEventInstance>> tmpPointInTime;
         private double timeOfNextScheduledEvent = double.MaxValue;
         private bool logging = true;
@@ -177,6 +178,7 @@ namespace SimOpt.Simulation.Engine
             immediateList = new SortedDictionary<Priority, IEventInstance>();
 #endif
             tmpHandledEvents = new List<IEventInstance>();
+            eventKeyMap = new Dictionary<IEventInstance, Priority>();
         }
 
         #endregion
@@ -202,9 +204,12 @@ namespace SimOpt.Simulation.Engine
                 eventList.Add(time, tmpEventsAtTheTimeAdd);
             }
 
-            // add event to the list for this point in time
-            evnt.Priority.AddedOrder = orderCounter++;
-            tmpEventsAtTheTimeAdd[evnt.Priority] = evnt;
+            // clone priority as key to prevent shared-reference corruption (SIM-05)
+            var storedKey = (Priority)evnt.Priority.Clone();
+            storedKey.AddedOrder = orderCounter++;
+            evnt.Priority.AddedOrder = storedKey.AddedOrder;
+            tmpEventsAtTheTimeAdd[storedKey] = evnt;
+            eventKeyMap[evnt] = storedKey;
 
             // (re)calculate next point in time with events
             timeOfNextScheduledEvent = Math.Min(time, timeOfNextScheduledEvent);
@@ -239,10 +244,11 @@ namespace SimOpt.Simulation.Engine
         /// <param name="evnt"></param>
         public void Remove(IEventInstance evnt)
         {
-            if (!eventList.ContainsKey(evnt.Time)) return;
-            tmpEventsAtTheTimeRemove = eventList[evnt.Time];
-            if (!tmpEventsAtTheTimeRemove.ContainsKey(evnt.Priority)) return;
-            tmpEventsAtTheTimeRemove.Remove(evnt.Priority);
+            // use reverse index for identity-based removal (SIM-05)
+            if (!eventKeyMap.TryGetValue(evnt, out var storedKey)) return;
+            if (!eventList.TryGetValue(evnt.Time, out tmpEventsAtTheTimeRemove)) return;
+            tmpEventsAtTheTimeRemove.Remove(storedKey);
+            eventKeyMap.Remove(evnt);
             if (tmpEventsAtTheTimeRemove.Count == 0) eventList.Remove(evnt.Time);
 
             // calculate next point in time with events
@@ -277,9 +283,21 @@ namespace SimOpt.Simulation.Engine
             processing = false;
             if (model.IsInterruptRequested)
             {
-                foreach (IEventInstance ei in tmpHandledEvents) tmpEventsAtTheTime.Remove(ei.Priority);
+                // remove only handled events from inner dict and reverse index
+                foreach (IEventInstance ei in tmpHandledEvents)
+                {
+                    if (eventKeyMap.TryGetValue(ei, out var key))
+                        tmpEventsAtTheTime.Remove(key);
+                    eventKeyMap.Remove(ei);
+                }
                 if (tmpEventsAtTheTime.Count == 0) eventList.Remove(now);
-            } else eventList.Remove(now);
+            }
+            else
+            {
+                // all events at this time were processed — clean up reverse index
+                foreach (var evnt in tmpEventsAtTheTime.Values) eventKeyMap.Remove(evnt);
+                eventList.Remove(now);
+            }
 
 #if ImmediateEvents
             processingImmediate = true;
@@ -326,6 +344,7 @@ namespace SimOpt.Simulation.Engine
             processing = false;
             orderCounter = 0;
             eventList.Clear();
+            eventKeyMap.Clear();
 #if ImmediateEvents
             processingImmediate = false;
             immediateList.Clear();

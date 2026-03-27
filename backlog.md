@@ -2,17 +2,17 @@
 
 ## P1 — High Priority
 
-- [ ] **SIM-01** Fix EventScheduler.Remove last event (size: S) — **DONE Phase 3**
-- [ ] **SIM-02** Fix RandomStrategy same-seed-every-iteration (size: S) — **DONE Phase 3**
-- [ ] **SIM-03** Fix Vector.Equals NaN Z comparison bug (size: S) — **DONE Phase 3**
-- [ ] **SIM-04** Implement PSO (Particle Swarm Optimization) as IStrategy (size: L) — SwarmingAlgorithm is marked [Obsolete], needs proper implementation
-- [ ] **SIM-05** Fix EventScheduler.Remove duplicate-priority edge case (size: M) — Remove only removes by priority key, not by identity; two events at same time+priority are indistinguishable
+- [x] **SIM-01** Fix EventScheduler.Remove last event (size: S) — Phase 3
+- [x] **SIM-02** Fix RandomStrategy same-seed-every-iteration (size: S) — Phase 3
+- [x] **SIM-03** Fix Vector.Equals NaN Z comparison bug (size: S) — Phase 3
+- [x] **SIM-04** Implement PSO (Particle Swarm Optimization) as IStrategy (size: L) — Phase 4: ParticleSwarmOptimization with IParticleSwarmConfiguration, 11 tests
+- [x] **SIM-05** Fix EventScheduler.Remove duplicate-priority edge case (size: M) — Phase 4: clone Priority keys + reverse index for identity-based removal, 3 tests
 
 ## P2 — Medium Priority
 
-- [ ] **SIM-06** Expand test coverage: Buffer template (size: M) — FIFO/LIFO/priority/random selection, capacity, rejection
-- [ ] **SIM-07** Expand test coverage: Server template (size: L) — state machine, failure/recovery, auto-restart
-- [ ] **SIM-08** Expand test coverage: Conveyor template (size: M) — indexed sections, item attachment
+- [x] **SIM-06** Expand test coverage: Buffer template (size: M) — Phase 4
+- [x] **SIM-07** Expand test coverage: Server template (size: L) — Phase 4 (integration tests deferred: ConnectTo type constraints)
+- [x] **SIM-08** Expand test coverage: Conveyor template (size: M) — Phase 4
 - [ ] **SIM-09** Expand test coverage: more distributions (size: M) — Gaussian, NegExponential, Poisson, Erlang
 - [ ] **SIM-10** Expand test coverage: graph/pathfinding algorithms (size: L) — Dijkstra, Floyd-Warshall, A*
 - [ ] **SIM-11** Expand test coverage: matrix decompositions (size: M) — Cholesky, LU, QR, SVD
