@@ -119,7 +119,7 @@ public class SimulationModel
             {
                 double serviceTime = node.Params.GetValueOrDefault("service_time", 1.0);
                 var dist = new ConstantDoubleDistribution(serviceTime, false);
-                var server = new SimpleServer(_model, dist, name: node.Id);
+                var server = new SimpleServer(_model, dist, name: node.Id, autoStartDelay: 0.0);
                 server.AutoContinue = true;
                 return server;
             }
@@ -143,10 +143,14 @@ public class SimulationModel
         {
             source.ConnectTo(sink1);
         }
-        // Server pulls from buffer
+        // Server pulls from buffer + start server when items arrive
         else if (to is SimpleServer server && from is SimpleBuffer buffer)
         {
             server.ConnectTo(buffer);
+            buffer.ItemReceivedEvent.AddHandler((sender, item) =>
+            {
+                if (server.Idle) server.Start();
+            });
         }
         // Sink pulls from server
         else if (to is SimpleSink sink && from is SimpleServer srv)
