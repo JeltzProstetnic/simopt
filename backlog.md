@@ -35,4 +35,9 @@
 - [x] **SIM-16** Example project modernization (size: L) — Phase 5: SDK-style csproj, SimOpt.* namespaces, console apps
 - [x] **SIM-24** Fix CholeskyDecomposition.Solve() forward substitution bug — Phase 5
 - [x] **SIM-25** Fix EigenvalueDecomposition null guard (throws wrong exception) — Phase 5
-- [ ] **SIM-17** NuGet packaging (size: M) — publish core libraries as packages
+- [ ] **SIM-17** NuGet packaging (size: M) — publish core libraries as packages (deprioritized)
+- [ ] **SIM-26** Factory showcase Phase B: professional rendering (gradients, shadows, conveyor animation, SCADA look) (size: L)
+- [ ] **SIM-27** Factory showcase Phase C: detachable controls, multi-monitor, keyboard shortcuts (size: M)
+- [ ] **SIM-28** Factory showcase Phase D: optimization showcase (before/after, fitness chart, sensitivity heatmap) (size: L)
+- [ ] **SIM-29** Ivoclar dental manufacturing showcase (size: L)
+- [ ] **SIM-30** Icon/graphics library for domain-specific visuals (size: L)
