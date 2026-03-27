@@ -2,22 +2,20 @@ using System;
 using SimOpt.Logging;
 using SimOpt.Logging.Loggers;
 
-namespace SimOpt.Examples.SQSS
+namespace SimOpt.Examples.DiningPhilosophers
 {
     internal static class Program
     {
         static void Main(string[] args)
         {
             Logger.Add(new ConsoleLogger());
-            Logger.Log("SimOpt.Examples.SQSS", "Starting SQSS simulation...");
+            Logger.Log("SimOpt.Examples.DiningPhilosophers", "Starting Dining Philosophers simulation...");
             Logger.Dispatch();
 
-            var sim = new Simulation(123);
-            sim.BuildModel();
-            sim.Start(2);
+            var sim = new Model.Simulation(logEvents: true);
+            sim.Run();
 
             Console.WriteLine("Simulation complete.");
-            Console.WriteLine($"Sink received items. Queue count at end: {sim.Queue.Count}");
 
             Logger.Log("Shutting down.");
             Logger.Shutdown(false);

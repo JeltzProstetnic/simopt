@@ -187,21 +187,25 @@ public class MatrixDecompositionTests
     }
 
     [Fact]
-    public void Cholesky_Solve_ReturnsDimensionallyConsistentResult()
+    public void Cholesky_Solve_RoundtripSatisfiesAxEqualsB()
     {
-        // NOTE: The Mapack-derived Cholesky.Solve has a known forward-substitution ordering
-        // bug that causes A*Solve(b) != b in general. This test verifies the output shape
-        // and that the method runs without exception for a valid SPD matrix.
-        // The correctness of the algebraic solution is validated by the L*L^T = A test.
+        // Verifies that A * Solve(b) == b for a valid SPD matrix.
+        // A prior forward-substitution ordering bug caused the divide to happen after
+        // the elimination step, producing incorrect results. The correct order is:
+        // divide first (normalize the pivot), then eliminate below.
         double[,] a = Spd3x3();
         var chol = new CholeskyDecomposition(a);
 
         double[,] b = new double[,] { { 1 }, { 2 }, { 3 } };
         double[,] x = chol.Solve(b);
 
-        // Result must have same number of rows as A and same columns as b
+        // Verify dimensions
         x.GetLength(0).Should().Be(a.GetLength(0));
         x.GetLength(1).Should().Be(b.GetLength(1));
+
+        // Verify roundtrip: A * x must equal b
+        double[,] ax = a.Multiply(x);
+        MatrixShouldBeApproximately(ax, b);
     }
 
     [Fact]
@@ -713,14 +717,15 @@ public class MatrixDecompositionTests
     }
 
     [Fact]
-    public void Eigen_NullInput_ThrowsException()
+    public void Eigen_NullInput_ThrowsArgumentNullException()
     {
-        // The Mapack-derived EigenvalueDecomposition calls value.IsSymmetric() before
-        // performing its own null check, so a NullReferenceException is thrown rather
-        // than ArgumentNullException. This test documents the actual behavior.
+        // The primary constructor chains to the overloaded constructor via
+        // this(value, value.IsSymmetric()). A null guard was added to the
+        // primary constructor so that IsSymmetric() is never called on null,
+        // ensuring ArgumentNullException propagates from the overloaded constructor.
         Action act = () => new EigenvalueDecomposition(null!);
 
-        act.Should().Throw<Exception>();
+        act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]

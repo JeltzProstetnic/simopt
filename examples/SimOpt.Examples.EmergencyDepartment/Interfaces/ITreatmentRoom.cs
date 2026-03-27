@@ -1,14 +1,12 @@
-using System;
-
-namespace MatthiasToolbox.EmergencyDepartment.Interfaces
+namespace SimOpt.Examples.EmergencyDepartment.Interfaces
 {
-	/// <summary>
-	/// Description of ITreatmentRoom.
-	/// </summary>
-	public interface ITreatmentRoom<T>
-	{
-		void TakeItem(T t);
-		
-		ITreatmentQueue<T> Queue {get;}
-	}
+    /// <summary>
+    /// Description of ITreatmentRoom.
+    /// </summary>
+    public interface ITreatmentRoom<T>
+    {
+        void TakeItem(T t);
+
+        ITreatmentQueue<T> Queue { get; }
+    }
 }

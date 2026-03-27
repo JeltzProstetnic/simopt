@@ -1,12 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using MatthiasToolbox.Optimization.Interfaces;
-using MatthiasToolbox.Simulation.Entities;
-using MatthiasToolbox.Optimization.Strategies.Evolutionary;
+using SimOpt.Optimization.Interfaces;
+using SimOpt.Simulation.Entities;
+using SimOpt.Optimization.Strategies.Evolutionary;
 
-namespace MatthiasToolbox.SimOptExample.Optimizer
+namespace SimOpt.Examples.SimOptDemo.Optimizer
 {
     public class Solution : ISolution, IComparable<ISolution>, ICloneable, ICombinable<ISolution>, ITweakable
     {
@@ -64,9 +62,9 @@ namespace MatthiasToolbox.SimOptExample.Optimizer
                 throw new ArgumentNullException("other");
 
             if (!HasFitness || !other.HasFitness)
-                throw new ApplicationException("Cannot compare solutions: not fitness value available.");
+                throw new ApplicationException("Cannot compare solutions: no fitness value available.");
 
-            return Fitness.CompareTo(other.Fitness); 
+            return Fitness.CompareTo(other.Fitness);
         }
 
         #endregion
@@ -90,7 +88,7 @@ namespace MatthiasToolbox.SimOptExample.Optimizer
 
             SimpleEntity ea = data[a];
             SimpleEntity eb = data[b];
-         
+
             data[a] = eb;
             data[b] = ea;
 
@@ -102,12 +100,12 @@ namespace MatthiasToolbox.SimOptExample.Optimizer
 
         public ISolution CombineWith(ISolution other)
         {
-            if(this.HasFitness && other.HasFitness) 
+            if (this.HasFitness && other.HasFitness)
             {
                 if (Fitness > other.Fitness) return this;
                 else return other;
             }
-            else if(this.HasFitness) return this;
+            else if (this.HasFitness) return this;
             else return other;
         }
 

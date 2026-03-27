@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>SimOpt.Examples.SupplyChain</RootNamespace>
+    <AssemblyName>SimOpt.Examples.SupplyChain</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SimOpt.Simulation/SimOpt.Simulation.csproj" />
+    <ProjectReference Include="../../src/SimOpt.Mathematics/SimOpt.Mathematics.csproj" />
+  </ItemGroup>
+  <!-- Exclude files with legacy GUI, database, or geography dependencies that no longer exist -->
+  <ItemGroup>
+    <Compile Remove="App.xaml.cs" />
+    <Compile Remove="MainWindow.xaml.cs" />
+    <Compile Remove="Extensions.cs" />
+    <Compile Remove="Global.cs" />
+    <Compile Remove="Properties/**" />
+    <Compile Remove="Database/**" />
+    <Compile Remove="Optimizer/**" />
+    <Compile Remove="Interfaces/**" />
+    <Compile Remove="Simulator/**" />
+  </ItemGroup>
+</Project>

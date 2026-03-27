@@ -151,17 +151,17 @@ namespace SimOpt.Mathematics.Numerics.Decompositions
             // Solve L*Y = B;
             for (int k = 0; k < L.GetLength(0); k++)
             {
+                for (int j = 0; j < count; j++)
+                {
+                    B[k, j] /= l[k,k];
+                }
+
                 for (int i = k + 1; i < dimension; i++)
                 {
                     for (int j = 0; j < count; j++)
                     {
                         B[i, j] -= B[k, j] * l[i,k];
                     }
-                }
-
-                for (int j = 0; j < count; j++)
-                {
-                    B[k, j] /= l[k,k];
                 }
             }
 

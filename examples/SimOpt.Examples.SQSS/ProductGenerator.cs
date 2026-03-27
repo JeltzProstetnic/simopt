@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using MatthiasToolbox.Simulation.Entities;
+using System;
+using SimOpt.Simulation.Entities;
 
-namespace MatthiasToolbox.SQSSModel
+namespace SimOpt.Examples.SQSS
 {
     [Serializable]
     public class ProductGenerator
     {
         Func<SimpleEntity> GetFuncOfSimpleEntity()
         {
-            return () => new SimpleEntity(); 
+            return () => new SimpleEntity();
         }
-
     }
 }

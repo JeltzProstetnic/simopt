@@ -1,15 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows.Controls;
-using MatthiasToolbox.Simulation;
-using MatthiasToolbox.Logging.Loggers;
-using MatthiasToolbox.Simulation.Templates;
-using MatthiasToolbox.Simulation.Enum;
-using MatthiasToolbox.Simulation.Entities;
+using SimOpt.Simulation;
+using SimOpt.Simulation.Templates;
+using SimOpt.Simulation.Enum;
+using SimOpt.Simulation.Entities;
 
-namespace MatthiasToolbox.SimOptExample.Model
+namespace SimOpt.Examples.SimOptDemo.Model
 {
     public class Simulation
     {
@@ -25,7 +21,7 @@ namespace MatthiasToolbox.SimOptExample.Model
         /// <summary>
         /// The model instance for this simulation experiment.
         /// </summary>
-        public MatthiasToolbox.Simulation.Engine.Model Model { get; private set; }
+        public SimOpt.Simulation.Engine.Model Model { get; private set; }
 
         public SimpleBuffer Queue { get; private set; }
         public SimpleServer ServerA { get; private set; }
@@ -41,19 +37,16 @@ namespace MatthiasToolbox.SimOptExample.Model
         #endregion
         #region ctor
 
-        public Simulation(RichTextBox log = null, bool logEvents = true, int seed = 123, int queueSize = 100)
+        public Simulation(bool logEvents = true, int seed = 123, int queueSize = 100)
         {
             this.QueueSize = queueSize;
 
-            bool logging = log != null;
-            if (logging) Simulator.RegisterSimulationLogger(new WPFRichTextBoxLogger(log));
-
             rnd = new Random(seed);
 
-            Model = new MatthiasToolbox.Simulation.Engine.Model("SimOptDemo", seed, startTime);
+            Model = new SimOpt.Simulation.Engine.Model("SimOptDemo", seed, startTime);
             Model.LogEvents = logEvents;
-            Model.LogStart = logging;
-            Model.LogFinish = logging;
+            Model.LogStart = false;
+            Model.LogFinish = false;
 
             BuildModel();
         }
@@ -70,7 +63,7 @@ namespace MatthiasToolbox.SimOptExample.Model
         {
             Model.Run();
         }
-        
+
         /// <summary>
         /// Stop the simulation
         /// </summary>
@@ -85,26 +78,20 @@ namespace MatthiasToolbox.SimOptExample.Model
 
         public void BuildModel()
         {
-            // the queue
             Queue = new SimpleBuffer(Model, QueueRule.FIFO, name: "TheQueue", maxCapacity: QueueSize);
-            // Queue.BufferEmptyEvent.AddHandler(e => e.Model.Stop());
 
-            // pre-fill with items
             FillQueue();
-            
-            // server A
+
             ServerA = new SimpleServer(Model, MachiningTimeFunctionA, name: "ServerA", autoStartDelay: 0,
                 createProduct: CreateProductA);
             ServerA.AutoContinue = true;
             ServerA.ConnectTo(Queue);
 
-            // server B
             ServerB = new SimpleServer(Model, MachiningTimeFunctionB, name: "ServerB", autoStartDelay: 0,
                 createProduct: CreateProductB);
             ServerB.AutoContinue = true;
             ServerB.ConnectTo(Queue);
-            
-            // the sink
+
             Sink = new SimpleSink(Model, name: "TheSink", log: true);
             Sink.ConnectTo(ServerA);
             Sink.ConnectTo(ServerB);
@@ -116,10 +103,10 @@ namespace MatthiasToolbox.SimOptExample.Model
             int qs = n;
             if (n == 0) qs = QueueSize;
 
-            Random rnd = new Random(Model.Seed.Value);
+            Random fillRnd = new Random(Model.Seed.Value);
             for (int i = 0; i < qs; i++)
             {
-                if (rnd.NextDouble() < 0.5)
+                if (fillRnd.NextDouble() < 0.5)
                     Queue.Put(new SimpleEntity(Model, name: "A" + i.ToString(), id: "A" + i.ToString()));
                 else
                     Queue.Put(new SimpleEntity(Model, name: "B" + i.ToString(), id: "B" + i.ToString()));
@@ -138,7 +125,7 @@ namespace MatthiasToolbox.SimOptExample.Model
             while (i < qs)
             {
                 i++;
-                 if (rnd.NextDouble() < 0.5)
+                if (rnd.NextDouble() < 0.5)
                     yield return new SimpleEntity(Model, name: "A" + i.ToString(), id: "A" + i.ToString());
                 else
                     yield return new SimpleEntity(Model, name: "B" + i.ToString(), id: "B" + i.ToString());
@@ -148,9 +135,9 @@ namespace MatthiasToolbox.SimOptExample.Model
         public double Evaluate(IEnumerable<SimpleEntity> candidate)
         {
             if (!Model.IsReset) Model.Reset();
-            
+
             FillQueue(candidate);
-            
+
             Model.Run();
 
             return -(Model.CurrentTime - startTime);
@@ -174,11 +161,6 @@ namespace MatthiasToolbox.SimOptExample.Model
         #endregion
         #region model execution
 
-        /// <summary>
-        /// function for calculating the machining time for an item
-        /// </summary>
-        /// <param name="currentMaterial"></param>
-        /// <returns></returns>
         private double MachiningTimeFunctionA(List<SimpleEntity> currentMaterial)
         {
             if (currentMaterial == null || currentMaterial.Count == 0 || currentMaterial[0] == null) return double.NaN;
@@ -189,11 +171,6 @@ namespace MatthiasToolbox.SimOptExample.Model
                 return new TimeSpan(0, 0, 9, 0, 0).ToDouble();
         }
 
-        /// <summary>
-        /// function for calculating the machining time for an item
-        /// </summary>
-        /// <param name="currentMaterial"></param>
-        /// <returns></returns>
         private double MachiningTimeFunctionB(List<SimpleEntity> currentMaterial)
         {
             if (currentMaterial == null || currentMaterial.Count == 0 || currentMaterial[0] == null) return double.NaN;

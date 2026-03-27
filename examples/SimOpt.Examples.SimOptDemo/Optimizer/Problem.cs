@@ -1,11 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using MatthiasToolbox.Optimization.Interfaces;
-using MatthiasToolbox.Simulation.Entities;
+using SimOpt.Optimization.Interfaces;
+using SimOpt.Simulation.Entities;
 
-namespace MatthiasToolbox.SimOptExample.Optimizer
+namespace SimOpt.Examples.SimOptDemo.Optimizer
 {
     /// <summary>
     /// The optimization problem
@@ -52,8 +50,6 @@ namespace MatthiasToolbox.SimOptExample.Optimizer
         /// <summary>
         /// No invalid solutions in this scenario
         /// </summary>
-        /// <param name="solutionCandidate"></param>
-        /// <returns></returns>
         public bool IsValid(ISolution solutionCandidate)
         {
             return true;
@@ -62,7 +58,7 @@ namespace MatthiasToolbox.SimOptExample.Optimizer
         public bool Evaluate(ISolution solutionCandidate)
         {
             Solution candidate = solutionCandidate as Solution;
-            
+
             solutionCandidate.Fitness = sim.Evaluate(candidate.Data);
             solutionCandidate.HasFitness = true;
 

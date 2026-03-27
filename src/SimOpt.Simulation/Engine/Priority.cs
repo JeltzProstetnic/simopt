@@ -145,6 +145,11 @@ namespace SimOpt.Simulation.Engine
         #endregion
         #region ISerializableGrubi
 
+        /// <summary>
+        /// Populates a <see cref="SerializationInfo"/> with the data needed to serialize this <see cref="Priority"/> instance.
+        /// </summary>
+        /// <param name="info">The serialization info to populate.</param>
+        /// <param name="context">The streaming context for the serialization.</param>
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("PriorityType", PriorityType);

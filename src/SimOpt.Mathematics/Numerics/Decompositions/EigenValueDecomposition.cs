@@ -39,7 +39,7 @@ namespace SimOpt.Mathematics.Numerics.Decompositions
         private bool symmetric;
 
         /// <summary>Construct an eigenvalue decomposition.</summary>
-        public EigenvalueDecomposition(double[,] value) : this(value, value.IsSymmetric())
+        public EigenvalueDecomposition(double[,] value) : this(value, value != null ? value.IsSymmetric() : false)
         {
         }
 

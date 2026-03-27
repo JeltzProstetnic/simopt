@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -10,36 +11,37 @@ using SimOpt.Visualization.Models;
 namespace SimOpt.Visualization.Controls;
 
 /// <summary>
-/// Custom Avalonia control that renders a simulation network in 2D.
-/// Nodes represent simulation entities (Source, Buffer, Server, Sink).
-/// Animated dots represent entities flowing through the network.
+/// Generic simulation visualization canvas.
+/// Renders any VizTopology with auto-layout, animated entity flow, and live state.
 /// </summary>
 public class SimulationCanvas : Control
 {
-    private SqssDemo? _demo;
+    private SimulationModel? _sim;
+    private VizTopology? _topology;
+    private Dictionary<string, Point> _positions = new();
     private DispatcherTimer? _timer;
     private bool _running;
     private int _stepCount;
-    private int _speedMs = 30;
     private int _frame;
+    private int _speedMs = 30;
 
     // Throughput tracking
-    private int _lastSinkCount;
+    private int _lastSinkTotal;
     private double _lastTime;
     private double _throughput;
 
-    // Entity animation — dots moving between nodes
-    private readonly List<AnimatedEntity> _entities = new();
-    private readonly Random _animRng = new(1);
+    // Entity animations
+    private readonly List<AnimDot> _dots = new();
+    private readonly Random _rng = new(1);
+    private List<NodeState> _nodeStates = new();
 
-    // Layout
-    private const double NodeWidth = 130;
-    private const double NodeHeight = 65;
-    private const double NodeSpacing = 100;
+    // Node dimensions (from AutoLayout)
+    private const double NW = AutoLayout.NodeWidth;
+    private const double NH = AutoLayout.NodeHeight;
 
-    // Colors — dark theme
+    #region Colors
+
     private static readonly IBrush BgBrush = new SolidColorBrush(Color.FromRgb(22, 22, 32));
-    private static readonly IBrush NodeBorder = new SolidColorBrush(Color.FromRgb(80, 110, 170));
     private static readonly IBrush SourceFill = new SolidColorBrush(Color.FromRgb(45, 140, 65));
     private static readonly IBrush QueueEmpty = new SolidColorBrush(Color.FromRgb(35, 42, 60));
     private static readonly IBrush QueueFill = new SolidColorBrush(Color.FromRgb(60, 140, 200));
@@ -50,18 +52,21 @@ public class SimulationCanvas : Control
     private static readonly IBrush SinkFill = new SolidColorBrush(Color.FromRgb(140, 50, 50));
     private static readonly IBrush White = Brushes.White;
     private static readonly IBrush Dim = new SolidColorBrush(Color.FromRgb(140, 140, 165));
-    private static readonly IBrush ArrowColor = new SolidColorBrush(Color.FromRgb(70, 75, 95));
-    private static readonly IBrush EntityDot = new SolidColorBrush(Color.FromRgb(120, 220, 140));
-    private static readonly IBrush ProgressBg = new SolidColorBrush(Color.FromRgb(40, 40, 55));
-    private static readonly IBrush ProgressFill = new SolidColorBrush(Color.FromRgb(60, 130, 200));
+    private static readonly IBrush ArrowClr = new SolidColorBrush(Color.FromRgb(70, 75, 95));
+    private static readonly IBrush DotClr = new SolidColorBrush(Color.FromRgb(120, 220, 140));
+    private static readonly IBrush ProgBg = new SolidColorBrush(Color.FromRgb(40, 40, 55));
+    private static readonly IBrush ProgFill = new SolidColorBrush(Color.FromRgb(60, 130, 200));
+    private static readonly IBrush NodeBorder = new SolidColorBrush(Color.FromRgb(80, 110, 170));
 
-    private static readonly Pen NodePen = new(NodeBorder, 1.5);
-    private static readonly Pen ArrowPen = new(ArrowColor, 2);
-    private static readonly Pen EntityPen = new(new SolidColorBrush(Color.FromRgb(80, 180, 100)), 1);
+    private static readonly Pen NPen = new(NodeBorder, 1.5);
+    private static readonly Pen APen = new(ArrowClr, 2);
+    private static readonly Pen DPen = new(new SolidColorBrush(Color.FromRgb(80, 180, 100)), 1);
 
-    private static readonly Typeface TfNormal = new("Inter, Segoe UI, sans-serif");
+    private static readonly Typeface TfNorm = new("Inter, Segoe UI, sans-serif");
     private static readonly Typeface TfBold = new("Inter, Segoe UI, sans-serif", FontStyle.Normal, FontWeight.Bold);
     private static readonly Typeface TfMono = new("Cascadia Mono, Consolas, monospace");
+
+    #endregion
 
     public int SpeedMs
     {
@@ -73,24 +78,40 @@ public class SimulationCanvas : Control
         }
     }
 
-    public void StartSimulation(int seed = 42, double duration = 200.0, int speedMs = 30)
+    /// <summary>
+    /// Start a simulation from any topology description.
+    /// </summary>
+    public void StartSimulation(VizTopology topology, double duration = 200.0, int speedMs = 30)
     {
-        _demo = new SqssDemo(seed) { EndTime = duration };
-        _demo.Build();
+        _topology = topology;
+        _sim = new SimulationModel { EndTime = duration };
+        _sim.Build(topology);
         _stepCount = 0;
         _frame = 0;
-        _lastSinkCount = 0;
+        _lastSinkTotal = 0;
         _lastTime = 0;
         _throughput = 0;
-        _entities.Clear();
+        _dots.Clear();
+        _nodeStates.Clear();
         _speedMs = speedMs;
         _running = true;
 
-        _demo.StartSource();
+        // Compute layout
+        _positions = AutoLayout.Compute(topology, Bounds.Width > 0 ? Bounds.Width : 960, Bounds.Height > 0 ? Bounds.Height - 60 : 460);
+
+        _sim.Start();
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_speedMs) };
-        _timer.Tick += (_, _) => StepAndRender();
+        _timer.Tick += (_, _) => Tick();
         _timer.Start();
+    }
+
+    /// <summary>
+    /// Convenience: start with a preset topology.
+    /// </summary>
+    public void StartSimulation(int seed = 42, double duration = 200.0, int speedMs = 30)
+    {
+        StartSimulation(VizTopology.Sqss(seed), duration, speedMs);
     }
 
     public void StopSimulation()
@@ -99,11 +120,11 @@ public class SimulationCanvas : Control
         _timer?.Stop();
     }
 
-    private void StepAndRender()
+    private void Tick()
     {
-        if (_demo == null || !_running) return;
+        if (_sim == null || !_running) return;
 
-        if (!_demo.Step())
+        if (!_sim.Step())
         {
             _running = false;
             _timer?.Stop();
@@ -111,247 +132,201 @@ public class SimulationCanvas : Control
         _stepCount++;
         _frame++;
 
-        // Update throughput every ~1.0 sim time units
-        double dt = _demo.Model.CurrentTime - _lastTime;
+        _nodeStates = _sim.GetNodeStates();
+
+        // Throughput
+        int sinkTotal = _nodeStates.Where(n => n.Type == "sink").Sum(n => n.Count);
+        double dt = _sim.CurrentTime - _lastTime;
         if (dt >= 1.0)
         {
-            int produced = _demo.Sink.Count - _lastSinkCount;
-            _throughput = produced / dt;
-            _lastSinkCount = _demo.Sink.Count;
-            _lastTime = _demo.Model.CurrentTime;
+            _throughput = (sinkTotal - _lastSinkTotal) / dt;
+            _lastSinkTotal = sinkTotal;
+            _lastTime = _sim.CurrentTime;
         }
 
-        // Spawn entity dots based on sink count changes
-        UpdateEntityAnimations();
-
+        UpdateDots();
         InvalidateVisual();
     }
 
-    private void UpdateEntityAnimations()
+    private void UpdateDots()
     {
-        // Spawn new entities randomly based on simulation activity
-        if (_frame % 3 == 0 && _demo!.Queue.Count > 0)
+        if (_topology == null) return;
+
+        // Spawn dots on connections based on activity
+        foreach (var conn in _topology.Connections)
         {
-            _entities.Add(new AnimatedEntity
+            var fromState = _nodeStates.FirstOrDefault(n => n.Id == conn.From);
+            var toState = _nodeStates.FirstOrDefault(n => n.Id == conn.To);
+            if (fromState == null || toState == null) continue;
+
+            bool active = fromState.Type switch
             {
-                Segment = 0, // source → queue
-                Progress = _animRng.NextDouble() * 0.3,
-                Speed = 0.03 + _animRng.NextDouble() * 0.02
-            });
-        }
+                "source" => _frame % 4 == 0,
+                "buffer" => fromState.Count > 0 && _frame % 3 == 0,
+                "server" => fromState.Working && _frame % 5 == 0,
+                _ => false
+            };
 
-        if (_frame % 4 == 0 && _demo.Server.Working)
-        {
-            _entities.Add(new AnimatedEntity
+            if (active)
             {
-                Segment = 1, // queue → server
-                Progress = _animRng.NextDouble() * 0.2,
-                Speed = 0.04 + _animRng.NextDouble() * 0.02
-            });
+                _dots.Add(new AnimDot
+                {
+                    FromId = conn.From,
+                    ToId = conn.To,
+                    Progress = _rng.NextDouble() * 0.2,
+                    Speed = 0.03 + _rng.NextDouble() * 0.02
+                });
+            }
         }
 
-        if (_frame % 5 == 0 && _demo.Sink.Count > _lastSinkCount - 1)
+        // Advance and cull
+        for (int i = _dots.Count - 1; i >= 0; i--)
         {
-            _entities.Add(new AnimatedEntity
-            {
-                Segment = 2, // server → sink
-                Progress = _animRng.NextDouble() * 0.3,
-                Speed = 0.035 + _animRng.NextDouble() * 0.02
-            });
+            _dots[i].Progress += _dots[i].Speed;
+            if (_dots[i].Progress >= 1.0)
+                _dots.RemoveAt(i);
         }
-
-        // Advance and remove completed entities
-        for (int i = _entities.Count - 1; i >= 0; i--)
-        {
-            _entities[i].Progress += _entities[i].Speed;
-            if (_entities[i].Progress >= 1.0)
-                _entities.RemoveAt(i);
-        }
-
-        // Cap entity count to prevent memory issues
-        while (_entities.Count > 60)
-            _entities.RemoveAt(0);
+        while (_dots.Count > 80) _dots.RemoveAt(0);
     }
 
     public override void Render(DrawingContext ctx)
     {
         base.Render(ctx);
         var b = Bounds;
-
-        // Background
         ctx.DrawRectangle(BgBrush, null, new Rect(0, 0, b.Width, b.Height));
 
-        if (_demo == null)
+        if (_topology == null || _sim == null)
         {
-            Text(ctx, "Press Start to begin simulation", b.Width / 2, b.Height / 2, 18, Dim);
+            Txt(ctx, "Press Start to begin simulation", b.Width / 2, b.Height / 2, 18, Dim);
             return;
         }
 
-        // Layout — center the 4 nodes horizontally
-        double cy = b.Height / 2 - 10;
-        double tw = 4 * NodeWidth + 3 * NodeSpacing;
-        double sx = (b.Width - tw) / 2;
+        // Recompute layout on resize
+        if (_frame % 30 == 1)
+            _positions = AutoLayout.Compute(_topology, b.Width, b.Height - 60);
 
-        var rSource = R(sx, cy, 0);
-        var rQueue = R(sx, cy, 1);
-        var rServer = R(sx, cy, 2);
-        var rSink = R(sx, cy, 3);
+        // Draw connections (arrows)
+        foreach (var conn in _topology.Connections)
+        {
+            if (_positions.TryGetValue(conn.From, out var p1) && _positions.TryGetValue(conn.To, out var p2))
+                Arrow(ctx, p1.X + NW / 2, p1.Y, p2.X - NW / 2, p2.Y);
+        }
 
-        // Arrows
-        Arrow(ctx, rSource.Right, cy, rQueue.Left, cy);
-        Arrow(ctx, rQueue.Right, cy, rServer.Left, cy);
-        Arrow(ctx, rServer.Right, cy, rSink.Left, cy);
+        // Draw dots
+        foreach (var dot in _dots)
+        {
+            if (!_positions.TryGetValue(dot.FromId, out var fp) || !_positions.TryGetValue(dot.ToId, out var tp))
+                continue;
+            double x = (fp.X + NW / 2) + ((tp.X - NW / 2) - (fp.X + NW / 2)) * dot.Progress;
+            double y = (fp.Y + tp.Y) / 2 + Math.Sin(dot.Progress * Math.PI * 2) * 4;
+            ctx.DrawEllipse(DotClr, DPen, new Point(x, y), 4, 4);
+        }
 
-        // Entity dots on arrows
-        DrawEntities(ctx, rSource, rQueue, rServer, rSink, cy);
-
-        // Nodes
-        DrawSourceNode(ctx, rSource);
-        DrawQueueNode(ctx, rQueue);
-        DrawServerNode(ctx, rServer);
-        DrawSinkNode(ctx, rSink);
+        // Draw nodes
+        foreach (var node in _topology.Nodes)
+        {
+            if (!_positions.TryGetValue(node.Id, out var pos)) continue;
+            var state = _nodeStates.FirstOrDefault(n => n.Id == node.Id);
+            var rect = new Rect(pos.X - NW / 2, pos.Y - NH / 2, NW, NH);
+            DrawNode(ctx, rect, node, state);
+        }
 
         // Header
-        Text(ctx, "SimOpt — SQSS Visualization", b.Width / 2, 22, 18, White, true);
-        Text(ctx, $"t = {_demo.Model.CurrentTime:F1}", b.Width / 2, 46, 13, Dim, false, TfMono);
+        Txt(ctx, $"SimOpt — {_topology.Name}", b.Width / 2, 22, 17, White, true);
+        Txt(ctx, $"t = {_sim.CurrentTime:F1}", b.Width / 2, 44, 12, Dim, false, TfMono);
 
         // Progress bar
-        DrawProgress(ctx, b);
+        double prog = Math.Min(1.0, _sim.CurrentTime / _sim.EndTime);
+        double bw = b.Width * 0.5;
+        double bx = (b.Width - bw) / 2;
+        double by = b.Height - 48;
+        ctx.DrawRectangle(ProgBg, null, new Rect(bx, by, bw, 5), 2, 2);
+        if (prog > 0) ctx.DrawRectangle(ProgFill, null, new Rect(bx, by, bw * prog, 5), 2, 2);
+        Txt(ctx, $"{prog * 100:F0}%", bx + bw + 14, by + 3, 10, Dim, false, TfMono);
 
         // Stats
-        DrawStats(ctx, b);
-
-        // Speed indicator
-        Text(ctx, $"Speed: {_speedMs}ms", b.Width - 70, 22, 10, Dim);
-    }
-
-    private static Rect R(double sx, double cy, int index)
-    {
-        double x = sx + index * (NodeWidth + NodeSpacing);
-        return new Rect(x, cy - NodeHeight / 2, NodeWidth, NodeHeight);
-    }
-
-    private void DrawSourceNode(DrawingContext ctx, Rect r)
-    {
-        ctx.DrawRectangle(SourceFill, NodePen, r, 10, 10);
-        Text(ctx, "SOURCE", r.Center.X, r.Center.Y - 10, 12, White, true);
-        // Pulse indicator when source is active
-        if (_frame % 8 < 4)
-        {
-            var dot = new Rect(r.Right - 16, r.Top + 6, 8, 8);
-            ctx.DrawRectangle(EntityDot, null, dot, 4, 4);
-        }
-    }
-
-    private void DrawQueueNode(DrawingContext ctx, Rect r)
-    {
-        ctx.DrawRectangle(QueueEmpty, NodePen, r, 6, 6);
-
-        int count = _demo!.Queue.Count;
-        int max = _demo.Queue.MaxCapacity;
-        double fill = max > 0 ? (double)count / max : 0;
-
-        // Fill bar (bottom-up)
-        if (fill > 0)
-        {
-            var brush = fill > 0.8 ? QueueCritical : QueueFill;
-            double fh = (r.Height - 4) * fill;
-            var fr = new Rect(r.X + 2, r.Bottom - 2 - fh, r.Width - 4, fh);
-            ctx.DrawRectangle(brush, null, fr, 3, 3);
-        }
-
-        Text(ctx, "QUEUE", r.Center.X, r.Center.Y - 10, 12, White, true);
-        Text(ctx, $"{count} / {max}", r.Center.X, r.Center.Y + 10, 11, White, false, TfMono);
-    }
-
-    private void DrawServerNode(DrawingContext ctx, Rect r)
-    {
-        IBrush bg = _demo!.Server.Damaged ? ServerDamaged
-            : _demo.Server.Working ? ServerBusy : ServerIdle;
-        ctx.DrawRectangle(bg, NodePen, r, 10, 10);
-
-        Text(ctx, "SERVER", r.Center.X, r.Center.Y - 10, 12, White, true);
-        string state = _demo.Server.Damaged ? "DAMAGED"
-            : _demo.Server.Working ? "BUSY" : "IDLE";
-        var stateColor = _demo.Server.Working ? White : Dim;
-        Text(ctx, state, r.Center.X, r.Center.Y + 10, 10, stateColor, false, TfMono);
-    }
-
-    private void DrawSinkNode(DrawingContext ctx, Rect r)
-    {
-        ctx.DrawRectangle(SinkFill, NodePen, r, 10, 10);
-        Text(ctx, "SINK", r.Center.X, r.Center.Y - 10, 12, White, true);
-        Text(ctx, $"{_demo!.Sink.Count}", r.Center.X, r.Center.Y + 10, 13, White, true, TfMono);
-    }
-
-    private void DrawEntities(DrawingContext ctx, Rect src, Rect que, Rect srv, Rect snk, double cy)
-    {
-        foreach (var e in _entities)
-        {
-            double x1, x2;
-            switch (e.Segment)
-            {
-                case 0: x1 = src.Right; x2 = que.Left; break;
-                case 1: x1 = que.Right; x2 = srv.Left; break;
-                case 2: x1 = srv.Right; x2 = snk.Left; break;
-                default: continue;
-            }
-
-            double x = x1 + (x2 - x1) * e.Progress;
-            double y = cy + Math.Sin(e.Progress * Math.PI * 2) * 3; // slight wobble
-            ctx.DrawEllipse(EntityDot, EntityPen, new Point(x, y), 4, 4);
-        }
-    }
-
-    private void DrawProgress(DrawingContext ctx, Rect b)
-    {
-        if (_demo == null) return;
-        double progress = Math.Min(1.0, _demo.Model.CurrentTime / _demo.EndTime);
-        double barW = b.Width * 0.6;
-        double barH = 6;
-        double barX = (b.Width - barW) / 2;
-        double barY = b.Height - 50;
-
-        ctx.DrawRectangle(ProgressBg, null, new Rect(barX, barY, barW, barH), 3, 3);
-        if (progress > 0)
-            ctx.DrawRectangle(ProgressFill, null, new Rect(barX, barY, barW * progress, barH), 3, 3);
-
-        Text(ctx, $"{progress * 100:F0}%", barX + barW + 15, barY + 3, 10, Dim, false, TfMono);
-    }
-
-    private void DrawStats(DrawingContext ctx, Rect b)
-    {
-        if (_demo == null) return;
-        double y = b.Height - 25;
-        string status = _running ? "RUN" : "END";
+        int sinkTotal = _nodeStates.Where(n => n.Type == "sink").Sum(n => n.Count);
+        int queueTotal = _nodeStates.Where(n => n.Type == "buffer").Sum(n => n.Count);
         string tput = _throughput > 0 ? $"{_throughput:F1}/t" : "—";
-        string stats = $"{status}  |  Steps: {_stepCount}  |  Queue: {_demo.Queue.Count}/{_demo.Queue.MaxCapacity}  |  Produced: {_demo.Sink.Count}  |  Throughput: {tput}";
-        Text(ctx, stats, b.Width / 2, y, 11, Dim, false, TfMono);
+        string stat = $"{(_running ? "RUN" : "END")}  |  Steps: {_stepCount}  |  Queued: {queueTotal}  |  Produced: {sinkTotal}  |  Throughput: {tput}  |  Speed: {_speedMs}ms";
+        Txt(ctx, stat, b.Width / 2, b.Height - 25, 11, Dim, false, TfMono);
     }
 
-    private void Arrow(DrawingContext ctx, double x1, double y1, double x2, double y2)
+    private void DrawNode(DrawingContext ctx, Rect r, VizNode def, NodeState? state)
     {
-        ctx.DrawLine(ArrowPen, new Point(x1, y1), new Point(x2, y2));
-        double a = Math.Atan2(y2 - y1, x2 - x1);
-        double hl = 8;
-        ctx.DrawLine(ArrowPen, new Point(x2, y2),
-            new Point(x2 - hl * Math.Cos(a - 0.4), y2 - hl * Math.Sin(a - 0.4)));
-        ctx.DrawLine(ArrowPen, new Point(x2, y2),
-            new Point(x2 - hl * Math.Cos(a + 0.4), y2 - hl * Math.Sin(a + 0.4)));
+        switch (def.Type.ToLowerInvariant())
+        {
+            case "source":
+                ctx.DrawRectangle(SourceFill, NPen, r, 10, 10);
+                Txt(ctx, "SOURCE", r.Center.X, r.Center.Y - 10, 11, White, true);
+                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 8, 9, Dim);
+                if (_frame % 8 < 4) // pulse
+                    ctx.DrawEllipse(DotClr, null, new Point(r.Right - 10, r.Top + 10), 4, 4);
+                break;
+
+            case "buffer":
+                ctx.DrawRectangle(QueueEmpty, NPen, r, 5, 5);
+                int cnt = state?.Count ?? 0;
+                int cap = state?.Capacity ?? 1;
+                double fill = cap > 0 ? (double)cnt / cap : 0;
+                if (fill > 0)
+                {
+                    var br = fill > 0.8 ? QueueCritical : QueueFill;
+                    double fh = (r.Height - 4) * Math.Min(1.0, fill);
+                    ctx.DrawRectangle(br, null, new Rect(r.X + 2, r.Bottom - 2 - fh, r.Width - 4, fh), 2, 2);
+                }
+                Txt(ctx, "BUFFER", r.Center.X, r.Center.Y - 10, 11, White, true);
+                Txt(ctx, cap < int.MaxValue ? $"{cnt}/{cap}" : $"{cnt}", r.Center.X, r.Center.Y + 8, 10, White, false, TfMono);
+                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 22, 8, Dim);
+                break;
+
+            case "server":
+                bool busy = state?.Working ?? false;
+                bool dmg = state?.Damaged ?? false;
+                var bg = dmg ? ServerDamaged : busy ? ServerBusy : ServerIdle;
+                ctx.DrawRectangle(bg, NPen, r, 10, 10);
+                Txt(ctx, "SERVER", r.Center.X, r.Center.Y - 10, 11, White, true);
+                string st = dmg ? "DMG" : busy ? "BUSY" : "IDLE";
+                Txt(ctx, st, r.Center.X, r.Center.Y + 8, 10, busy ? White : Dim, false, TfMono);
+                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 22, 8, Dim);
+                break;
+
+            case "sink":
+                ctx.DrawRectangle(SinkFill, NPen, r, 10, 10);
+                Txt(ctx, "SINK", r.Center.X, r.Center.Y - 10, 11, White, true);
+                Txt(ctx, $"{state?.Count ?? 0}", r.Center.X, r.Center.Y + 8, 13, White, true, TfMono);
+                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 22, 8, Dim);
+                break;
+
+            default:
+                ctx.DrawRectangle(ServerIdle, NPen, r, 6, 6);
+                Txt(ctx, def.Type.ToUpperInvariant(), r.Center.X, r.Center.Y - 6, 11, White, true);
+                Txt(ctx, def.Id, r.Center.X, r.Center.Y + 10, 9, Dim);
+                break;
+        }
     }
 
-    private static void Text(DrawingContext ctx, string text, double x, double y,
+    private static void Arrow(DrawingContext ctx, double x1, double y1, double x2, double y2)
+    {
+        ctx.DrawLine(APen, new Point(x1, y1), new Point(x2, y2));
+        double a = Math.Atan2(y2 - y1, x2 - x1);
+        ctx.DrawLine(APen, new Point(x2, y2), new Point(x2 - 8 * Math.Cos(a - 0.4), y2 - 8 * Math.Sin(a - 0.4)));
+        ctx.DrawLine(APen, new Point(x2, y2), new Point(x2 - 8 * Math.Cos(a + 0.4), y2 - 8 * Math.Sin(a + 0.4)));
+    }
+
+    private static void Txt(DrawingContext ctx, string text, double x, double y,
         double size, IBrush brush, bool bold = false, Typeface? tf = null)
     {
         var fmt = new FormattedText(text, CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight, tf ?? (bold ? TfBold : TfNormal), size, brush);
+            FlowDirection.LeftToRight, tf ?? (bold ? TfBold : TfNorm), size, brush);
         ctx.DrawText(fmt, new Point(x - fmt.Width / 2, y - fmt.Height / 2));
     }
 
-    private class AnimatedEntity
+    private class AnimDot
     {
-        public int Segment { get; set; }     // 0=src→que, 1=que→srv, 2=srv→snk
-        public double Progress { get; set; }  // 0.0 to 1.0
-        public double Speed { get; set; }     // per frame
+        public string FromId { get; set; } = "";
+        public string ToId { get; set; } = "";
+        public double Progress { get; set; }
+        public double Speed { get; set; }
     }
 }

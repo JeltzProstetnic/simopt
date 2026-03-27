@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>SimOpt.Examples.WarehouseSimulator</RootNamespace>
+    <AssemblyName>SimOpt.Examples.WarehouseSimulator</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SimOpt.Simulation/SimOpt.Simulation.csproj" />
+  </ItemGroup>
+  <!-- Exclude files with legacy GUI, Oracle DB, and LINQ-to-SQL dependencies -->
+  <ItemGroup>
+    <Compile Remove="App.xaml.cs" />
+    <Compile Remove="MainWindow.xaml.cs" />
+    <Compile Remove="TestWindow.xaml.cs" />
+    <Compile Remove="Global.cs" />
+    <Compile Remove="Properties/**" />
+    <Compile Remove="Data/**" />
+    <Compile Remove="Model/**" />
+  </ItemGroup>
+</Project>

@@ -158,6 +158,9 @@ namespace SimOpt.Simulation.Engine
             }
         }
 
+        /// <summary>
+        /// Returns <see langword="true"/> while the scheduler is actively processing events at a point in time.
+        /// </summary>
         public bool IsProcessingEvents { get { return processing; } }
 
 #if ImmediateEvents

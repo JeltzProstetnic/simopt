@@ -32,20 +32,29 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
         #endregion
         #region evnt
 
+        /// <inheritdoc />
         public event BestSolutionChangedHandler BestSolutionChanged;
 
         #endregion
         #region prop
 
+        /// <inheritdoc />
         public string Name => "Particle Swarm Optimization";
 
+        /// <inheritdoc />
         public string ProcessingStatus { get; private set; }
 
+        /// <inheritdoc />
         public bool IsInitialized { get; private set; }
 
         #endregion
         #region impl
 
+        /// <summary>
+        /// Initializes the strategy with the given PSO configuration.
+        /// </summary>
+        /// <param name="parameters">Must implement <see cref="IParticleSwarmConfiguration"/>.</param>
+        /// <returns><see langword="true"/> if initialization succeeded.</returns>
         public bool Initialize(IConfiguration parameters)
         {
             if (parameters is not IParticleSwarmConfiguration psoConfig)
@@ -59,6 +68,9 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
             return true;
         }
 
+        /// <summary>
+        /// Resets the strategy to its uninitialized state, clearing all swarm data.
+        /// </summary>
         public void Reset()
         {
             config = null;
@@ -73,6 +85,12 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
             ProcessingStatus = null;
         }
 
+        /// <summary>
+        /// Runs the PSO loop until the configured iteration limit is reached or <see cref="Stop"/> is called.
+        /// Yields a clone of the global best solution after each iteration.
+        /// </summary>
+        /// <param name="problem">The optimization problem to solve.</param>
+        /// <returns>A sequence of global-best solution snapshots, one per completed iteration.</returns>
         public IEnumerable<ISolution> Solve(IProblem problem)
         {
             rng = new Random(config.Seed);
@@ -159,12 +177,21 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
             }
         }
 
+        /// <summary>
+        /// Signals the strategy to stop after the current iteration completes.
+        /// </summary>
         public void Stop()
         {
             stopRequested = true;
             iterationsRemaining = 0;
         }
 
+        /// <summary>
+        /// Not supported. PSO does not expose a tunable configuration that implements <see cref="ISolution"/>.
+        /// </summary>
+        /// <param name="representatives">Representative problem instances.</param>
+        /// <param name="tuningStrategy">The strategy to use for tuning.</param>
+        /// <returns>Always throws <see cref="NotImplementedException"/>.</returns>
         public bool Tune(IEnumerable<IProblem> representatives, IStrategy tuningStrategy)
         {
             throw new NotImplementedException("This algorithm cannot be tuned.");

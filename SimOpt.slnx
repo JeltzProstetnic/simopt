@@ -13,4 +13,12 @@
   <Folder Name="/tests/">
     <Project Path="tests/SimOpt.Tests/SimOpt.Tests.csproj" />
   </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/SimOpt.Examples.DiningPhilosophers/SimOpt.Examples.DiningPhilosophers.csproj" />
+    <Project Path="examples/SimOpt.Examples.EmergencyDepartment/SimOpt.Examples.EmergencyDepartment.csproj" />
+    <Project Path="examples/SimOpt.Examples.SimOptDemo/SimOpt.Examples.SimOptDemo.csproj" />
+    <Project Path="examples/SimOpt.Examples.SQSS/SimOpt.Examples.SQSS.csproj" />
+    <Project Path="examples/SimOpt.Examples.SupplyChain/SimOpt.Examples.SupplyChain.csproj" />
+    <Project Path="examples/SimOpt.Examples.WarehouseSimulator/SimOpt.Examples.WarehouseSimulator.csproj" />
+  </Folder>
 </Solution>

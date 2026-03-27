@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SimOpt.Visualization.Controls;
+using SimOpt.Visualization.Models;
 
 namespace SimOpt.Visualization.ViewModels;
 
@@ -16,7 +18,24 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private int _speed = 30;
 
+    [ObservableProperty]
+    private int _selectedTopology;
+
     public SimulationCanvas? Canvas { get; set; }
+
+    public List<string> TopologyNames { get; } = new()
+    {
+        "SQSS (Source-Queue-Server-Sink)",
+        "Parallel Servers",
+        "Production Line"
+    };
+
+    private VizTopology GetSelectedTopology() => SelectedTopology switch
+    {
+        1 => VizTopology.ParallelServers(),
+        2 => VizTopology.ProductionLine(),
+        _ => VizTopology.Sqss()
+    };
 
     partial void OnSpeedChanged(int value)
     {
@@ -27,9 +46,10 @@ public partial class MainWindowViewModel : ViewModelBase
     private void Start()
     {
         if (Canvas == null) return;
-        Canvas.StartSimulation(seed: 42, duration: 200.0, speedMs: Speed);
+        var topology = GetSelectedTopology();
+        Canvas.StartSimulation(topology, duration: 200.0, speedMs: Speed);
         IsRunning = true;
-        StatusText = "Running";
+        StatusText = $"Running: {topology.Name}";
     }
 
     [RelayCommand]
@@ -41,14 +61,8 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Faster()
-    {
-        Speed = Math.Max(5, Speed - 10);
-    }
+    private void Faster() => Speed = Math.Max(5, Speed - 10);
 
     [RelayCommand]
-    private void Slower()
-    {
-        Speed = Math.Min(200, Speed + 10);
-    }
+    private void Slower() => Speed = Math.Min(200, Speed + 10);
 }
