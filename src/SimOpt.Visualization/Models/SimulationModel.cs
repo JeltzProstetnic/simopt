@@ -118,10 +118,22 @@ public class SimulationModel
             case "server":
             {
                 double serviceTime = node.Params.GetValueOrDefault("service_time", 1.0);
+                double rejectRate = node.Params.GetValueOrDefault("reject_rate", 0.0);
                 var dist = new ConstantDoubleDistribution(serviceTime, false);
-                var server = new SimpleServer(_model, dist, name: node.Id);
+
+                if (rejectRate > 0)
+                {
+                    // RejectServer handles its own output routing (pass + reject)
+                    var rs = new SimpleRejectServer(_model, dist, rejectRate,
+                        name: node.Id, seed: Topology.Seed + node.Id.GetHashCode());
+                    return rs;
+                }
+
+                // Pass-through product: output = first input entity (preserves identity for downstream buffers).
+                // Default createProduct generates new TProduct() with null Identifier → crashes Buffer.Put().
+                var server = new SimpleServer(_model, dist, name: node.Id,
+                    createProduct: material => material[0]);
                 server.AutoContinue = true;
-                // Server starts via ItemReceived handler on connected buffer, not AutoStart
                 return server;
             }
             case "sink":
@@ -134,18 +146,45 @@ public class SimulationModel
         }
     }
 
+    /// <summary>
+    /// Wires two nodes together based on their types.
+    ///
+    /// Connection patterns (order matters — checked top to bottom):
+    ///   Source → any IItemSink  : source.ConnectTo(sink) — hooks EntityCreated → Put
+    ///   Buffer → Server         : server.ConnectTo(buffer) — server pulls; ItemReceived starts idle server
+    ///   Server → Buffer         : buffer.ConnectTo(server) — hooks EntityCreatedEvent (= finish event) → Put
+    ///                             NOTE: Buffer does NOT implement IItemSink — cannot cast. Use ConnectTo(IItemSource).
+    ///   Server → Server         : direct push via EntityCreatedEvent → Put; requires PushAllowed=true on receiver
+    ///   Server → Sink           : sink.ConnectTo(server) — hooks EntityCreatedEvent → Put
+    /// </summary>
     private void Connect(string fromId, string toId)
     {
         var from = _entities[fromId];
         var to = _entities[toId];
 
-        // Source pushes to buffer/server/sink (adds EntityCreated handler that calls Put)
+        // RejectServer handles its own output routing (must check before generic Server patterns)
+        if (from is SimpleRejectServer rs)
+        {
+            if (to is SimpleSink sink0)
+            {
+                var toNode = _nodeDefinitions[toId];
+                if (toNode.Params.ContainsKey("is_reject_target"))
+                    rs.SetRejectTarget(sink0);
+                else
+                    rs.AddPassTarget(sink0);
+            }
+            else if (to is SimpleBuffer buf0)
+                rs.AddPassTarget(buf0);
+            return;
+        }
+
+        // Source → any IItemSink (buffer, server, or sink)
         if (from is SimpleSource source && to is IItemSink<SimpleEntity> sink1)
         {
             source.ConnectTo(sink1);
         }
-        // Server pulls from buffer + start server when items arrive
-        else if (to is SimpleServer server && from is SimpleBuffer buffer)
+        // Buffer → Server: server pulls from buffer + auto-start on item arrival
+        else if (from is SimpleBuffer buffer && to is SimpleServer server)
         {
             server.ConnectTo(buffer);
             buffer.ItemReceivedEvent.AddHandler((sender, item) =>
@@ -153,8 +192,21 @@ public class SimulationModel
                 if (server.Idle) server.Start();
             });
         }
-        // Sink pulls from server
-        else if (to is SimpleSink sink && from is SimpleServer srv)
+        // Server → Buffer: buffer subscribes to server's EntityCreatedEvent (which wraps entityFinishedEvent)
+        else if (from is SimpleServer srvA && to is SimpleBuffer buf)
+        {
+            buf.ConnectTo(srvA);
+        }
+        // Server → Server: upstream finish event pushes directly to downstream's Put()
+        else if (from is SimpleServer srvFrom && to is SimpleServer srvTo)
+        {
+            srvTo.PushAllowed = true;
+            srvTo.AutoContinue = true;
+            srvFrom.EntityCreatedEvent.AddHandler((sender, entity) => srvTo.Put(entity),
+                new Priority(type: PriorityType.SimWorldBeforeOthers));
+        }
+        // Server → Sink: sink subscribes to server's EntityCreatedEvent
+        else if (from is SimpleServer srv && to is SimpleSink sink)
         {
             sink.ConnectTo(srv);
         }

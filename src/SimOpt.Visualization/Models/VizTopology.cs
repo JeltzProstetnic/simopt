@@ -117,10 +117,10 @@ public class VizTopology
                 X = 14, Y = 6, Width = 5, Height = 3,
                 Params = new() { ["capacity"] = 40 } },
 
-            // Inspection
-            new() { Id = "inspect", Type = "server", Label = "Inspection",
+            // Inspection — 5% reject rate
+            new() { Id = "inspect", Type = "server", Label = "Inspection\n(5% reject)",
                 X = 14, Y = 11, Width = 5, Height = 3,
-                Params = new() { ["service_time"] = 0.33 } },
+                Params = new() { ["service_time"] = 0.33, ["reject_rate"] = 0.05 } },
 
             // Pre-assembly buffer
             new() { Id = "staging", Type = "buffer", Label = "Assembly\nStaging",
@@ -158,16 +158,17 @@ public class VizTopology
                 X = 14, Y = 38, Width = 6, Height = 3,
                 Color = "#F44336" },
 
-            // Waste bin
+            // Waste bin (reject target)
             new() { Id = "waste", Type = "sink", Label = "Waste",
                 X = 28, Y = 11, Width = 3, Height = 2,
-                Color = "#9E9E9E" },
+                Color = "#9E9E9E", Params = new() { ["is_reject_target"] = 1 } },
         },
         Connections = new List<VizConnection>
         {
             new() { From = "dock_a", To = "incoming" },
             new() { From = "dock_b", To = "incoming" },
             new() { From = "incoming", To = "inspect" },
+            new() { From = "inspect", To = "waste" },
             new() { From = "inspect", To = "staging" },
             // Parallel assembly
             new() { From = "staging", To = "asm1" },
