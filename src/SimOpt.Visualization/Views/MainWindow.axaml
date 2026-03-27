@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SimOpt.Visualization.ViewModels"
+        xmlns:controls="using:SimOpt.Visualization.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="500"
+        x:Class="SimOpt.Visualization.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="SimOpt Visualization"
+        Width="900" Height="500"
+        Background="#1E1E28">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <DockPanel>
+        <!-- Control bar at bottom -->
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    HorizontalAlignment="Center" Margin="0,8,0,12" Spacing="12">
+            <Button Content="Start" Command="{Binding StartCommand}"
+                    IsEnabled="{Binding !IsRunning}"
+                    Padding="16,6" FontSize="14"/>
+            <Button Content="Stop" Command="{Binding StopCommand}"
+                    IsEnabled="{Binding IsRunning}"
+                    Padding="16,6" FontSize="14"/>
+            <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"
+                       Foreground="#A0A0B4" FontSize="13" Margin="12,0,0,0"/>
+        </StackPanel>
+
+        <!-- Simulation canvas fills the rest -->
+        <controls:SimulationCanvas x:Name="SimCanvas"/>
+    </DockPanel>
+</Window>
