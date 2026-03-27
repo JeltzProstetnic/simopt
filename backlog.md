@@ -13,10 +13,19 @@
 - [x] **SIM-06** Expand test coverage: Buffer template (size: M) — Phase 4
 - [x] **SIM-07** Expand test coverage: Server template (size: L) — Phase 4 (integration tests deferred: ConnectTo type constraints)
 - [x] **SIM-08** Expand test coverage: Conveyor template (size: M) — Phase 4
-- [ ] **SIM-09** Expand test coverage: more distributions (size: M) — Gaussian, NegExponential, Poisson, Erlang
-- [ ] **SIM-10** Expand test coverage: graph/pathfinding algorithms (size: L) — Dijkstra, Floyd-Warshall, A*
-- [ ] **SIM-11** Expand test coverage: matrix decompositions (size: M) — Cholesky, LU, QR, SVD
+- [x] **SIM-09** Expand test coverage: more distributions (size: M) — Phase 4: Gaussian, NegExponential, Constant
+- [x] **SIM-10** Expand test coverage: graph/pathfinding algorithms (size: L) — Phase 4: Dijkstra, Floyd-Warshall, adjacency
+- [x] **SIM-11** Expand test coverage: matrix decompositions (size: M) — Phase 4: Cholesky, LU, QR roundtrip
 - [ ] **SIM-12** Add XML doc comments to public APIs (size: L) — systematic pass over all public types
+
+## P2.5 — Platform (new)
+
+- [x] **SIM-18** Avalonia 2D visualization — SQSS demo with live rendering, entity animations, speed controls
+- [x] **SIM-19** MCP server scaffold — create_model, run_simulation, get_status, list_templates tools
+- [ ] **SIM-20** MCP server integration testing — verify tools work end-to-end with Claude Code
+- [ ] **SIM-21** Agent fleet knowledge file — simopt-ops.md for detection/offering/reporting workflow
+- [ ] **SIM-22** 3D visualization research — evaluate Stride/Silk.NET/Godot for cross-platform 3D
+- [ ] **SIM-23** Generalize visualization — support arbitrary topologies, not just SQSS
 
 ## P3 — Low Priority / Future
 
