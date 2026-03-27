@@ -17,7 +17,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		
 		private double lambda = 1d;
 		private double mean = 1d;
-        private IRandomSource rnd;
+        private IRandomSource rnd = null!;
 		private double shift = 0;
 		
 		#endregion
@@ -35,7 +35,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             }
             set
             {
-                rnd.Reset((int)value);
+                rnd.Reset(value!.Value);
             }
         }
 

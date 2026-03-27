@@ -7,18 +7,22 @@ using SimOpt.Basics.Interfaces;
 namespace SimOpt.Basics.Datastructures
 {
     internal interface ICache<TParameterIdentifier, TDictionaryIdentifier> : IClearable, IPurgeable
+        where TParameterIdentifier : notnull
+        where TDictionaryIdentifier : notnull
     {
         bool ContainsParameter(TDictionaryIdentifier dictionaryName, TParameterIdentifier parameterName);
     }
 
     public class Cache<TData, TParameterIdentifier, TDictionaryIdentifier> : ICache<TParameterIdentifier, TDictionaryIdentifier>
+        where TParameterIdentifier : notnull
+        where TDictionaryIdentifier : notnull
     {
         #region cvar
 
         private bool _isAgeTrackingEnabled = true;
-        private TDictionaryIdentifier _defaultDictionaryIdentifier;
+        private TDictionaryIdentifier _defaultDictionaryIdentifier = default!;
         private Dictionary<TDictionaryIdentifier, Dictionary<TParameterIdentifier, TData>> _data = new Dictionary<TDictionaryIdentifier, Dictionary<TParameterIdentifier, TData>>();
-        private Dictionary<TDictionaryIdentifier, Dictionary<TParameterIdentifier, DateTime>> _timeStamps;
+        private Dictionary<TDictionaryIdentifier, Dictionary<TParameterIdentifier, DateTime>>? _timeStamps;
 
         #endregion
         #region prop
@@ -69,7 +73,7 @@ namespace SimOpt.Basics.Datastructures
 
         public bool TryGet(TDictionaryIdentifier dictionaryName, TParameterIdentifier parameterName, out TData result)
         {
-            result = Get(dictionaryName, parameterName, default(TData));
+            result = Get(dictionaryName, parameterName, default(TData)!);
             return ContainsParameter(dictionaryName, parameterName);
         }
 
@@ -104,7 +108,7 @@ namespace SimOpt.Basics.Datastructures
 
             _data[dictionaryName][parameterName] = value;
 
-            if (_isAgeTrackingEnabled) _timeStamps[dictionaryName][parameterName] = DateTime.Now;
+            if (_isAgeTrackingEnabled) _timeStamps![dictionaryName][parameterName] = DateTime.Now;
         }
 
         #endregion
@@ -159,12 +163,14 @@ namespace SimOpt.Basics.Datastructures
     }
 
     public class Cache<TDictionaryIdentifier, TParameterIdentifier> : IClearable, IPurgeable
+        where TDictionaryIdentifier : notnull
+        where TParameterIdentifier : notnull
     {
         #region cvar
 
         private bool _isAgeTrackingEnabled = true;
-        private TDictionaryIdentifier _defaultDictionaryIdentifier;
-        private Dictionary<Type, object> _subCaches;
+        private TDictionaryIdentifier _defaultDictionaryIdentifier = default!;
+        private Dictionary<Type, object> _subCaches = null!;
 
         #endregion
         #region prop
@@ -229,7 +235,7 @@ namespace SimOpt.Basics.Datastructures
 
         public bool TryGet<T>(TDictionaryIdentifier dictionaryName, TParameterIdentifier parameterName, out T result)
         {
-            result = default(T);
+            result = default(T)!;
             if (!SubCacheExists<T>()) return false;
             return GetCache<T>().TryGet(dictionaryName, parameterName, out result);
         }
@@ -284,7 +290,7 @@ namespace SimOpt.Basics.Datastructures
         /// </summary>
         public void Clear()
         {
-            foreach (object o in _subCaches.Values) (o as IClearable).Clear();
+            foreach (object o in _subCaches.Values) ((IClearable)o).Clear();
             _subCaches.Clear();
         }
 
@@ -294,7 +300,7 @@ namespace SimOpt.Basics.Datastructures
         /// </summary>
         public void Purge()
         {
-            foreach (object o in _subCaches.Values) (o as IPurgeable).Purge();
+            foreach (object o in _subCaches.Values) ((IPurgeable)o).Purge();
         }
 
         #endregion
@@ -307,9 +313,9 @@ namespace SimOpt.Basics.Datastructures
 
         public bool HasValue(TDictionaryIdentifier dictionaryName, TParameterIdentifier parameterName)
         {
-            foreach (object o in _subCaches)
+            foreach (object o in _subCaches.Values)
             {
-                if ((o as ICache<TParameterIdentifier, TDictionaryIdentifier>).ContainsParameter(dictionaryName, parameterName)) return true;
+                if (o is ICache<TParameterIdentifier, TDictionaryIdentifier> cache && cache.ContainsParameter(dictionaryName, parameterName)) return true;
             }
             return false;
         }
@@ -342,12 +348,13 @@ namespace SimOpt.Basics.Datastructures
         #endregion
         #region util
 
-        private Cache<T, TParameterIdentifier, TDictionaryIdentifier> GetCache<T>() { return _subCaches[typeof(T)] as Cache<T, TParameterIdentifier, TDictionaryIdentifier>; }
+        private Cache<T, TParameterIdentifier, TDictionaryIdentifier> GetCache<T>() { return (_subCaches[typeof(T)] as Cache<T, TParameterIdentifier, TDictionaryIdentifier>)!; }
 
         #endregion
     }
 
     public class Cache<T> : Cache<int, T>
+        where T : notnull
     {
         public Cache(int defaultDictionaryID = 0, bool isAgeTrackingEnabled = false) : base(defaultDictionaryID, isAgeTrackingEnabled) { }
     }

@@ -15,8 +15,8 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		
 		private double factor = 1d;
 		private int diff = 2;
-		private GammaDistribution dblGamma1;
-		private GammaDistribution dblGamma2;
+		private GammaDistribution dblGamma1 = null!;
+		private GammaDistribution dblGamma2 = null!;
 		private double shift = 0;
 		private double mean;
 		

@@ -14,22 +14,22 @@ namespace SimOpt.Basics.Datastructures.Geometry
 
         public override string ToString()
         {
-            if (Z.Equals(default(T)))
+            if (Z is null || Z.Equals(default(T)))
             {
-                return "(" + X.ToString() + "," + Y.ToString() + ")";
+                return "(" + X?.ToString() + "," + Y?.ToString() + ")";
             }
             else
             {
-                return "(" + X.ToString() + "," + Y.ToString() + "," + Z.ToString() + ")";
+                return "(" + X?.ToString() + "," + Y?.ToString() + "," + Z?.ToString() + ")";
             }
         }
 
         #endregion
         #region prop
 
-        public T X { get; set; }
-        public T Y { get; set; }
-        public T Z { get; set; }
+        public T X { get; set; } = default!;
+        public T Y { get; set; } = default!;
+        public T Z { get; set; } = default!;
 
         #endregion
         #region ctor
@@ -39,9 +39,9 @@ namespace SimOpt.Basics.Datastructures.Geometry
         /// </summary>
         public Point()
         {
-            X = default(T);
-            Y = default(T);
-            Z = default(T);
+            X = default!;
+            Y = default!;
+            Z = default!;
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace SimOpt.Basics.Datastructures.Geometry
         {
             X = x;
             Y = y;
-            Z = default(T);
+            Z = default!;
         }
 
         /// <summary>
@@ -72,17 +72,16 @@ namespace SimOpt.Basics.Datastructures.Geometry
         #endregion
         #region impl
 
-        public bool Equals(Point<T> other)
+        public bool Equals(Point<T>? other)
         {
             if (other == null) return false;
-            return (this.X.Equals(other.X) && this.Y.Equals(other.Y) &&
-                (this.Z.Equals(other.Z)));
+            return (this.X!.Equals(other.X) && this.Y!.Equals(other.Y) &&
+                (this.Z!.Equals(other.Z)));
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if ((obj as Point<T>) == null) return false;
-            return this.Equals(obj as Point<T>);
+            return obj is Point<T> other && this.Equals(other);
         }
 
         public override int GetHashCode()
@@ -159,13 +158,13 @@ namespace SimOpt.Basics.Datastructures.Geometry
         #endregion
         #region oper
 
-        public static bool operator ==(Point p1, Point p2)
+        public static bool operator ==(Point? p1, Point? p2)
         {
-            if (object.Equals(p1, null)) return object.Equals(p2, null);
+            if (p1 is null) return p2 is null;
             return p1.Equals(p2);
         }
 
-        public static bool operator !=(Point p1, Point p2)
+        public static bool operator !=(Point? p1, Point? p2)
         {
             return !(p1 == p2);
         }
@@ -224,17 +223,16 @@ namespace SimOpt.Basics.Datastructures.Geometry
                 throw new ArgumentException("Incompatible points: one of the point has a Z value defined, the other not.");
         }
 
-        public bool Equals(Point other)
+        public bool Equals(Point? other)
         {
             if (other == null) return false;
             return (this.X == other.X && this.Y == other.Y &&
                 (this.Z == other.Z || (double.IsNaN(this.Z) && double.IsNaN(other.Z))));
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if ((obj as Point) == null) return false;
-            return this.Equals(obj as Point);
+            return obj is Point other && this.Equals(other);
         }
 
         public override int GetHashCode()

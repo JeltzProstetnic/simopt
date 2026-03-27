@@ -16,7 +16,7 @@ namespace SimOpt.Basics.Tools
     {
         #region cvar
 
-        private T current;
+        private T current = default!;
         private IEnumerator<T> baseEnumerator;
         
         #endregion
@@ -26,7 +26,7 @@ namespace SimOpt.Basics.Tools
         /// Get or set the current filter. The filter must
         /// return true for the item to be filtered.
         /// </summary>
-        public Func<T, T> Manipulation { get; set; }
+        public Func<T, T>? Manipulation { get; set; }
 
         /// <summary>
         /// The enumerator on which this is based.
@@ -45,10 +45,10 @@ namespace SimOpt.Basics.Tools
         /// </summary>
         /// <param name="baseEnumerator">The IEnumerator to wrap.</param>
         /// <param name="filter">A filter function.</param>
-        public ManipulatedEnumerator(IEnumerator<T> baseEnumerator, Func<T, T> manipulation = null)
+        public ManipulatedEnumerator(IEnumerator<T> baseEnumerator, Func<T, T>? manipulation = null)
         {
             this.baseEnumerator = baseEnumerator;
-            this.Manipulation = manipulation == null ? x => x : manipulation;
+            this.Manipulation = manipulation ?? (x => x);
         }
 
         #endregion
@@ -72,7 +72,7 @@ namespace SimOpt.Basics.Tools
         #endregion
         #region IEnumerator
 
-        object System.Collections.IEnumerator.Current
+        object? System.Collections.IEnumerator.Current
         {
             get { return current; }
         }
@@ -81,7 +81,7 @@ namespace SimOpt.Basics.Tools
         {
             if (!baseEnumerator.MoveNext()) return false;
 
-            current = Manipulation.Invoke(baseEnumerator.Current);
+            current = Manipulation!.Invoke(baseEnumerator.Current);
 
             return true;
         }

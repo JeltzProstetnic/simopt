@@ -17,7 +17,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         private int interva1 = int.MaxValue;
         private int min = 0;
         private int max = int.MaxValue;
-        private IRandomSource rnd;
+        private IRandomSource rnd = null!;
 
         #endregion
         #region prop
@@ -49,7 +49,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             }
             set
             {
-                rnd.Reset((int)value);
+                rnd.Reset(value!.Value);
             }
         }
 

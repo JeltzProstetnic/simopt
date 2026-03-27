@@ -59,11 +59,10 @@ namespace SimOpt.Mathematics.Numerics
         /// 
         /// <returns>Returns <see langword="true"/> if <paramref name="obj"/> is a <see cref="Complex"/> and has the same values as this instance or <see langword="false"/> otherwise.</returns>
         /// 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj is Complex)
+            if (obj is Complex c)
             {
-                Complex c = (Complex)obj;
                 return (this.Re == c.Re) && (this.Im == c.Im);
             }
             return false;
@@ -556,7 +555,7 @@ namespace SimOpt.Mathematics.Numerics
         /// 
         public static Complex Multiply(Complex a, Complex b)
         {
-            // (x + yi)(u + vi) = (xu – yv) + (xv + yu)i. 
+            // (x + yi)(u + vi) = (xu ï¿½ yv) + (xv + yu)i. 
             double aRe = a.Re, aIm = a.Im;
             double bRe = b.Re, bIm = b.Im;
 
@@ -587,7 +586,7 @@ namespace SimOpt.Mathematics.Numerics
         /// 
         public static void Multiply(Complex a, Complex b, ref Complex result)
         {
-            // (x + yi)(u + vi) = (xu – yv) + (xv + yu)i. 
+            // (x + yi)(u + vi) = (xu ï¿½ yv) + (xv + yu)i. 
             double aRe = a.Re, aIm = a.Im;
             double bRe = b.Re, bIm = b.Im;
 

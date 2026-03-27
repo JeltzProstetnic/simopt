@@ -13,14 +13,14 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
     {
         #region cvar
         
-        private IRandomSource rnd;
+        private IRandomSource rnd = null!;
 
         #endregion
         #region prop
 
         public int Minimum { get; set; }
         public int Maximum { get; set; }
-        public List<double> Frequencies { get; private set; }
+        public List<double> Frequencies { get; private set; } = null!;
 
         /// <summary>
         /// Get or set the number of values which have been
@@ -44,7 +44,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             }
             set
             {
-                rnd.Reset((int)value);
+                rnd.Reset(value!.Value);
             }
         }
 

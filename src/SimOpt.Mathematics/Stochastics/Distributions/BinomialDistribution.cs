@@ -19,7 +19,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		
 		private int trials = 1;
 		private int mean = 0;
-		private BernoulliDistribution intBernoulli;
+		private BernoulliDistribution intBernoulli = null!;
 		
 		#endregion
 		#region prop

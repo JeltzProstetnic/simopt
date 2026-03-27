@@ -16,7 +16,7 @@ namespace SimOpt.Basics.Utilities
     /// </typeparam>
     public class MultiEnumerator<T> : IEnumerator<List<T>>
     {
-        private List<T> current;
+        private List<T>? current;
         private IEnumerable<IEnumerable<T>> source;
         private List<IEnumerator<T>> sources;
 
@@ -52,7 +52,7 @@ namespace SimOpt.Basics.Utilities
 
         public List<T> Current
         {
-            get { return current; }
+            get { return current!; }
         }
 
         #endregion
@@ -69,7 +69,7 @@ namespace SimOpt.Basics.Utilities
 
         #region IEnumerator Member
 
-        object System.Collections.IEnumerator.Current
+        object? System.Collections.IEnumerator.Current
         {
             get { return current; }
         }
@@ -84,7 +84,7 @@ namespace SimOpt.Basics.Utilities
                 bool value = e.MoveNext();
                 if (!EnumerateUntilAllEmpty && !value) return false;
                 resultOr = resultOr || value;
-                tmp.Add(value ? e.Current : default(T));
+                tmp.Add(value ? e.Current : default(T)!);
             }
 
             if (!resultOr) return false;

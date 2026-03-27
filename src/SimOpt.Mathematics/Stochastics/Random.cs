@@ -14,7 +14,7 @@ namespace SimOpt.Mathematics.Stochastics
         #region cvar
 
         private bool nonStochasticMode = false;
-        protected IDistribution<T> dist;
+        protected IDistribution<T> dist = null!;
 
         #endregion
         #region prop
@@ -42,7 +42,7 @@ namespace SimOpt.Mathematics.Stochastics
         protected Random(SerializationInfo info, StreamingContext context)
         {
             nonStochasticMode = info.GetBoolean("nonStochasticMode");
-            dist = (IDistribution<T>)info.GetValue("dist", typeof(IDistribution<T>));
+            dist = (IDistribution<T>)info.GetValue("dist", typeof(IDistribution<T>))!;
         }
 
         public Random(IDistribution<T> distribution, bool nonStochasticMode = false)

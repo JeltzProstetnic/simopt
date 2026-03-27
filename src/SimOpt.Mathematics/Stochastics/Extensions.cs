@@ -112,7 +112,7 @@ namespace SimOpt.Mathematics.Stochastics
                 counter += 1;
             }
 
-            return default(T);
+            return default(T)!;
         }
 
         #endregion
@@ -221,7 +221,7 @@ namespace SimOpt.Mathematics.Stochastics
                 counter += 1;
             }
 
-            return default(T);
+            return default(T)!;
         }
 
         #endregion
@@ -289,7 +289,7 @@ namespace SimOpt.Mathematics.Stochastics
                 counter += 1;
             }
 
-            return default(T);
+            return default(T)!;
         }
 
         #endregion

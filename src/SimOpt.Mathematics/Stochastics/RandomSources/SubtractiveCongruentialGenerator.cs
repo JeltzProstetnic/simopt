@@ -20,7 +20,7 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         #region cvar
 
         private int seed = 0;
-        private System.Random rnd;
+        private System.Random rnd = null!;
         private bool initialized = false;
         private bool antithetic = false;
         private int antitheticSummandInteger = 0;

@@ -94,13 +94,13 @@ namespace SimOpt.Basics.Datastructures.Geometry
         #endregion
         #region oper
 
-        public static bool operator ==(Vector p1, Vector p2)
+        public static bool operator ==(Vector? p1, Vector? p2)
         {
-            if (object.Equals(p1, null)) return object.Equals(p2, null);
+            if (p1 is null) return p2 is null;
             return p1.Equals(p2);
         }
 
-        public static bool operator !=(Vector p1, Vector p2)
+        public static bool operator !=(Vector? p1, Vector? p2)
         {
             return !(p1 == p2);
         }
@@ -238,17 +238,16 @@ namespace SimOpt.Basics.Datastructures.Geometry
                 return new Vector(source.X / len, source.Y / len, source.Z / len);
         }
 
-        public bool Equals(Vector other)
+        public bool Equals(Vector? other)
         {
             if (other == null) return false;
             return (this.X == other.X && this.Y == other.Y &&
                 (this.Z == other.Z || (double.IsNaN(this.Z) && double.IsNaN(other.Z))));
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if ((obj as Vector) == null) return false;
-            return this.Equals(obj as Vector);
+            return obj is Vector other && this.Equals(other);
         }
 
         public override int GetHashCode()

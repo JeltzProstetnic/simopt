@@ -12,7 +12,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         private double interval;
         private double min = 0;
         private double max = 1;
-        private IRandomSource rnd;
+        private IRandomSource rnd = null!;
 
         #endregion
         #region prop
@@ -44,7 +44,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             }
             set
             {
-                rnd.Reset((int)value);
+                rnd.Reset(value!.Value);
             }
         }
 

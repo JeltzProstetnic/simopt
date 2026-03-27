@@ -11,8 +11,8 @@ namespace SimOpt.Mathematics.Graphing.Network
     {
         #region cvar
 
-        private Network network;
-        private List<Connection> connections;
+        private Network network = null!;
+        private List<Connection> connections = null!;
 
         #endregion
         #region prop
@@ -23,7 +23,7 @@ namespace SimOpt.Mathematics.Graphing.Network
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         public Basics.Datastructures.Geometry.Point Position
         {
@@ -132,7 +132,7 @@ namespace SimOpt.Mathematics.Graphing.Network
         #endregion
         #region IEquatable<INode<double>>
 
-        public bool Equals(INode<double> other)
+        public bool Equals(INode<double>? other)
         {
             throw new NotImplementedException();
         }

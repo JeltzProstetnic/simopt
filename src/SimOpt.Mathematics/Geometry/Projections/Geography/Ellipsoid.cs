@@ -13,7 +13,7 @@ namespace SimOpt.Mathematics.Geometry.Projections.Geography
     {
         #region cvar
 
-        private string name;
+        private string name = null!;
         
         private double poleRadius = 1.0;
         private double equatorRadius = 1.0;

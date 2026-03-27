@@ -686,7 +686,7 @@ namespace SimOpt.Mathematics
             {
                 for (int j = 0; j < a[i].Length; j++)
                 {
-                    if (!a[i][j].Equals(b[i][j]))
+                    if (!Equals(a[i][j], b[i][j]))
                         return false;
                 }
             }
@@ -703,7 +703,7 @@ namespace SimOpt.Mathematics
             {
                 for (int j = 0; j < b.GetLength(1); j++)
                 {
-                    if (!a[i, j].Equals(b[i, j]))
+                    if (!Equals(a[i, j], b[i, j]))
                         return false;
                 }
             }
@@ -718,12 +718,12 @@ namespace SimOpt.Mathematics
 
             for (int i = 0; i < a.Length; i++)
             {
-                if (!a[i].Equals(b[i]))
+                if (!Equals(a[i], b[i]))
                     return false;
             }
             return true;
         }
-        
+
         #endregion
         #region algebra
 
@@ -2614,7 +2614,7 @@ namespace SimOpt.Mathematics
         /// </summary>
         public static double[] ToArray(this DataColumn column)
         {
-            double[] m = new double[column.Table.Rows.Count];
+            double[] m = new double[column.Table!.Rows.Count];
 
             for (int i = 0; i < m.Length; i++)
             {

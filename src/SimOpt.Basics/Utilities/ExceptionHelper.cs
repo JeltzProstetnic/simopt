@@ -20,7 +20,7 @@ namespace SimOpt.Basics.Utilities
         /// <param name="operationName"></param>
         /// <returns>A success flag</returns>
         public static bool RetryOperation(Func<bool> operationSuccessfulDelegate,
-            int numberOfAttempts, out Exception ex)
+            int numberOfAttempts, out Exception? ex)
         {
             ex = null;
 
@@ -71,7 +71,7 @@ namespace SimOpt.Basics.Utilities
         /// <param name="operationName"></param>
         /// <returns>A success flag</returns>
         public static bool RetryOperationDelayed(Func<bool> operationSuccessfulDelegate,
-            int numberOfAttempts, TimeSpan repeatDelay, out Exception ex)
+            int numberOfAttempts, TimeSpan repeatDelay, out Exception? ex)
         {
             ex = null;
             
@@ -371,10 +371,10 @@ namespace SimOpt.Basics.Utilities
         /// <param name="operationName"></param>
         /// <returns>A success flag and the result of the operation.</returns>
         public static bool RetryOperation<T>(Func<T> operationDelegate,
-            int numberOfAttempts, out T result, out Exception ex)
+            int numberOfAttempts, out T result, out Exception? ex)
         {
             ex = null;
-            result = default(T);
+            result = default(T)!;
 
             if (numberOfAttempts < 1) return true;
 
@@ -425,10 +425,10 @@ namespace SimOpt.Basics.Utilities
         /// <param name="operationName"></param>
         /// <returns>A success flag and the result of the operation.</returns>
         public static bool RetryOperationDelayed<T>(Func<T> operationDelegate,
-            int numberOfAttempts, TimeSpan repeatDelay, out T result, out Exception ex)
+            int numberOfAttempts, TimeSpan repeatDelay, out T result, out Exception? ex)
         {
             ex = null;
-            result = default(T);
+            result = default(T)!;
 
             if (numberOfAttempts < 1) return true;
 

@@ -48,7 +48,7 @@ namespace SimOpt.Basics.Utilities
                                                             typeof(Func<,,,,,,,,,,,,,,,,>),
                                                         };
 
-        public static Delegate CreateOpenDelegate(MethodInfo method)
+        public static Delegate? CreateOpenDelegate(MethodInfo method)
         {
             var closedType = GetClosedDelegateType(method);
 
@@ -57,7 +57,7 @@ namespace SimOpt.Basics.Utilities
                      : null;
         }
 
-        private static Type GetClosedDelegateType(MethodInfo method)
+        private static Type? GetClosedDelegateType(MethodInfo method)
         {
             var openType = GetOpenDelegateType(method);
 
@@ -71,13 +71,13 @@ namespace SimOpt.Basics.Utilities
                     parameterTypes = parameterTypes.Union(new[] { method.ReturnType });
                 }
 
-                return openType.MakeGenericType(parameterTypes.ToArray());
+                return openType.MakeGenericType(parameterTypes.ToArray()!);
             }
 
             return null;
         }
 
-        private static Type GetOpenDelegateType(MethodInfo method)
+        private static Type? GetOpenDelegateType(MethodInfo method)
         {
             var parameterCount = method.GetParameters().Length + 1;
 

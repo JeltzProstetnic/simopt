@@ -62,7 +62,7 @@ namespace SimOpt.Mathematics.Geometry.Projections.Geography
         protected double rone_es = 0;
 
         // ellipsoid used by this projection
-        protected Ellipsoid ellipsoid;
+        protected Ellipsoid ellipsoid = null!;
 
         // true if this projection is using a sphere (es == 0)
         protected bool spherical;
@@ -71,7 +71,7 @@ namespace SimOpt.Mathematics.Geometry.Projections.Geography
         protected bool geocentric;
 
         // name of this projection
-        protected String name;
+        protected String name = null!;
 
         // conversion factor from metres to whatever units the projection uses.
         protected double fromMetres = 1;

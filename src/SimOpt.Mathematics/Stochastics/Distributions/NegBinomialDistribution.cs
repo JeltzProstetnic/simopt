@@ -25,7 +25,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		
 		private int successes = 1;
 		private int mean = 1;
-		private BernoulliDistribution intBernoulli;
+		private BernoulliDistribution intBernoulli = null!;
 		
 		#endregion
 		#region prop

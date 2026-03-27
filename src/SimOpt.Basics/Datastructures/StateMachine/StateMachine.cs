@@ -21,8 +21,8 @@ namespace SimOpt.Basics.Datastructures.StateMachine
         protected internal Dictionary<int, T> statesByEnum;
         protected internal Dictionary<string, T> statesByName;
 
-        protected T currentState;
-        protected T previousState;
+        protected T currentState = default!;
+        protected T previousState = default!;
 
         #endregion
         #region prop

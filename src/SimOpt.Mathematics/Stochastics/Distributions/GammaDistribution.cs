@@ -17,8 +17,8 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		private double k = 1d;
 		private int diff = 1;
 		private double mean = 1;
-		private GaussianDistribution dblGaussian;
-		private UniformDoubleDistribution dblUniform;
+		private GaussianDistribution dblGaussian = null!;
+		private UniformDoubleDistribution dblUniform = null!;
 		private double shift = 0;
 		
 		#endregion
@@ -52,8 +52,8 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 			}
 			set
 			{
-				dblUniform.Reset((int)value);
-				dblGaussian.Reset((int)value + diff);
+				dblUniform.Reset(value!.Value);
+				dblGaussian.Reset(value!.Value + diff);
 			}
 		}
 

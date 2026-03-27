@@ -16,8 +16,10 @@ namespace SimOpt.Basics.Utilities
 
         #region IEqualityComparer
 
-        public bool Equals(string x, string y)
+        public bool Equals(string? x, string? y)
         {
+            if (x is null && y is null) return true;
+            if (x is null || y is null) return false;
             if (trim)
             {
                 return x.Trim().ToUpper() == y.Trim().ToUpper();

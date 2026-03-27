@@ -13,7 +13,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 	{
 		#region cvar
 		
-		private GaussianDistribution dblGaussian;
+		private GaussianDistribution dblGaussian = null!;
 		private double shift = 0;
 		private double mean = Math.Exp(0.5);
 		

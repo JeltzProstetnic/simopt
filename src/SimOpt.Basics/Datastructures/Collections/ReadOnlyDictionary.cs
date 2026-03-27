@@ -27,22 +27,22 @@ namespace SimOpt.Basics.Datastructures.Collections
 			return hashCode;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
-			ReadOnlyDictionary<TKey, TValue> other = obj as ReadOnlyDictionary<TKey, TValue>;
+			ReadOnlyDictionary<TKey, TValue>? other = obj as ReadOnlyDictionary<TKey, TValue>;
 			if (other == null) return false;
 			return object.Equals(this._dict, other._dict);
 		}
 
-		public static bool operator ==(ReadOnlyDictionary<TKey, TValue> lhs, ReadOnlyDictionary<TKey, TValue> rhs)
+		public static bool operator ==(ReadOnlyDictionary<TKey, TValue>? lhs, ReadOnlyDictionary<TKey, TValue>? rhs)
 		{
 			if (ReferenceEquals(lhs, rhs)) return true;
-			if (ReferenceEquals(lhs, null) || ReferenceEquals(rhs, null))
+			if (lhs is null || rhs is null)
 				return false;
 			return lhs.Equals(rhs);
 		}
 
-		public static bool operator !=(ReadOnlyDictionary<TKey, TValue> lhs, ReadOnlyDictionary<TKey, TValue> rhs)
+		public static bool operator !=(ReadOnlyDictionary<TKey, TValue>? lhs, ReadOnlyDictionary<TKey, TValue>? rhs)
 		{
 			return !(lhs == rhs);
 		}
@@ -124,7 +124,7 @@ namespace SimOpt.Basics.Datastructures.Collections
 		#endregion
 		#region other
 
-		public bool TryGetValue(TKey key, out TValue value)
+		public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
 		{
 			return _dict.TryGetValue(key, out value);
 		}

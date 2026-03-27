@@ -17,7 +17,7 @@ namespace SimOpt.Basics.Datastructures.Network
         /// <summary>
         /// indicates if the connection is directed
         /// </summary>
-        bool IsDirected { get; }
+        new bool IsDirected { get; }
 
         /// <summary>
         /// the nodes between this connection exists

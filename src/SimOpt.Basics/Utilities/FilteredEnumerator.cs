@@ -25,7 +25,7 @@ namespace SimOpt.Basics.Tools
         /// Get or set the current filter. The filter must
         /// return true for the item to be filtered.
         /// </summary>
-        public Func<T, bool> Filter { get; set; }
+        public Func<T, bool>? Filter { get; set; }
 
         /// <summary>
         /// The enumerator on which this is based.
@@ -44,10 +44,10 @@ namespace SimOpt.Basics.Tools
         /// </summary>
         /// <param name="baseEnumerator">The IEnumerator to wrap.</param>
         /// <param name="filter">A filter function.</param>
-        public FilteredEnumerator(IEnumerator<T> baseEnumerator, Func<T, bool> filter = null)
+        public FilteredEnumerator(IEnumerator<T> baseEnumerator, Func<T, bool>? filter = null)
         {
             this.baseEnumerator = baseEnumerator;
-            this.Filter = filter == null ? x => false : filter;
+            this.Filter = filter ?? (x => false);
         }
 
         #endregion
@@ -71,7 +71,7 @@ namespace SimOpt.Basics.Tools
         #endregion
         #region IEnumerator
 
-        object System.Collections.IEnumerator.Current
+        object? System.Collections.IEnumerator.Current
         {
             get { return baseEnumerator.Current; }
         }
@@ -80,7 +80,7 @@ namespace SimOpt.Basics.Tools
         {
             if (!baseEnumerator.MoveNext()) return false;
 
-            while (Filter.Invoke(baseEnumerator.Current)) // item is filtered?
+            while (Filter!.Invoke(baseEnumerator.Current)) // item is filtered?
             {
                 if (!baseEnumerator.MoveNext()) return false;
             }

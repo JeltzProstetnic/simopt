@@ -12,7 +12,7 @@ namespace SimOpt.Mathematics.Numerics.Matrices
         #region cvar
 
         protected Dictionary<int, Dictionary<int, Complex>> rows;
-        internal Func<int, int, Complex> defaultFunction;
+        internal Func<int, int, Complex> defaultFunction = null!;
         private Complex defaultValue;
 
         protected int rowCount = 0;
@@ -59,10 +59,10 @@ namespace SimOpt.Mathematics.Numerics.Matrices
             return result.ToString();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (obj as Matrix == null) return base.Equals(obj);
-            return this == (obj as Matrix);
+            if (obj is not Matrix m) return base.Equals(obj);
+            return this == m;
         }
 
         public override int GetHashCode()
@@ -2329,8 +2329,10 @@ namespace SimOpt.Mathematics.Numerics.Matrices
         /// <param name="A"></param>
         /// <param name="B"></param>
         /// <returns></returns>
-        public static bool operator ==(Matrix A, Matrix B)
+        public static bool operator ==(Matrix? A, Matrix? B)
         {
+            if (A is null) return B is null;
+            if (B is null) return false;
             if (A.RowCount != B.RowCount || A.ColumnCount != B.ColumnCount)
                 return false;
 
@@ -2351,7 +2353,7 @@ namespace SimOpt.Mathematics.Numerics.Matrices
         /// <param name="A"></param>
         /// <param name="B"></param>
         /// <returns></returns>
-        public static bool operator !=(Matrix A, Matrix B)
+        public static bool operator !=(Matrix? A, Matrix? B)
         {
             return !(A == B);
         }
@@ -2911,11 +2913,11 @@ namespace SimOpt.Mathematics.Numerics.Matrices
 
             while (todo.Count > 0)
             {
-                v = (int)todo.Peek();
+                v = (int)todo.Peek()!;
 
                 if (A[v].Count > 0)
                 {
-                    w = (int)A[v][0];
+                    w = (int)A[v][0]!;
 
                     if (!marked[w])
                     {
@@ -2977,11 +2979,11 @@ namespace SimOpt.Mathematics.Numerics.Matrices
 
             while (todo.Count > 0)
             {
-                v = (int)todo.Peek();
+                v = (int)todo.Peek()!;
 
                 if (A[v].Count > 0)
                 {
-                    w = (int)A[v][0];
+                    w = (int)A[v][0]!;
 
                     if (!marked[w])
                     {
@@ -3136,7 +3138,7 @@ namespace SimOpt.Mathematics.Numerics.Matrices
         /// <param name="original"></param>
         /// <param name="LU"></param>
         /// <returns>success flag</returns>
-        public static bool LU(Matrix original, out Matrix LU)
+        public static bool LU(Matrix original, out Matrix? LU)
         {
             if (!original.IsSquare) throw new InvalidOperationException("Cannot perform LU-decomposition on a non-square matrix.");
 
@@ -3180,9 +3182,9 @@ namespace SimOpt.Mathematics.Numerics.Matrices
         /// <param name="L"></param>
         /// <param name="U"></param>
         /// <returns>success flag</returns>
-        public static bool LU(Matrix original, out Matrix L, out Matrix U)
+        public static bool LU(Matrix original, out Matrix? L, out Matrix? U)
         {
-            Matrix result;
+            Matrix? result;
 
             if (!LU(original, out result))
             {
@@ -3191,7 +3193,7 @@ namespace SimOpt.Mathematics.Numerics.Matrices
                 return false;
             }
 
-            L = result.LowerTrapeze();
+            L = result!.LowerTrapeze();
             U = result.UpperTrapeze();
 
             for (int i = 1; i <= L.columnCount; i++) L[i, i] = 1;
@@ -3314,7 +3316,7 @@ namespace SimOpt.Mathematics.Numerics.Matrices
         /// <param name="U"></param>
         /// <param name="P">the permutation matrix for pivoting; P*this = L*U</param>
         /// <returns>success flag</returns>
-        public static bool LUPivot(Matrix original, out Matrix L, out Matrix U, out Matrix P)
+        public static bool LUPivot(Matrix original, out Matrix? L, out Matrix? U, out Matrix P)
         {
             Matrix result;
 
@@ -3843,7 +3845,7 @@ namespace SimOpt.Mathematics.Numerics.Matrices
         #endregion
         #region IEquatable<Matrix>
 
-        public bool Equals(Matrix other)
+        public bool Equals(Matrix? other)
         {
             return this == other;
         }

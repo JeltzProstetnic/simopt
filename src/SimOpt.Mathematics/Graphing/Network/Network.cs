@@ -11,8 +11,8 @@ namespace SimOpt.Mathematics.Graphing.Network
     {
         #region cvar
 
-        private List<Node> nodes;
-        private List<Connection> connections;
+        private List<Node> nodes = null!;
+        private List<Connection> connections = null!;
 
         #endregion
         #region prop

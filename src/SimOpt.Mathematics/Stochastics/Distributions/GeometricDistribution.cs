@@ -13,7 +13,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 	{
 		#region cvar
 		
-		private BernoulliDistribution intBernoulli;
+		private BernoulliDistribution intBernoulli = null!;
 		private int mean = 1;
 		
 		#endregion

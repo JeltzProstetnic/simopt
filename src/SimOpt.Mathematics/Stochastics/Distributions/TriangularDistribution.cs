@@ -12,7 +12,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         private double mode = 0.5;
         private double maximum = 1;
         private double mean = 0.5; // 1.5 / 3
-        private IRandomSource rnd;
+        private IRandomSource rnd = null!;
 
         #endregion
         #region prop
@@ -34,7 +34,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             }
             set
             {
-                rnd.Reset((int)value);
+                rnd.Reset(value!.Value);
             }
         }
 

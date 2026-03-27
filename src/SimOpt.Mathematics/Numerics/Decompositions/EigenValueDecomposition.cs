@@ -33,8 +33,8 @@ namespace SimOpt.Mathematics.Numerics.Decompositions
         private int n;           	// matrix dimension
         private double[] d, e; 		// storage of eigenvalues.
         private double[,] V; 			// storage of eigenvectors.
-        private double[,] H;  			// storage of nonsymmetric Hessenberg form.
-        private double[] ort;    	// storage for nonsymmetric algorithm.
+        private double[,] H = null!;  			// storage of nonsymmetric Hessenberg form.
+        private double[] ort = null!;    	// storage for nonsymmetric algorithm.
         private double cdivr, cdivi;
         private bool symmetric;
 

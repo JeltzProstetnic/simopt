@@ -37,7 +37,7 @@ namespace SimOpt.Mathematics.Graphing.Network
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         #endregion
         #region IConnection<double>
@@ -52,7 +52,7 @@ namespace SimOpt.Mathematics.Graphing.Network
         {
             get;
             set;
-        }
+        } = null!;
 
         public double Length { get; set; }
 
@@ -80,7 +80,7 @@ namespace SimOpt.Mathematics.Graphing.Network
 
         #region IComparable<IConnection<double>>
 
-        public int CompareTo(IConnection<double> other)
+        public int CompareTo(IConnection<double>? other)
         {
             throw new NotImplementedException();
         }

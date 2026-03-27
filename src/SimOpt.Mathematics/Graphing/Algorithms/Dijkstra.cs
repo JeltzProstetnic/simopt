@@ -147,7 +147,7 @@ namespace SimOpt.Mathematics.Graphing.Algorithms
         /// <param name="maxDistance"></param>
         /// <param name="zeroDistance"></param>
         /// <param name="sourceDistance"></param>
-        public Dijkstra(Func<T, T, T> addDistances, T maxDistance, T zeroDistance = default(T), T sourceDistance = default(T))
+        public Dijkstra(Func<T, T, T> addDistances, T maxDistance, T zeroDistance = default(T)!, T sourceDistance = default(T)!)
         {
             predecessorBySource = new Dictionary<INode<T>, Dictionary<INode<T>, INode<T>>>();
             distancesBySource = new Dictionary<INode<T>, Dictionary<INode<T>, T>>();

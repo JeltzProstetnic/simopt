@@ -15,7 +15,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 
         private double mu = 0d;
         private double sigma = 1d;
-        private IRandomSource rnd;
+        private IRandomSource rnd = null!;
 
         #endregion
         #region prop
@@ -47,7 +47,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             }
             set
             {
-                rnd.Reset((int)value);
+                rnd.Reset(value!.Value);
             }
         }
 
@@ -85,7 +85,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         {
             this.mu = info.GetDouble("mu");
             this.sigma = info.GetDouble("sigma");
-            this.rnd = (IRandomSource)info.GetValue("rnd", typeof(IRandomSource));
+            this.rnd = (IRandomSource)info.GetValue("rnd", typeof(IRandomSource))!;
             this.Configured = info.GetBoolean("Configured");
             this.DrawCount = info.GetInt32("DrawCount");
         }

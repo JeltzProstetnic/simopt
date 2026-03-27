@@ -17,7 +17,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		#region cvar
 		
 		private double lambda = 1d;
-        private IRandomSource rnd;
+        private IRandomSource rnd = null!;
 		
 		#endregion
 		#region prop
@@ -34,7 +34,7 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             }
             set
             {
-                rnd.Reset((int)value);
+                rnd.Reset(value!.Value);
             }
         }
 

@@ -32,23 +32,23 @@ namespace SimOpt.Basics.Datastructures.StateMachine
 			return hashCode;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
-			State other = obj as State;
+			State? other = obj as State;
 			if (other == null) return false;
 			return this.id == other.id && this.idSet == other.idSet && this.name == other.name && this.nameSet == other.nameSet && object.Equals(this.targetStates, other.targetStates);
 		}
 
-		public static bool operator ==(State lhs, State rhs)
+		public static bool operator ==(State? lhs, State? rhs)
 		{
 			if (ReferenceEquals(lhs, rhs))
 				return true;
-			if (ReferenceEquals(lhs, null) || ReferenceEquals(rhs, null))
+			if (lhs is null || rhs is null)
 				return false;
 			return lhs.Equals(rhs);
 		}
 
-		public static bool operator !=(State lhs, State rhs)
+		public static bool operator !=(State? lhs, State? rhs)
 		{
 			return !(lhs == rhs);
 		}
@@ -60,9 +60,9 @@ namespace SimOpt.Basics.Datastructures.StateMachine
 		
 		private int id;
 		private bool idSet = false;
-		private string name;
+		private string? name;
 		private bool nameSet = false;
-		private List<IState> targetStates;
+		private List<IState> targetStates = null!;
 		
 		#endregion
 		#region prop
@@ -71,7 +71,7 @@ namespace SimOpt.Basics.Datastructures.StateMachine
 		/// unique name of this state
 		/// </summary>
 		public string Name {
-			get { return name; }
+			get { return name!; }
 			set
 			{
 				if (nameSet) throw new ValueAlreadySetException("Name");
@@ -161,9 +161,10 @@ namespace SimOpt.Basics.Datastructures.StateMachine
 		/// </summary>
 		/// <param name="other"></param>
 		/// <returns></returns>
-		public bool Equals(IState other)
+		public bool Equals(IState? other)
 		{
-			return id.Equals(other.ID) && name.Equals(other.Name);
+			if (other is null) return false;
+			return id.Equals(other.ID) && (name?.Equals(other.Name) ?? other.Name is null);
 		}
 
 		#endregion
