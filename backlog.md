@@ -24,14 +24,14 @@
 - [x] **SIM-19** MCP server scaffold — create_model, run_simulation, get_status, list_templates tools
 - [ ] **SIM-20** MCP server integration testing — verify tools work end-to-end with Claude Code
 - [ ] **SIM-21** Agent fleet knowledge file — simopt-ops.md for detection/offering/reporting workflow
-- [>] **SIM-22** 3D visualization research — evaluate Stride/Silk.NET/Godot for cross-platform 3D (research subagent running)
+- [x] **SIM-22** 3D visualization research — Phase 5: Raylib-cs for prototype, Stride for production
 - [x] **SIM-23** Generalize visualization — Phase 5: VizTopology JSON, auto-layout, topology selector, 3 presets
 
 ## P3 — Low Priority / Future
 
 - [ ] **SIM-13** Nullable annotation cleanup (size: XL) — ~1690 warnings, systematic conversion
-- [ ] **SIM-14** PCA/KPCA tests (size: M) — transform/revert roundtrip, variance conservation
-- [ ] **SIM-15** ROC curve analysis tests (size: M) — AUC calculation, threshold selection
+- [x] **SIM-14** PCA/KPCA tests (size: M) — Phase 5: 47 tests (transform/revert, variance, kernels)
+- [x] **SIM-15** ROC curve analysis tests (size: M) — Phase 5: 28 tests (AUC, thresholds, DeLong compare)
 - [x] **SIM-16** Example project modernization (size: L) — Phase 5: SDK-style csproj, SimOpt.* namespaces, console apps
 - [x] **SIM-24** Fix CholeskyDecomposition.Solve() forward substitution bug — Phase 5
 - [x] **SIM-25** Fix EigenvalueDecomposition null guard (throws wrong exception) — Phase 5
