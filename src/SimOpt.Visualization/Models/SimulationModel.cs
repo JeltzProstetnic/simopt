@@ -4,6 +4,7 @@ using System.Linq;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
 using SimOpt.Simulation.Enum;
+using SimOpt.Simulation.Interfaces;
 using SimOpt.Simulation.Templates;
 using SimOpt.Mathematics.Stochastics.Distributions;
 
@@ -137,8 +138,13 @@ public class SimulationModel
         var from = _entities[fromId];
         var to = _entities[toId];
 
+        // Source pushes to buffer/server/sink (adds EntityCreated handler that calls Put)
+        if (from is SimpleSource source && to is IItemSink<SimpleEntity> sink1)
+        {
+            source.ConnectTo(sink1);
+        }
         // Server pulls from buffer
-        if (to is SimpleServer server && from is SimpleBuffer buffer)
+        else if (to is SimpleServer server && from is SimpleBuffer buffer)
         {
             server.ConnectTo(buffer);
         }
@@ -147,8 +153,6 @@ public class SimulationModel
         {
             sink.ConnectTo(srv);
         }
-        // For other combinations, the SimOpt framework uses "pull" semantics:
-        // downstream.ConnectTo(upstream)
     }
 
     private SimpleEntity ProductGenerator()
