@@ -23,7 +23,7 @@
 - [x] **SIM-18** Avalonia 2D visualization — SQSS demo with live rendering, entity animations, speed controls
 - [x] **SIM-19** MCP server scaffold — create_model, run_simulation, get_status, list_templates tools
 - [ ] **SIM-20** MCP server integration testing — verify tools work end-to-end with Claude Code
-- [ ] **SIM-21** Agent fleet knowledge file — simopt-ops.md for detection/offering/reporting workflow
+- [x] **SIM-21** Agent fleet knowledge file — Phase 5: simopt-ops.md with detection patterns, workflow, presets, constraints
 - [x] **SIM-22** 3D visualization research — Phase 5: Raylib-cs for prototype, Stride for production
 - [x] **SIM-23** Generalize visualization — Phase 5: VizTopology JSON, auto-layout, topology selector, 3 presets
 
