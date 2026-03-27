@@ -55,6 +55,13 @@ public class SimulationCanvas : Control
     private const double NW = AutoLayout.NodeWidth;
     private const double NH = AutoLayout.NodeHeight;
 
+    // Statistics tracking
+    private readonly Dictionary<string, double> _busyTime = new();
+    private readonly Dictionary<string, double> _lastBusyChange = new();
+    private readonly Dictionary<string, bool> _wasBusy = new();
+    private bool _showStats = true;
+    private bool _statsDetached;
+
     #region Industrial Color Palette
 
     // Background
@@ -188,6 +195,9 @@ public class SimulationCanvas : Control
         _throughput = 0;
         _dots.Clear();
         _nodeStates.Clear();
+        _busyTime.Clear();
+        _lastBusyChange.Clear();
+        _wasBusy.Clear();
         _speedMs = speedMs;
         _running = true;
 
@@ -239,8 +249,95 @@ public class SimulationCanvas : Control
             _lastTime = _sim.CurrentTime;
         }
 
+        UpdateUtilization();
         UpdateDots();
         InvalidateVisual();
+    }
+
+    private void UpdateUtilization()
+    {
+        if (_sim == null) return;
+        double now = _sim.CurrentTime;
+        foreach (var ns in _nodeStates)
+        {
+            if (ns.Type != "server") continue;
+            bool busy = ns.Working;
+            if (!_busyTime.ContainsKey(ns.Id))
+            {
+                _busyTime[ns.Id] = 0;
+                _lastBusyChange[ns.Id] = 0;
+                _wasBusy[ns.Id] = false;
+            }
+            bool was = _wasBusy[ns.Id];
+            if (was && !busy)
+            {
+                _busyTime[ns.Id] += now - _lastBusyChange[ns.Id];
+                _lastBusyChange[ns.Id] = now;
+            }
+            else if (!was && busy)
+            {
+                _lastBusyChange[ns.Id] = now;
+            }
+            _wasBusy[ns.Id] = busy;
+        }
+    }
+
+    private double GetUtilization(string nodeId)
+    {
+        if (_sim == null || _sim.CurrentTime < 0.1) return 0;
+        double busy = _busyTime.GetValueOrDefault(nodeId, 0);
+        if (_wasBusy.GetValueOrDefault(nodeId, false))
+            busy += _sim.CurrentTime - _lastBusyChange.GetValueOrDefault(nodeId, 0);
+        return busy / _sim.CurrentTime;
+    }
+
+    public bool ShowStats
+    {
+        get => _showStats;
+        set { _showStats = value; InvalidateVisual(); }
+    }
+
+    public bool StatsDetached
+    {
+        get => _statsDetached;
+        set { _statsDetached = value; InvalidateVisual(); }
+    }
+
+    /// <summary>
+    /// Returns current stats for the detached stats window.
+    /// </summary>
+    public StatsSnapshot GetStatsSnapshot()
+    {
+        var snap = new StatsSnapshot { Time = _sim?.CurrentTime ?? 0, Throughput = _throughput };
+        foreach (var ns in _nodeStates)
+        {
+            if (ns.Type == "server")
+            {
+                var nodeDef = _topology?.Nodes.FirstOrDefault(n => n.Id == ns.Id);
+                snap.Servers.Add(new ServerStat
+                {
+                    Name = nodeDef?.Label?.Split('\n')[0] ?? ns.Id,
+                    Utilization = GetUtilization(ns.Id),
+                    Working = ns.Working,
+                    Damaged = ns.Damaged
+                });
+            }
+            else if (ns.Type == "buffer")
+            {
+                var nodeDef = _topology?.Nodes.FirstOrDefault(n => n.Id == ns.Id);
+                snap.Buffers.Add(new BufferStat
+                {
+                    Name = nodeDef?.Label?.Split('\n')[0] ?? ns.Id,
+                    Count = ns.Count,
+                    Capacity = ns.Capacity < int.MaxValue ? ns.Capacity : 100
+                });
+            }
+            else if (ns.Type == "sink")
+            {
+                snap.SinkTotal += ns.Count;
+            }
+        }
+        return snap;
     }
 
     private void UpdateDots()
@@ -375,6 +472,10 @@ public class SimulationCanvas : Control
 
         // Legend
         DrawLegend(ctx, b, isPhysical);
+
+        // Statistics panel (only when not detached)
+        if (_showStats && !_statsDetached && _sim != null && _sim.CurrentTime > 0.5)
+            DrawStatsPanel(ctx, b);
     }
 
     #region Node Rendering
@@ -670,6 +771,108 @@ public class SimulationCanvas : Control
         x1 = p1.X + nx * sz1.Width / 2; y1 = p1.Y + ny * sz1.Height / 2;
         x2 = p2.X - nx * sz2.Width / 2; y2 = p2.Y - ny * sz2.Height / 2;
         return true;
+    }
+
+    #endregion
+
+    #region Statistics Panel
+
+    private static readonly IBrush StatsBg = new SolidColorBrush(Color.FromArgb(210, 18, 18, 30));
+    private static readonly Pen StatsBorderPen = new(new SolidColorBrush(Color.FromRgb(50, 55, 80)), 1);
+    private static readonly IBrush StatsBarBg = new SolidColorBrush(Color.FromRgb(35, 38, 50));
+    private static readonly IBrush StatsBarLow = new SolidColorBrush(Color.FromRgb(60, 180, 100));
+    private static readonly IBrush StatsBarMed = new SolidColorBrush(Color.FromRgb(200, 170, 40));
+    private static readonly IBrush StatsBarHigh = new SolidColorBrush(Color.FromRgb(210, 60, 50));
+    private static readonly IBrush StatsBarWip = new SolidColorBrush(Color.FromRgb(70, 140, 210));
+    private static readonly IBrush BottleneckHighlight = new SolidColorBrush(Color.FromArgb(40, 210, 60, 50));
+
+    private void DrawStatsPanel(DrawingContext ctx, Rect bounds)
+    {
+        // Collect server utilizations
+        var servers = _nodeStates.Where(n => n.Type == "server").ToList();
+        var buffers = _nodeStates.Where(n => n.Type == "buffer").ToList();
+        int sinkTotal = _nodeStates.Where(n => n.Type == "sink").Sum(n => n.Count);
+
+        int rowCount = servers.Count + buffers.Count + 3; // +3 for headers and throughput
+        double rowH = 16;
+        double panelH = Math.Min(rowCount * rowH + 30, bounds.Height * 0.6);
+        double panelW = 190;
+        double px = 8;
+        double py = 58;
+
+        ctx.DrawRectangle(StatsBg, StatsBorderPen, new Rect(px, py, panelW, panelH), 6, 6);
+        Txt(ctx, "Statistics", px + panelW / 2, py + 12, 10, White, true);
+
+        double y = py + 26;
+        double barX = px + 90;
+        double barW = panelW - 100;
+
+        // Find bottleneck (highest utilization server)
+        string bottleneckId = "";
+        double maxUtil = 0;
+        foreach (var srv in servers)
+        {
+            double u = GetUtilization(srv.Id);
+            if (u > maxUtil) { maxUtil = u; bottleneckId = srv.Id; }
+        }
+
+        // Server utilizations
+        Txt(ctx, "Utilization", px + panelW / 2, y, 8, Dim, true);
+        y += rowH;
+
+        foreach (var srv in servers)
+        {
+            double util = GetUtilization(srv.Id);
+            var nodeDef = _topology!.Nodes.FirstOrDefault(n => n.Id == srv.Id);
+            string name = nodeDef?.Label?.Split('\n')[0] ?? srv.Id;
+            if (name.Length > 10) name = name[..10];
+
+            // Bottleneck highlight
+            bool isBottleneck = srv.Id == bottleneckId && maxUtil > 0.5;
+            if (isBottleneck)
+                Txt(ctx, "▶", px + 4, y, 7, StatsBarHigh);
+
+            Txt(ctx, name, px + 14, y, 8, Dim, false, leftAlign: true);
+
+            // Bar
+            ctx.DrawRectangle(StatsBarBg, null, new Rect(barX, y - 4, barW, 8), 2, 2);
+            IBrush barClr = util < 0.6 ? StatsBarLow : util < 0.85 ? StatsBarMed : StatsBarHigh;
+            if (util > 0.01)
+                ctx.DrawRectangle(barClr, null, new Rect(barX, y - 4, barW * Math.Min(1, util), 8), 2, 2);
+            Txt(ctx, $"{util * 100:F0}%", barX + barW + 8, y, 7, Dim, false, TfMono, leftAlign: true);
+
+            y += rowH;
+        }
+
+        // WIP (buffer levels)
+        y += 4;
+        Txt(ctx, "WIP (buffers)", px + panelW / 2, y, 8, Dim, true);
+        y += rowH;
+
+        foreach (var buf in buffers)
+        {
+            var nodeDef = _topology!.Nodes.FirstOrDefault(n => n.Id == buf.Id);
+            string name = nodeDef?.Label?.Split('\n')[0] ?? buf.Id;
+            if (name.Length > 10) name = name[..10];
+
+            int cap = buf.Capacity < int.MaxValue ? buf.Capacity : 100;
+            double fill = cap > 0 ? (double)buf.Count / cap : 0;
+
+            Txt(ctx, name, px + 14, y, 8, Dim, false, leftAlign: true);
+
+            ctx.DrawRectangle(StatsBarBg, null, new Rect(barX, y - 4, barW, 8), 2, 2);
+            IBrush wipClr = fill > 0.8 ? StatsBarHigh : StatsBarWip;
+            if (fill > 0.01)
+                ctx.DrawRectangle(wipClr, null, new Rect(barX, y - 4, barW * Math.Min(1, fill), 8), 2, 2);
+            Txt(ctx, $"{buf.Count}", barX + barW + 8, y, 7, Dim, false, TfMono, leftAlign: true);
+
+            y += rowH;
+        }
+
+        // Throughput
+        y += 4;
+        string tputStr = _throughput > 0 ? $"{_throughput:F1}/t" : "—";
+        Txt(ctx, $"Throughput: {tputStr}  |  Shipped: {sinkTotal}", px + panelW / 2, y, 8, Dim);
     }
 
     #endregion
@@ -1088,4 +1291,28 @@ public class SimulationCanvas : Control
         public double Speed { get; set; }
         public Color DotColor { get; set; } = Color.FromRgb(120, 220, 140);
     }
+}
+
+public class StatsSnapshot
+{
+    public double Time { get; set; }
+    public double Throughput { get; set; }
+    public int SinkTotal { get; set; }
+    public List<ServerStat> Servers { get; set; } = new();
+    public List<BufferStat> Buffers { get; set; } = new();
+}
+
+public class ServerStat
+{
+    public string Name { get; set; } = "";
+    public double Utilization { get; set; }
+    public bool Working { get; set; }
+    public bool Damaged { get; set; }
+}
+
+public class BufferStat
+{
+    public string Name { get; set; } = "";
+    public int Count { get; set; }
+    public int Capacity { get; set; }
 }

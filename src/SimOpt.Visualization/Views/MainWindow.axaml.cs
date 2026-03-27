@@ -51,6 +51,10 @@ public partial class MainWindow : Window
                 vm.ToggleRenderModeCommand.Execute(null);
                 e.Handled = true;
                 break;
+            case Key.S:
+                vm.ToggleStatsCommand.Execute(null);
+                e.Handled = true;
+                break;
             case Key.Escape:
                 if (vm.IsFullscreen)
                 {

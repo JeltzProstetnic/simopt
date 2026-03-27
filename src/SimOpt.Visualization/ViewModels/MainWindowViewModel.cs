@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SimOpt.Visualization.Controls;
@@ -38,6 +42,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public Window? OwnerWindow { get; set; }
 
     private Window? _controlsWindow;
+    private Window? _statsWindow;
+    private DispatcherTimer? _statsTimer;
     private WindowState _previousWindowState = WindowState.Normal;
 
     public List<string> TopologyNames { get; } = new()
@@ -77,6 +83,13 @@ public partial class MainWindowViewModel : ViewModelBase
         Canvas?.StopSimulation();
         IsRunning = false;
         StatusText = "Stopped  |  Space=start  -/+=speed  F=fullscreen";
+    }
+
+    [RelayCommand]
+    private void ToggleStats()
+    {
+        if (Canvas == null) return;
+        Canvas.ShowStats = !Canvas.ShowStats;
     }
 
     [RelayCommand]
@@ -132,8 +145,10 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        // Detach: hide inline bar, open floating controls window
+        // Detach: hide inline bar + stats, open floating windows
         ControlBarVisible = false;
+        if (Canvas != null) Canvas.StatsDetached = true;
+        OpenStatsWindow();
 
         _controlsWindow = new Window
         {
@@ -154,9 +169,57 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             _controlsWindow = null;
             if (!IsFullscreen) ControlBarVisible = true;
+            CloseStatsWindow();
         };
 
         _controlsWindow.Show();
+    }
+
+    private void OpenStatsWindow()
+    {
+        if (_statsWindow != null) return;
+
+        var statsPanel = new StatsPanel();
+        _statsWindow = new Window
+        {
+            Title = "SimOpt Statistics",
+            Width = 280,
+            Height = 400,
+            MinWidth = 220,
+            MinHeight = 200,
+            CanResize = true,
+            Topmost = true,
+            Background = new SolidColorBrush(Color.FromRgb(18, 18, 30)),
+            Content = statsPanel
+        };
+
+        _statsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        _statsTimer.Tick += (_, _) =>
+        {
+            if (Canvas == null) return;
+            var snap = Canvas.GetStatsSnapshot();
+            statsPanel.Update(snap);
+        };
+        _statsTimer.Start();
+
+        _statsWindow.Closed += (_, _) =>
+        {
+            _statsTimer?.Stop();
+            _statsTimer = null;
+            _statsWindow = null;
+            if (Canvas != null) Canvas.StatsDetached = false;
+        };
+
+        _statsWindow.Show();
+    }
+
+    private void CloseStatsWindow()
+    {
+        _statsTimer?.Stop();
+        _statsTimer = null;
+        _statsWindow?.Close();
+        _statsWindow = null;
+        if (Canvas != null) Canvas.StatsDetached = false;
     }
 
     private Avalonia.Controls.Control CreateControlPanel()
