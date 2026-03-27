@@ -37,7 +37,7 @@
 - [x] **SIM-25** Fix EigenvalueDecomposition null guard (throws wrong exception) — Phase 5
 - [ ] **SIM-17** NuGet packaging (size: M) — publish core libraries as packages (deprioritized)
 - [x] **SIM-26** Factory showcase Phase B: professional rendering (gradients, shadows, conveyor animation, SCADA look) (size: L) — Phase B: SCADA palette, SimpleRejectServer, 5 connection patterns, 4 headless tests
-- [ ] **SIM-27** Factory showcase Phase C: detachable controls, multi-monitor, keyboard shortcuts (size: M)
+- [x] **SIM-27** Factory showcase Phase C: detachable controls, multi-monitor, keyboard shortcuts (size: M)
 - [ ] **SIM-28** Factory showcase Phase D: optimization showcase (before/after, fitness chart, sensitivity heatmap) (size: L)
 - [ ] **SIM-29** Ivoclar dental manufacturing showcase (size: L)
 - [ ] **SIM-30** Icon/graphics library for domain-specific visuals (size: L)
