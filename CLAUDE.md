@@ -32,11 +32,13 @@
 | `src/SimOpt.Statistics` | Statistical analysis and output processing |
 | `src/SimOpt.Simulation` | Discrete-event engine: entities, events, network, templates |
 | `src/SimOpt.Optimization` | Strategy interfaces + EA, SA, PSO, random search implementations |
+| `src/SimOpt.Visualization` | Avalonia 2D live rendering (schematic + realistic modes) |
 | `src/SimOpt.Learning` | Machine learning utilities |
 | `src/SimOpt.Logging` | Cross-platform simulation logging |
 | `src/SimOpt.Logging.Desktop` | Desktop logging sink |
-| `tests/SimOpt.Tests` | xUnit test project (Basics, Simulation, Optimization) |
+| `tests/SimOpt.Tests` | xUnit test project (551 tests) |
 | `examples/` | Complete runnable models (SQSS, ED, SupplyChain, Warehouse, etc.) |
+| `docs/plans/` | Implementation plans for major features |
 | `design/` | UML class diagrams |
 | `documentation/` | Dissertation, tutorials, coding conventions |
 | `data/` | Data files for models |

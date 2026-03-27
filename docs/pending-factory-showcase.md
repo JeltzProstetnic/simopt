@@ -1,8 +1,8 @@
-Action: act
+Action: reference
 
 # Factory Floor Showcase — Multi-Session Handoff
 
-Tracked-by: SIM-26, SIM-27, SIM-28
+Tracked-by: SIM-26, SIM-27, SIM-28, SIM-31, SIM-32, SIM-33, SIM-34
 
 ## What's Done (Phase A — this session)
 - VizTopology extended with physical coordinates, labels, colors
@@ -13,20 +13,22 @@ Tracked-by: SIM-26, SIM-27, SIM-28
 
 ## What's Next
 
-### Phase B — Professional Rendering (next session)
-- [ ] Gradient fills instead of flat colors (industrial/SCADA look)
-- [ ] Drop shadows on nodes
-- [ ] Conveyor belt rendering: animated stripe pattern between nodes
-- [ ] Glow effect on active/busy machines
-- [ ] Legend panel (node types, colors, status indicators)
-- [ ] Scale bar showing physical dimensions
-- [ ] Professional dark industrial color palette
-- [ ] Entity items as small colored shapes (not just dots) moving along connections
+### Phase B — Professional Rendering ✅ (SIM-26)
+- [x] Gradient fills, drop shadows, conveyor chevrons, glow effects
+- [x] Legend, scale bar, industrial SCADA palette, colored diamond entities
+- [x] SimpleRejectServer for probabilistic routing (5% inspect → waste)
 
-### Phase C — Detachable Controls + Multi-Monitor
-- [ ] Separate controls window (Start/Stop/Speed) detachable from canvas
-- [ ] Canvas-only fullscreen mode for projection/second monitor
-- [ ] Keyboard shortcuts (Space=pause, +/-=speed, F=fullscreen)
+### Phase C — Detachable Controls + Multi-Monitor ✅ (SIM-27)
+- [x] Keyboard shortcuts (Space/+/-/F/D/R/S/Esc)
+- [x] Fullscreen mode, detachable controls + stats windows
+
+### Phase B2 — Realistic Renderer ✅ (SIM-32)
+- [x] Concrete floor, metallic machines, belt conveyors, iso entities, vignette
+- [x] R-key toggle between schematic and realistic
+
+### Phase B3 — Statistics Panel ✅ (SIM-31)
+- [x] Per-server utilization bars, WIP levels, bottleneck detection
+- [x] Detachable stats window, S-key toggle
 
 ### Phase D — Optimization Showcase
 - [ ] Built-in optimization mode: vary buffer sizes / service times → find optimal config
