@@ -79,7 +79,7 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
 
         #region IComparable<ISolution>
 
-        public int CompareTo(Interfaces.ISolution other)
+        public int CompareTo(Interfaces.ISolution? other)
         {
             throw new NotImplementedException();
         }

@@ -18,22 +18,22 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
     {
         #region cvar
 
-        private IParticleSwarmConfiguration config;
+        private IParticleSwarmConfiguration config = null!;
         private int iterationsRemaining;
         private bool stopRequested;
 
         // Swarm state
-        private ISolution[] positions;
-        private double[][] velocities;
-        private ISolution[] personalBests;
-        private ISolution globalBest;
-        private Random rng;
+        private ISolution[] positions = null!;
+        private double[][] velocities = null!;
+        private ISolution[] personalBests = null!;
+        private ISolution globalBest = null!;
+        private Random rng = null!;
 
         #endregion
         #region evnt
 
         /// <inheritdoc />
-        public event BestSolutionChangedHandler BestSolutionChanged;
+        public event BestSolutionChangedHandler BestSolutionChanged = null!;
 
         #endregion
         #region prop
@@ -42,7 +42,7 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
         public string Name => "Particle Swarm Optimization";
 
         /// <inheritdoc />
-        public string ProcessingStatus { get; private set; }
+        public string ProcessingStatus { get; private set; } = null!;
 
         /// <inheritdoc />
         public bool IsInitialized { get; private set; }
@@ -73,16 +73,16 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
         /// </summary>
         public void Reset()
         {
-            config = null;
-            positions = null;
-            velocities = null;
-            personalBests = null;
-            globalBest = null;
-            rng = null;
+            config = null!;
+            positions = null!;
+            velocities = null!;
+            personalBests = null!;
+            globalBest = null!;
+            rng = null!;
             iterationsRemaining = 0;
             stopRequested = false;
             IsInitialized = false;
-            ProcessingStatus = null;
+            ProcessingStatus = null!;
         }
 
         /// <summary>
@@ -210,7 +210,7 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
             // TestSolution has a Parameters property — use reflection or casting
             var prop = solution.GetType().GetProperty("Parameters");
             if (prop != null)
-                return (double[])((double[])prop.GetValue(solution)).Clone();
+                return (double[])((double[])prop.GetValue(solution)!).Clone();
 
             // Fallback: treat solution as single-value
             return new[] { solution.Fitness };
@@ -230,7 +230,7 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
         {
             var prop = solution.GetType().GetProperty("Parameters");
             if (prop != null)
-                return ((double[])prop.GetValue(solution)).Length;
+                return ((double[])prop.GetValue(solution)!).Length;
             return 1;
         }
 

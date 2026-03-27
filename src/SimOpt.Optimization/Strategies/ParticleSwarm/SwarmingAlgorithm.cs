@@ -15,7 +15,7 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
         #region IStrategy Member
 
         /// <inheritdoc />
-        public event BestSolutionChangedHandler BestSolutionChanged;
+        public event BestSolutionChangedHandler BestSolutionChanged = null!;
 
         /// <inheritdoc />
         public string Name

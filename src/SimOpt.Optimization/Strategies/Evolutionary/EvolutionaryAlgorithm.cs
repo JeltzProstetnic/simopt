@@ -32,14 +32,14 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         #endregion
         #region main
 
-        private IEvolutionaryAlgorithmConfiguration config;
-        private Random rnd;
+        private IEvolutionaryAlgorithmConfiguration config = null!;
+        private Random rnd = null!;
 
         #endregion
         #region temporary
 
         private bool bestSolutionChanged;
-        private ISolution previousBestSolution;
+        private ISolution previousBestSolution = null!;
         private List<ISolution> fillingCandidates = new List<ISolution>();
 
         #endregion
@@ -60,12 +60,12 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         /// <summary>
         /// Occurs each time a generation was processed.
         /// </summary>
-        public event GenerationFinishedHandler GenerationFinished;
+        public event GenerationFinishedHandler GenerationFinished = null!;
 
         /// <summary>
         /// Occurs each time a new best solution was found, but not more than once per generation.
         /// </summary>
-        public event BestSolutionChangedHandler BestSolutionChanged;
+        public event BestSolutionChangedHandler BestSolutionChanged = null!;
 
         #endregion
         #region prop
@@ -79,11 +79,11 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         /// </summary>
         public bool IsInitialized { get; private set; }
 
-        public IProblem CurrentProblem { get; private set; }
+        public IProblem CurrentProblem { get; private set; } = null!;
 
-        public List<ISolution> CurrentGeneration { get; private set; }
+        public List<ISolution> CurrentGeneration { get; private set; } = null!;
 
-        public List<ISolution> CurrentElite { get; private set; }
+        public List<ISolution> CurrentElite { get; private set; } = null!;
 
         #endregion
         #region Status
@@ -108,17 +108,17 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         /// <summary>
         /// The current status of the strategy.
         /// </summary>
-        public string ProcessingStatus { get; private set; }
+        public string ProcessingStatus { get; private set; } = null!;
 
         /// <summary>
         /// The best solution found so far.
         /// </summary>
-        public ISolution BestSolution { get; private set; }
+        public ISolution BestSolution { get; private set; } = null!;
 
         /// <summary>
         /// The best solution found in the current generation.
         /// </summary>
-        public ISolution CurrentGenerationBestSolution { get; private set; }
+        public ISolution CurrentGenerationBestSolution { get; private set; } = null!;
 
         /// <summary>
         /// The average fitness of the current generation
@@ -147,19 +147,19 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         {
             if (!(parameters is IEvolutionaryAlgorithmConfiguration)) return false;
             ProcessingStatus = StatusInitializing;
-            config = parameters as IEvolutionaryAlgorithmConfiguration;
+            config = (IEvolutionaryAlgorithmConfiguration)parameters;
             rnd = new Random(config.Seed);
             bestSolutionChanged = false;
             // CurrentGeneration = new SortedDictionary<double, ISolution>();
             CurrentGeneration = new List<ISolution>();
             CurrentElite = config.InitialElite;
-            CurrentProblem = null;
+            CurrentProblem = null!;
             RemainingGenerations = config.Generations;
-            BestSolution = null;
-            CurrentGenerationBestSolution = null;
+            BestSolution = null!;
+            CurrentGenerationBestSolution = null!;
             CurrentGenerationAverageFitness = 0;
             IsInitialized = true;
-            previousBestSolution = null;
+            previousBestSolution = null!;
             return true;
         }
 
@@ -172,16 +172,16 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         public void Reset()
         {
             bestSolutionChanged = false;
-            config = null;
-            rnd = null;
-            CurrentGeneration = null;
-            CurrentElite = null;
-            CurrentProblem = null;
+            config = null!;
+            rnd = null!;
+            CurrentGeneration = null!;
+            CurrentElite = null!;
+            CurrentProblem = null!;
             RemainingGenerations = 0;
-            BestSolution = null;
-            CurrentGenerationBestSolution = null;
+            BestSolution = null!;
+            CurrentGenerationBestSolution = null!;
             CurrentGenerationAverageFitness = 0;
-            previousBestSolution = null;
+            previousBestSolution = null!;
             ProcessingStatus = StatusUndefined;
             IsInitialized = false;
         }
@@ -311,7 +311,7 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
 
         private double Evaluate(List<ISolution> individuals)
         {
-            CurrentGenerationBestSolution = null;
+            CurrentGenerationBestSolution = null!;
             double result = 0;
             double counter = 0;
             string oldStatus = ProcessingStatus;
@@ -319,9 +319,9 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
             foreach (ISolution individual in individuals)
             {
                 if(!individual.HasFitness) CurrentProblem.Evaluate(individual);
-                if (BestSolution == null || BestSolution.Fitness <= individual.Fitness)
+                if (BestSolution is null || BestSolution.Fitness <= individual.Fitness)
                 {
-                    previousBestSolution = BestSolution;
+                    previousBestSolution = BestSolution!;
                     BestSolution = individual;
                     bestSolutionChanged = true;
                 }
@@ -358,7 +358,7 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
             // clone
             foreach (ISolution candidate in generation)
             {
-                fillingCandidates.Add(candidate.Clone() as ISolution);
+                fillingCandidates.Add((ISolution)candidate.Clone());
                 toAdd--;
                 if (toAdd == 0) break;
             }

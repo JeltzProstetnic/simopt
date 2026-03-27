@@ -80,19 +80,19 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
             if (operands.Length != 1) 
                 throw new ArgumentOutOfRangeException("This operator requires exactly one operand.");
 
-            if (operands[0] is IParametrizedTweakable<Tuple<int, int>>)
+            if (operands[0] is IParametrizedTweakable<Tuple<int, int>> tweakableTuple)
             {
-                (operands[0] as IParametrizedTweakable<Tuple<int, int>>).Tweak(new Tuple<int, int>(Size, Span));
+                tweakableTuple.Tweak(new Tuple<int, int>(Size, Span));
                 return operands[0];
             }
-            else if (operands[0] is IParametrizedTweakable<int>)
+            else if (operands[0] is IParametrizedTweakable<int> tweakableInt)
             {
-                (operands[0] as IParametrizedTweakable<int>).Tweak(Size);
+                tweakableInt.Tweak(Size);
                 return operands[0];
             }
-            else if (operands[0] is ITweakable)
+            else if (operands[0] is ITweakable tweakable)
             {
-                (operands[0] as ITweakable).Tweak();
+                tweakable.Tweak();
                 return operands[0];
             }
             else

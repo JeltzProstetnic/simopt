@@ -96,8 +96,8 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
             if (operands.Length != 2) 
                 throw new ArgumentOutOfRangeException("This operator only works with exactly two operands.");
             
-            ICombinable<ISolution> op1 = operands[0] as ICombinable<ISolution>;
-            ICombinable<ISolution> op2 = operands[1] as ICombinable<ISolution>;
+            ICombinable<ISolution>? op1 = operands[0] as ICombinable<ISolution>;
+            ICombinable<ISolution>? op2 = operands[1] as ICombinable<ISolution>;
             
             if (op1 == null || op2 == null) 
                 throw new ArgumentException("The operands for this operator must not be null and must implement ICombinable<ISolution>.");

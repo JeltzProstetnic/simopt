@@ -31,9 +31,9 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
         public readonly static string StatusCooling = "Cooling";
         public readonly static string StatusFinished = "Finished";
 
-        private ISimulatedAnnealingConfiguration config;
+        private ISimulatedAnnealingConfiguration config = null!;
 
-        private Random rnd;
+        private Random rnd = null!;
 
         #endregion
         #region evnt
@@ -41,7 +41,7 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
         /// <summary>
         /// Occurs each time a new best solution was found, but not more than once per generation.
         /// </summary>
-        public event BestSolutionChangedHandler BestSolutionChanged;
+        public event BestSolutionChangedHandler BestSolutionChanged = null!;
 
         #endregion
         #region prop
@@ -50,15 +50,15 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
 
         public bool IsInitialized { get; private set; }
 
-        public string ProcessingStatus { get; private set; }
+        public string ProcessingStatus { get; private set; } = null!;
 
         public double CurrentTemperature { get; private set; }
 
-        public IProblem CurrentProblem { get; private set; }
+        public IProblem CurrentProblem { get; private set; } = null!;
 
-        public ISolution CurrentCandidate { get; private set; }
+        public ISolution CurrentCandidate { get; private set; } = null!;
 
-        public ISolution BestCandidate { get; private set; }
+        public ISolution BestCandidate { get; private set; } = null!;
 
         #endregion
         #region ctor
@@ -80,7 +80,7 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
         {
             if (!(parameters is ISimulatedAnnealingConfiguration)) return false;
             ProcessingStatus = StatusInitializing;
-            config = parameters as ISimulatedAnnealingConfiguration;
+            config = (ISimulatedAnnealingConfiguration)parameters;
             rnd = new Random(config.Seed);
             CurrentTemperature = config.InitialTemperature;
             IsInitialized = true;
@@ -95,12 +95,12 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
         /// </summary>
         public void Reset()
         {
-            config = null;
-            rnd = null;
+            config = null!;
+            rnd = null!;
             CurrentTemperature = 0;
-            CurrentProblem = null;
-            CurrentCandidate = null;
-            BestCandidate = null;
+            CurrentProblem = null!;
+            CurrentCandidate = null!;
+            BestCandidate = null!;
             CurrentTemperature = 0;
             ProcessingStatus = StatusUndefined;
             IsInitialized = false;
@@ -153,8 +153,8 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
         private void ProcessCandidate()
         {
             ProcessingStatus = StatusCooling;
-            if (config.Brownian is SimpleBrownian) (config.Brownian as SimpleBrownian).CurrentTemperature = CurrentTemperature;
-            ISolution newCandidate = config.Brownian.Apply(CurrentCandidate.Clone() as ISolution);
+            if (config.Brownian is SimpleBrownian sb) sb.CurrentTemperature = CurrentTemperature;
+            ISolution newCandidate = config.Brownian.Apply((ISolution)CurrentCandidate.Clone());
             ProcessingStatus = StatusEvaluating;
             CurrentProblem.Evaluate(newCandidate);
             bool replace = newCandidate.Fitness >= CurrentCandidate.Fitness;

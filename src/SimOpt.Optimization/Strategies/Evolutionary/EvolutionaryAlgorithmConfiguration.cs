@@ -23,7 +23,7 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
 
         private int seed;
         private double mutationRate = 1;
-        private Random rnd;
+        private Random rnd = null!;
 
         #endregion
         #region prop
@@ -131,12 +131,12 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         /// <summary>
         /// The mutation operator to use.
         /// </summary>
-        public IMutationOperator Mutation { get; set; }
+        public IMutationOperator Mutation { get; set; } = null!;
 
         /// <summary>
         /// The crossover operator to use.
         /// </summary>
-        public ICrossoverOperator Crossover { get; set; }
+        public ICrossoverOperator Crossover { get; set; } = null!;
 
         /// <summary>
         /// Default is 1. This is the fraction of children to be changed by a mutation.
@@ -153,31 +153,31 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         /// The function used to select the next generation from
         /// the elite, parents and children of the current one.
         /// </summary>
-        public GenerationSelector SelectNewGeneration { get; set; }
+        public GenerationSelector SelectNewGeneration { get; set; } = null!;
 
         /// <summary>
         /// The function used to select individuals as potential
         /// parents from the current generation.
         /// </summary>
-        public FractionSelector SelectAsParent { get; set; }
+        public FractionSelector SelectAsParent { get; set; } = null!;
 
         /// <summary>
-        /// The function used to select pairs of 
+        /// The function used to select pairs of
         /// individuals for the crossover operation.
         /// </summary>
-        public MatingSelector SelectForMating { get; set; }
-        
+        public MatingSelector SelectForMating { get; set; } = null!;
+
         /// <summary>
         /// The function used to select parent individuals
         /// to survive for µ+λ mode.
         /// </summary>
-        public FractionSelector SelectToSurvive { get; set; }
+        public FractionSelector SelectToSurvive { get; set; } = null!;
         
         /// <summary>
         /// The function used to update the elite list using
         /// the current elite list and the new parent list.
         /// </summary>
-        public EliteSelector SelectElite { get; set; }
+        public EliteSelector SelectElite { get; set; } = null!;
 
         #endregion
 
@@ -230,9 +230,9 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
             int iterations, 
             int mu, 
             int lambda, 
-            IMutationOperator mutation = null, 
-            ICrossoverOperator crossover = null, 
-            bool keepParentsAlive = false) 
+            IMutationOperator? mutation = null,
+            ICrossoverOperator? crossover = null,
+            bool keepParentsAlive = false)
         {
             InitialElite = new List<ISolution>();
             
@@ -303,9 +303,9 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
             int iterations,
             int mu,
             int lambda,
-            int t, 
-            IMutationOperator mutation = null,
-            ICrossoverOperator crossover = null,
+            int t,
+            IMutationOperator? mutation = null,
+            ICrossoverOperator? crossover = null,
             bool keepParentsAlive = false)
             :this(seed, iterations, mu, lambda, mutation, crossover, keepParentsAlive)
         {
@@ -467,8 +467,9 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         #endregion
         #region IComparable
 
-        public int CompareTo(ISolution other)
+        public int CompareTo(ISolution? other)
         {
+            if (other is null) return 1;
             return Fitness.CompareTo(other.Fitness);
         }
 

@@ -22,12 +22,12 @@ namespace SimOpt.Optimization.Strategies.RandomSearch
         /// <summary>
         /// Occurs each time a new best solution was found, but not more than once per generation.
         /// </summary>
-        public event BestSolutionChangedHandler BestSolutionChanged;
+        public event BestSolutionChangedHandler BestSolutionChanged = null!;
 
         #endregion
         #region prop
 
-        public IConfiguration CurrentConfiguration { get; private set; }
+        public IConfiguration CurrentConfiguration { get; private set; } = null!;
 
         #region IStrategy
 
@@ -39,7 +39,7 @@ namespace SimOpt.Optimization.Strategies.RandomSearch
             get { return "Random Strategy"; }
         }
 
-        public string ProcessingStatus { get; private set; }
+        public string ProcessingStatus { get; private set; } = null!;
 
         public bool IsInitialized { get; private set; }
 
@@ -55,7 +55,7 @@ namespace SimOpt.Optimization.Strategies.RandomSearch
             if (!(parameters is IConfiguration)) 
                 throw new ArgumentException("The parameters for this strategy must implement IConfiguration.");
 
-            CurrentConfiguration = parameters as IConfiguration;
+            CurrentConfiguration = parameters;
             iterationsRemaining = CurrentConfiguration.NumberOfIterations;
             IsInitialized = true;
             return true;
@@ -63,7 +63,7 @@ namespace SimOpt.Optimization.Strategies.RandomSearch
 
         public void Reset()
         {
-            CurrentConfiguration = null;
+            CurrentConfiguration = null!;
             iterationsRemaining = 0;
         }
 

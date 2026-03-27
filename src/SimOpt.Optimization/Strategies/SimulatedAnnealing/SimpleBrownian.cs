@@ -29,14 +29,14 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
             if (operands.Length != 1)
                 throw new ArgumentOutOfRangeException("This operator requires exactly one operand.");
 
-            if (operands[0] is IParametrizedTweakable<double>)
+            if (operands[0] is IParametrizedTweakable<double> tweakableDouble)
             {
-                (operands[0] as IParametrizedTweakable<double>).Tweak(CurrentTemperature);
+                tweakableDouble.Tweak(CurrentTemperature);
                 return operands[0];
             }
-            else if (operands[0] is ITweakable)
+            else if (operands[0] is ITweakable tweakable)
             {
-                (operands[0] as ITweakable).Tweak();
+                tweakable.Tweak();
                 return operands[0];
             }
             else
