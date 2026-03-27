@@ -16,7 +16,7 @@
 - [x] **SIM-09** Expand test coverage: more distributions (size: M) — Phase 4: Gaussian, NegExponential, Constant
 - [x] **SIM-10** Expand test coverage: graph/pathfinding algorithms (size: L) — Phase 4: Dijkstra, Floyd-Warshall, adjacency
 - [x] **SIM-11** Expand test coverage: matrix decompositions (size: M) — Phase 4: Cholesky, LU, QR roundtrip
-- [ ] **SIM-12** Add XML doc comments to public APIs (size: L) — systematic pass over all public types
+- [x] **SIM-12** Add XML doc comments to public APIs (size: L) — Phase 5: IStrategy, ISolution, IProblem, EventScheduler, Priority, PSO, templates
 
 ## P2.5 — Platform (new)
 
@@ -24,13 +24,15 @@
 - [x] **SIM-19** MCP server scaffold — create_model, run_simulation, get_status, list_templates tools
 - [ ] **SIM-20** MCP server integration testing — verify tools work end-to-end with Claude Code
 - [ ] **SIM-21** Agent fleet knowledge file — simopt-ops.md for detection/offering/reporting workflow
-- [ ] **SIM-22** 3D visualization research — evaluate Stride/Silk.NET/Godot for cross-platform 3D
-- [ ] **SIM-23** Generalize visualization — support arbitrary topologies, not just SQSS
+- [>] **SIM-22** 3D visualization research — evaluate Stride/Silk.NET/Godot for cross-platform 3D (research subagent running)
+- [x] **SIM-23** Generalize visualization — Phase 5: VizTopology JSON, auto-layout, topology selector, 3 presets
 
 ## P3 — Low Priority / Future
 
 - [ ] **SIM-13** Nullable annotation cleanup (size: XL) — ~1690 warnings, systematic conversion
 - [ ] **SIM-14** PCA/KPCA tests (size: M) — transform/revert roundtrip, variance conservation
 - [ ] **SIM-15** ROC curve analysis tests (size: M) — AUC calculation, threshold selection
-- [ ] **SIM-16** Example project modernization (size: L) — update 6 example apps to current APIs
+- [x] **SIM-16** Example project modernization (size: L) — Phase 5: SDK-style csproj, SimOpt.* namespaces, console apps
+- [x] **SIM-24** Fix CholeskyDecomposition.Solve() forward substitution bug — Phase 5
+- [x] **SIM-25** Fix EigenvalueDecomposition null guard (throws wrong exception) — Phase 5
 - [ ] **SIM-17** NuGet packaging (size: M) — publish core libraries as packages
