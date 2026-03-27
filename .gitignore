@@ -132,3 +132,16 @@ Temporary Items
 # Project-specific
 # =========================
 session-context.md
+session-history.md
+docs/session-log.md
+tmp/
+
+# Claude Code (local settings, session lock)
+.claude/settings.local.json
+.claude/.session-lock
+
+# Serena (track project.yml and .gitignore only)
+.serena/cache/
+.serena/memories/
+.serena/csharp/
+.serena/**/*.pkl

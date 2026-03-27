@@ -21,7 +21,7 @@
 
 | File | Purpose |
 |------|---------|
-| `~/claude-config/cross-project/inbox.md` | One-off cross-project tasks |
+| `~/cfg-agent-fleet/cross-project/inbox.md` | One-off cross-project tasks |
 
 ## Project Structure
 
