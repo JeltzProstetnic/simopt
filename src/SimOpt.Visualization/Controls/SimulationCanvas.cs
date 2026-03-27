@@ -36,6 +36,8 @@ public class SimulationCanvas : Control
     private List<NodeState> _nodeStates = new();
     private Dictionary<string, int> _prevCounts = new();
     private Dictionary<string, bool> _prevWorking = new();
+    private double _lastWidth;
+    private double _lastHeight;
 
     // Node dimensions (from AutoLayout)
     private const double NW = AutoLayout.NodeWidth;
@@ -230,9 +232,13 @@ public class SimulationCanvas : Control
             return;
         }
 
-        // Recompute layout on resize
-        if (_frame % 30 == 1)
+        // Recompute layout only on actual window resize
+        if (Math.Abs(b.Width - _lastWidth) > 1 || Math.Abs(b.Height - _lastHeight) > 1)
+        {
             _positions = AutoLayout.Compute(_topology, b.Width, b.Height - 60);
+            _lastWidth = b.Width;
+            _lastHeight = b.Height;
+        }
 
         // Draw connections (arrows)
         foreach (var conn in _topology.Connections)

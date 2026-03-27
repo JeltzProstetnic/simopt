@@ -58,7 +58,7 @@ public class SimulationModel
             source.Start();
     }
 
-    public bool Step(double stepSize = 0.5)
+    public bool Step(double stepSize = 0.1)
     {
         if (IsFinished) return false;
         _model.Step(stepSize);
@@ -119,8 +119,9 @@ public class SimulationModel
             {
                 double serviceTime = node.Params.GetValueOrDefault("service_time", 1.0);
                 var dist = new ConstantDoubleDistribution(serviceTime, false);
-                var server = new SimpleServer(_model, dist, name: node.Id, autoStartDelay: 0.0);
+                var server = new SimpleServer(_model, dist, name: node.Id);
                 server.AutoContinue = true;
+                // Server starts via ItemReceived handler on connected buffer, not AutoStart
                 return server;
             }
             case "sink":
