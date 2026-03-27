@@ -30,10 +30,12 @@ public class SimulationCanvas : Control
     private double _lastTime;
     private double _throughput;
 
-    // Entity animations
+    // Entity animations — driven by state changes, not frame count
     private readonly List<AnimDot> _dots = new();
     private readonly Random _rng = new(1);
     private List<NodeState> _nodeStates = new();
+    private Dictionary<string, int> _prevCounts = new();
+    private Dictionary<string, bool> _prevWorking = new();
 
     // Node dimensions (from AutoLayout)
     private const double NW = AutoLayout.NodeWidth;
@@ -152,32 +154,59 @@ public class SimulationCanvas : Control
     {
         if (_topology == null) return;
 
-        // Spawn dots on connections based on activity
+        // Build current state lookup
+        var curCounts = new Dictionary<string, int>();
+        var curWorking = new Dictionary<string, bool>();
+        foreach (var ns in _nodeStates)
+        {
+            curCounts[ns.Id] = ns.Count;
+            curWorking[ns.Id] = ns.Working;
+        }
+
+        // Spawn dots ONLY when state changes indicate actual entity movement
         foreach (var conn in _topology.Connections)
         {
+            if (!curCounts.ContainsKey(conn.From) || !curCounts.ContainsKey(conn.To)) continue;
             var fromState = _nodeStates.FirstOrDefault(n => n.Id == conn.From);
             var toState = _nodeStates.FirstOrDefault(n => n.Id == conn.To);
             if (fromState == null || toState == null) continue;
 
-            bool active = fromState.Type switch
-            {
-                "source" => _frame % 4 == 0,
-                "buffer" => fromState.Count > 0 && _frame % 3 == 0,
-                "server" => fromState.Working && _frame % 5 == 0,
-                _ => false
-            };
+            bool spawn = false;
 
-            if (active)
+            // Source → downstream: spawn when downstream count increased
+            if (fromState.Type == "source")
+            {
+                int prevTo = _prevCounts.GetValueOrDefault(conn.To, 0);
+                spawn = curCounts[conn.To] > prevTo;
+            }
+            // Buffer → server: spawn when buffer count decreased (item pulled)
+            else if (fromState.Type == "buffer")
+            {
+                int prevFrom = _prevCounts.GetValueOrDefault(conn.From, 0);
+                spawn = curCounts[conn.From] < prevFrom;
+            }
+            // Server → downstream: spawn when downstream count increased (item finished)
+            else if (fromState.Type == "server")
+            {
+                int prevTo = _prevCounts.GetValueOrDefault(conn.To, 0);
+                spawn = curCounts[conn.To] > prevTo;
+            }
+
+            if (spawn)
             {
                 _dots.Add(new AnimDot
                 {
                     FromId = conn.From,
                     ToId = conn.To,
-                    Progress = _rng.NextDouble() * 0.2,
-                    Speed = 0.03 + _rng.NextDouble() * 0.02
+                    Progress = 0.0,
+                    Speed = 0.06 + _rng.NextDouble() * 0.03
                 });
             }
         }
+
+        // Save current state for next frame diff
+        _prevCounts = curCounts;
+        _prevWorking = curWorking;
 
         // Advance and cull
         for (int i = _dots.Count - 1; i >= 0; i--)
