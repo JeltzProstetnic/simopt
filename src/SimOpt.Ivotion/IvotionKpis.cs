@@ -37,11 +37,24 @@ public readonly record struct IvotionKpis(
     private const int ManualStationCount = 4;           // inspect, pack, label, ssb
 
     public static IvotionKpis Extract(IvotionTopologyHandles handles, double simDurationMinutes)
+        => Extract(handles, simDurationMinutes, IvotionCostModel.OperatorWagePerHour);
+
+    /// <summary>
+    /// Extract with an explicit operator wage override. Enables UI-driven
+    /// sensitivity analysis without touching the <see cref="IvotionCostModel"/> const.
+    /// </summary>
+    public static IvotionKpis Extract(
+        IvotionTopologyHandles handles,
+        double simDurationMinutes,
+        double operatorWagePerHour)
     {
         ArgumentNullException.ThrowIfNull(handles);
         if (simDurationMinutes <= 0)
             throw new ArgumentOutOfRangeException(nameof(simDurationMinutes),
                 "Simulation duration must be positive.");
+        if (operatorWagePerHour < 0)
+            throw new ArgumentOutOfRangeException(nameof(operatorWagePerHour),
+                "Operator wage must be non-negative.");
 
         var sol = handles.Solution;
         double simHours = simDurationMinutes / 60.0;
@@ -50,7 +63,7 @@ public readonly record struct IvotionKpis(
                            + sol.OperatorsLabel + sol.OperatorsSsb;
 
         double capitalPerHour = IvotionCostModel.RolandCapitalPerHour * sol.RolandCount;
-        double laborCostPerHour = IvotionCostModel.OperatorWagePerHour * totalOperators;
+        double laborCostPerHour = operatorWagePerHour * totalOperators;
         double totalCostPerHour = capitalPerHour + laborCostPerHour;
 
         double piecesPerHour = handles.ShippedSink.Count * sol.RolandBatchSize / simHours;

@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SimOpt.Ivotion;
 using SimOpt.Visualization.Controls;
 using SimOpt.Visualization.Models;
 
@@ -14,6 +15,32 @@ namespace SimOpt.Visualization.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    public IvotionOptimizationViewModel Optimization { get; }
+
+    public MainWindowViewModel()
+    {
+        Optimization = new IvotionOptimizationViewModel();
+        Optimization.ApplyToVizRequested += OnApplyToVizRequested;
+    }
+
+    private bool _resumePendingFromApply;
+
+    private void OnApplyToVizRequested(object? sender, IvotionSolution best)
+    {
+        SelectedTopology = 4; // Ivotion entry in dropdown (display only — we override below)
+        if (Canvas == null) return;
+
+        Stop();
+        var parametricTopology = VizTopology.IvotionPacking(best);
+        Canvas.LoadTopologyPaused(parametricTopology, duration: 200.0, speedMs: Speed);
+        _resumePendingFromApply = true;
+        IsRunning = false;
+        StatusText =
+            $"Loaded optimized: {best.RolandCount}× Roland, " +
+            $"ops {best.OperatorsInspect}/{best.OperatorsPack}/{best.OperatorsLabel}/{best.OperatorsSsb}, " +
+            $"batch {best.RolandBatchSize}  |  press Space to run";
+    }
+
     [ObservableProperty]
     private string _statusText = "Ready  |  Space=play/pause  -/+=speed  F=fullscreen  D=detach";
 
@@ -73,6 +100,15 @@ public partial class MainWindowViewModel : ViewModelBase
     private void Start()
     {
         if (Canvas == null) return;
+
+        if (_resumePendingFromApply && Canvas.ResumeSimulation())
+        {
+            _resumePendingFromApply = false;
+            IsRunning = true;
+            StatusText = "Running optimized Ivotion  |  Space=pause  -/+=speed  F=fullscreen";
+            return;
+        }
+
         var topology = GetSelectedTopology();
         Canvas.StartSimulation(topology, duration: 200.0, speedMs: Speed);
         IsRunning = true;

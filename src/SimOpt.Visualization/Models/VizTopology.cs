@@ -190,6 +190,145 @@ public class VizTopology
     /// → packaging → labeling → SSB placement. Roland printer is the bottleneck
     /// (60s/pc, batch of 15 = 15min cycle). All other steps operator-bound.
     /// </summary>
+    /// <summary>
+    /// Parametric Ivotion packing line. Builds the topology from an optimized
+    /// <see cref="SimOpt.Ivotion.IvotionSolution"/>: variable Roland count
+    /// (1 or 2, stacked vertically per plan), per-solution batch size,
+    /// operator-count labels, and effective-service-time splits
+    /// (base_time / operator_count) per locked-in v1 model.
+    /// </summary>
+    public static VizTopology IvotionPacking(SimOpt.Ivotion.IvotionSolution sol, int seed = 42)
+    {
+        int rolands = sol.RolandCount;
+        int batchSize = sol.RolandBatchSize;
+
+        // Effective service times: base_time / operator_count (v1 parallelism model).
+        double inspectTime = 1.0 / sol.OperatorsInspect;
+        double packTime = 2.0 / sol.OperatorsPack;
+        double labelTime = 1.2 / sol.OperatorsLabel;
+        double ssbTime = 0.3 / sol.OperatorsSsb;
+
+        var nodes = new List<VizNode>
+        {
+            new() { Id = "incoming", Type = "source", Label = "Incoming\nDentures",
+                X = 1, Y = 5, Width = 4, Height = 4,
+                Params = new() { ["mean_interval"] = 5.5 }, Color = "#E1BEE7" },
+
+            new() { Id = "buf1", Type = "buffer", Label = "Queue 1",
+                X = 6.5, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 20 } },
+            new() { Id = "inspect", Type = "server",
+                Label = $"1. Inspect\n& Clean\n({sol.OperatorsInspect} op)",
+                X = 10.5, Y = 5, Width = 5, Height = 4,
+                Params = new() { ["service_time"] = inspectTime }, Color = "#4FC3F7" },
+
+            new() { Id = "buf2", Type = "buffer", Label = "Print\nQueue",
+                X = 17, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 30 } },
+        };
+
+        // Variable Roland count (1 or 2). Stacked vertically when 2.
+        if (rolands == 2)
+        {
+            nodes.Add(new VizNode
+            {
+                Id = "roland_a", Type = "roland",
+                Label = $"2a. Roland LEF\nUV Print\n({batchSize}×60s)",
+                X = 21, Y = 2.5, Width = 6, Height = 4,
+                Params = new() { ["per_piece_time"] = 0.4, ["batch_size"] = batchSize },
+                Color = "#FF6F00",
+            });
+            nodes.Add(new VizNode
+            {
+                Id = "roland_b", Type = "roland",
+                Label = $"2b. Roland LEF\nUV Print\n({batchSize}×60s)",
+                X = 21, Y = 7.5, Width = 6, Height = 4,
+                Params = new() { ["per_piece_time"] = 0.4, ["batch_size"] = batchSize },
+                Color = "#FF6F00",
+            });
+        }
+        else
+        {
+            nodes.Add(new VizNode
+            {
+                Id = "roland", Type = "roland",
+                Label = $"2. Roland LEF\nUV Print\n({batchSize}×60s)",
+                X = 21, Y = 4.5, Width = 6, Height = 5,
+                Params = new() { ["per_piece_time"] = 0.4, ["batch_size"] = batchSize },
+                Color = "#FF6F00",
+            });
+        }
+
+        nodes.AddRange(new[]
+        {
+            new VizNode { Id = "buf3", Type = "buffer", Label = "Pack\nQueue",
+                X = 28.5, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 20 } },
+            new VizNode { Id = "pack", Type = "server",
+                Label = $"3. Manual\nPackaging\n({sol.OperatorsPack} op)",
+                X = 32.5, Y = 5, Width = 5, Height = 4,
+                Params = new() { ["service_time"] = packTime }, Color = "#66BB6A" },
+
+            new VizNode { Id = "buf4", Type = "buffer", Label = "Label\nQueue",
+                X = 39, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 15 } },
+            new VizNode { Id = "label", Type = "server",
+                Label = $"4. Labeling\n({sol.OperatorsLabel} op)",
+                X = 43, Y = 5, Width = 5, Height = 4,
+                Params = new() { ["service_time"] = labelTime }, Color = "#FFCA28" },
+
+            new VizNode { Id = "buf5", Type = "buffer", Label = "SSB\nQueue",
+                X = 49.5, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 10 } },
+            new VizNode { Id = "ssb", Type = "server",
+                Label = $"5. SSB\nPlacement\n({sol.OperatorsSsb} op)",
+                X = 53.5, Y = 5, Width = 5, Height = 4,
+                Params = new() { ["service_time"] = ssbTime }, Color = "#AB47BC" },
+
+            new VizNode { Id = "shipped", Type = "sink", Label = "Shipped",
+                X = 60, Y = 5, Width = 4, Height = 4,
+                Color = "#43A047" },
+        });
+
+        var connections = new List<VizConnection>
+        {
+            new() { From = "incoming", To = "buf1" },
+            new() { From = "buf1", To = "inspect" },
+            new() { From = "inspect", To = "buf2" },
+        };
+
+        if (rolands == 2)
+        {
+            connections.Add(new VizConnection { From = "buf2", To = "roland_a" });
+            connections.Add(new VizConnection { From = "buf2", To = "roland_b" });
+            connections.Add(new VizConnection { From = "roland_a", To = "buf3" });
+            connections.Add(new VizConnection { From = "roland_b", To = "buf3" });
+        }
+        else
+        {
+            connections.Add(new VizConnection { From = "buf2", To = "roland" });
+            connections.Add(new VizConnection { From = "roland", To = "buf3" });
+        }
+
+        connections.AddRange(new[]
+        {
+            new VizConnection { From = "buf3", To = "pack" },
+            new VizConnection { From = "pack", To = "buf4" },
+            new VizConnection { From = "buf4", To = "label" },
+            new VizConnection { From = "label", To = "buf5" },
+            new VizConnection { From = "buf5", To = "ssb" },
+            new VizConnection { From = "ssb", To = "shipped" },
+        });
+
+        return new VizTopology
+        {
+            Name = $"Ivoclar Ivotion ({rolands}× Roland, batch {batchSize})",
+            Seed = seed,
+            Nodes = nodes,
+            Connections = connections,
+        };
+    }
+
     public static VizTopology IvotionPacking(int seed = 42) => new()
     {
         Name = "Ivoclar Ivotion Packing Line",

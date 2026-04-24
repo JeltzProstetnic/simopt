@@ -36,6 +36,12 @@ public sealed class IvotionProblem : IProblem
     public double? ArrivalIntervalMinutes { get; set; }
 
     /// <summary>
+    /// Operator wage ($/hour) used for cost-side KPIs. Defaults to the
+    /// demo cost model constant; UI overrides for sensitivity analysis.
+    /// </summary>
+    public double OperatorWagePerHour { get; set; } = IvotionCostModel.OperatorWagePerHour;
+
+    /// <summary>
     /// No closed-form optimum exists for this problem; return +∞ so strategies
     /// that use <see cref="IProblem.OptimumFitness"/> as an early-termination
     /// bound keep searching.
@@ -61,7 +67,7 @@ public sealed class IvotionProblem : IProblem
 
         var handles = IvotionTopologyBuilder.Build(iv, Seed, ArrivalIntervalMinutes);
         handles.RunFor(SimDurationMinutes);
-        var kpis = IvotionKpis.Extract(handles, SimDurationMinutes);
+        var kpis = IvotionKpis.Extract(handles, SimDurationMinutes, OperatorWagePerHour);
 
         iv.Fitness = MapObjectiveToFitness(kpis, Objective);
         iv.HasFitness = true;

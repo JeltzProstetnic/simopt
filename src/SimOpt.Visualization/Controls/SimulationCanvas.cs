@@ -225,6 +225,46 @@ public class SimulationCanvas : Control
         _timer?.Stop();
     }
 
+    /// <summary>
+    /// Build and layout a topology without starting the tick timer. Used by
+    /// "Apply to viz" — the canvas renders the new topology paused so the
+    /// user can inspect it, then presses Space to resume.
+    /// </summary>
+    public void LoadTopologyPaused(VizTopology topology, double duration = 200.0, int speedMs = 30)
+    {
+        _topology = topology;
+        _sim = new SimulationModel { EndTime = duration };
+        _sim.Build(topology);
+        _stepCount = 0;
+        _frame = 0;
+        _lastSinkTotal = 0;
+        _lastTime = 0;
+        _throughput = 0;
+        _dots.Clear();
+        _nodeStates.Clear();
+        _busyTime.Clear();
+        _lastBusyChange.Clear();
+        _wasBusy.Clear();
+        _speedMs = speedMs;
+        _running = false;
+
+        _positions = AutoLayout.Compute(topology, Bounds.Width > 0 ? Bounds.Width : 960, Bounds.Height > 0 ? Bounds.Height - 60 : 460);
+        _sim.Start();
+        _nodeStates = _sim.GetNodeStates();
+        InvalidateVisual();
+    }
+
+    /// <summary>Resume a paused simulation (loaded via LoadTopologyPaused).</summary>
+    public bool ResumeSimulation()
+    {
+        if (_sim == null || _running) return false;
+        _running = true;
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_speedMs) };
+        _timer.Tick += (_, _) => Tick();
+        _timer.Start();
+        return true;
+    }
+
     private void Tick()
     {
         if (_sim == null || !_running) return;

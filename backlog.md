@@ -61,7 +61,7 @@ Build order (agile reorder 2026-04-24 — ship a vertical slice before polishing
 5. **SIM-44** — RolandPrinter fan-out
 
 - [x] **SIM-35** Phase A: IvotionProblem + IvotionSolution + multi-Roland topology builder + KPI extraction (throughput / cost / labor / space) + tests (size: L) — P1: new `SimOpt.Ivotion` library; 37 tests (solution/builder/KPIs/problem); 594 pass, 0 regressions
-- [ ] **SIM-37** Phase B: Optimization UI panel — objective selector, strategy selector (Random/EA/PSO/Sweep), live fitness chart via ScottPlot.Avalonia, operator-wage input, run/stop, "Apply best to viz" (size: L) — P1 **NEXT**
+- [x] **SIM-37** Phase B: Optimization UI panel — objective selector, strategy selector (Random/EA/PSO/Sweep), live fitness chart via ScottPlot.Avalonia 5.1.58, operator-wage input, iterations/population sliders, run/stop, "Apply best to viz" (loads Ivotion preset paused, user presses Space) (size: L) — P1: engine (Random + EA), view-model, AXAML, MainWindow TabControl; 21 new tests (615 pass, 0 regressions). Known limitation: Apply-to-viz uses static Ivotion preset — parametric viz rebuild (roland_count / batch_size) deferred to Phase D/SIM-44
 - [ ] **SIM-36** Phase A.2: Particle Swarm full implementation (currently a stub) + benchmark validation against Sphere/Rosenbrock (size: M) — P1
 - [ ] **SIM-38** Phase C: Multi-objective trade-off curve view — non-dominated set highlighted, click-to-preview, baseline-vs-optimized side-by-side, CSV export (size: L) — P1
 - [~] **SIM-39** ~~Phase D1: CSV cycle-time import~~ — **RETIRED 2026-04-24**. Positioning clarified: SimOpt is agent-driven sim-opt for non-experts. Parameterization goes through an LLM agent (Claude Code / agent fleet), not through a fixed CSV schema. Import-layer would solve a problem this product class doesn't have. See `docs/decisions.md` "Agent-Driven Sim-Opt Positioning".
@@ -70,3 +70,8 @@ Build order (agile reorder 2026-04-24 — ship a vertical slice before polishing
 - [ ] **SIM-42** Phase D4: Constraint handling — UI for max capital / max floor m²; solutions violating constraints excluded (size: M) — P2
 - [ ] **SIM-43** Phase D5: ROI calculator panel — current vs proposed config + demand forecast → payback period + 5-yr NPV delta (size: M) — P2
 - [ ] **SIM-44** RolandPrinter v2.1: per-piece fan-out emit semantics (currently emits 1 representative entity per batch; should release all N) (size: S) — P3
+
+## Platform follow-ups (captured 2026-04-24)
+
+- [ ] **SIM-45** More complex factory floor topology — richer than FactoryFloor preset (walls, corridors, multi-bay layout, more realistic process chain; feeds into SIM-33 realistic renderer v2) (size: L) — **P2 proposed**
+- [ ] **SIM-46** Live before/after viz compare — side-by-side canvases running baseline vs. optimized topology with synchronized clock; lets demo audience see throughput delta in real time (size: L) — **P2 proposed**

@@ -89,6 +89,8 @@ dialogue, not a fixed CSV schema. No import layer needed. See
 
 ## Next session task
 
-Phase A.2 = SIM-36: take the existing Particle Swarm stub to a full
-implementation and benchmark it against Sphere/Rosenbrock to validate
-convergence before plugging it into `IvotionProblem`.
+SIM-37 Phase B (UI panel) shipped 2026-04-24. Next per agile reorder (line 50-62):
+**SIM-36** — Particle Swarm full implementation, benchmarked against Sphere/Rosenbrock,
+then unlock the greyed PSO dropdown entry by flipping
+`IvotionStrategyInfo.IsEnabled(ParticleSwarm) => true` and removing the
+`NotSupportedException` branch in `IvotionOptimizationEngine.Run`.

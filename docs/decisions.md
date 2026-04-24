@@ -39,6 +39,25 @@ Load the topology with optimized parameters but do NOT auto-start the
 simulation. User hits Space when ready. Rationale: gives the presenter
 a moment to point at the new layout and narrate before motion starts.
 
+### UI default objective
+Shipped as `MinimizeCostPerPiece` (SIM-37 Phase B, 2026-04-24). Rationale:
+`MaximizeThroughput` is monotone in operator count + Roland count on a 216-combo
+search space — EA converges in generation 1 and draws a flat fitness line,
+making the optimization look trivial in a demo. Cost-per-piece creates a real
+throughput-vs-labor tradeoff so the line visibly climbs. The user still picks
+any of the five objectives from the dropdown; the default is just the most
+demo-friendly starting point.
+
+### SkiaSharp native/managed pin (Avalonia + ScottPlot)
+When adding `ScottPlot.Avalonia` (managed SkiaSharp 3.119.0) alongside
+`Avalonia.Skia` (transitively pins `SkiaSharp.NativeAssets.Linux` at 2.88.9),
+Linux startup crashes with `native libSkiaSharp 88.1 incompatible with managed
+SkiaSharp [119.0, 120.0)`. Fix: explicit `<PackageReference
+Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0" />` in the consuming
+csproj. Avalonia's Skia bundle handles Win32/macOS at 3.119 but leaves the
+Linux native at 2.88. Keep this pin while Avalonia 11.3.x is in use; revisit
+if we upgrade Avalonia.
+
 ### Charting library
 ScottPlot.Avalonia (NuGet) for live fitness curves and trade-off plots.
 Rationale: mature, fast, simple API, free for any use; lighter weight

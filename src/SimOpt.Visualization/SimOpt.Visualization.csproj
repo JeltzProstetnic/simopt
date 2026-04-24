@@ -23,10 +23,18 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+    <PackageReference Include="ScottPlot.Avalonia" Version="5.1.58" />
+    <!-- Align Linux native SkiaSharp with managed SkiaSharp 3.119.0
+         pulled transitively by ScottPlot. Avalonia.Skia pins this at 2.88.9
+         which crashes at startup: "native libSkiaSharp 88.1 incompatible
+         with managed SkiaSharp [119.0, 120.0)". -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SimOpt.Simulation\SimOpt.Simulation.csproj" />
     <ProjectReference Include="..\SimOpt.Mathematics\SimOpt.Mathematics.csproj" />
+    <ProjectReference Include="..\SimOpt.Optimization\SimOpt.Optimization.csproj" />
+    <ProjectReference Include="..\SimOpt.Ivotion\SimOpt.Ivotion.csproj" />
   </ItemGroup>
 </Project>
