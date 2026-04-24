@@ -1,4 +1,4 @@
 task: true
 file: docs/pending-ivotion-optimization.md
-backlog: SIM-35
-description: Start Phase A of Ivotion optimization showcase — IvotionProblem + IvotionSolution + multi-Roland topology builder + KPI extraction (throughput / cost / labor / space) + tests. Follow TDD. Read the plan (docs/plans/ivotion-optimization-showcase.md) and handoff (docs/pending-ivotion-optimization.md) first. All user decisions are locked in — do NOT re-ask.
+backlog: SIM-37
+description: Phase B — Optimization UI panel in `SimOpt.Visualization`. Add `ProjectReference` to `SimOpt.Ivotion`. New view (AXAML + view-model) with objective selector, strategy dropdown (EA + Random enabled; PSO greyed out "coming"; Sweep later), operator-wage numeric input (default $32/hr), iterations/population sliders, Run/Stop buttons, live best-fitness line chart via ScottPlot.Avalonia (NuGet — verify Avalonia 11.3.12 compat), best-solution display with parameter values + KPIs, "Apply to viz" button that rebuilds the canvas with the optimized topology and stays paused until the user presses Space. Run optimization on a background thread; marshal UI updates via `Dispatcher.UIThread.Post`. TDD where testable (view-model logic, solve-loop integration).
