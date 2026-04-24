@@ -29,6 +29,7 @@
     <ProjectReference Include="../../src/SimOpt.Optimization/SimOpt.Optimization.csproj" />
     <ProjectReference Include="../../src/SimOpt.Mathematics/SimOpt.Mathematics.csproj" />
     <ProjectReference Include="../../src/SimOpt.Statistics/SimOpt.Statistics.csproj" />
+    <ProjectReference Include="../../src/SimOpt.Ivotion/SimOpt.Ivotion.csproj" />
   </ItemGroup>
 
 </Project>

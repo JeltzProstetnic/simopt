@@ -1,10 +1,16 @@
-Action: act
+Action: reference
 
-# Ivotion Optimization Showcase — Next Session Kickoff
+# Ivotion Optimization Showcase — Plan Reference
 
-Tracked-by: SIM-35, SIM-36, SIM-37, SIM-38, SIM-39, SIM-40, SIM-41, SIM-42, SIM-43, SIM-44
+Tracked-by: SIM-35 (done), SIM-36, SIM-37, SIM-38, SIM-39, SIM-40, SIM-41, SIM-42, SIM-43, SIM-44
 
-## Context
+## Status
+
+Phase A (SIM-35) **complete** — see commit for the `SimOpt.Ivotion` library. The
+customer-facing plan below is preserved as a record; subsequent phases remain
+open in the backlog and proceed one SIM-ID at a time via next-session-task.md.
+
+## Context (preserved)
 
 Previous session (2026-04-24): unprepared customer demo went well.
 - v1: Spontaneously built `IvotionPacking` viz preset from cycle times the user
@@ -14,11 +20,6 @@ Previous session (2026-04-24): unprepared customer demo went well.
   (1 integration test skipped due to documented null-Identifier wiring scaffold
   issue; live integration runs via the IvotionPacking viz preset).
 - Ivoclar colleague was impressed; wants real-data optimization demo next week.
-
-## What this session does
-
-Start Phase A of the optimization showcase. Full plan:
-**`docs/plans/ivotion-optimization-showcase.md`** — read this first.
 
 ## User decisions already locked in (do NOT re-ask)
 
@@ -48,20 +49,13 @@ Start Phase A of the optimization showcase. Full plan:
 
 ## Build order (priorities confirmed by user)
 
-1. **SIM-35** Phase A: Core problem + multi-Roland topology + KPI extraction + tests (P1)
+1. ~~**SIM-35** Phase A: Core problem + multi-Roland topology + KPI extraction + tests (P1)~~ ✓
 2. **SIM-36** Phase A.2: Particle Swarm full impl + benchmark validation (P1)
 3. **SIM-39** Phase D1: CSV import (slot in early — colleague brings data) (P1)
 4. **SIM-37** Phase B: Optimization UI + ScottPlot.Avalonia chart (P1)
 5. **SIM-38** Phase C: Trade-off curve view + apply-to-viz (P1)
 6. **SIM-40..43** Phase D2-D5: replications, heatmap, constraints, ROI (P2)
 7. **SIM-44** RolandPrinter v2.1 fan-out (P3, time-permitting)
-
-## TDD requirement
-
-Project rule (`.claude/CLAUDE.md`): all new code must follow TDD. Write
-failing tests first, then implement. Before any code changes, run the full
-test suite to establish a regression baseline (currently 557 passed,
-1 skipped, 0 failed). Re-run after each phase to verify zero regressions.
 
 ## Tech choices already decided
 
@@ -70,20 +64,26 @@ test suite to establish a regression baseline (currently 557 passed,
   (simple, honest, disclosable; real ResourceManager pool is a v3 enhancement)
 - **Multi-Roland layout:** stack vertically — `roland_a` y=3, `roland_b` y=7
 
-## Key files to read before starting
+## Phase A delivery notes (SIM-35)
 
-- `docs/plans/ivotion-optimization-showcase.md` — full plan
-- `src/SimOpt.Visualization/Models/VizTopology.cs` — `IvotionPacking()` preset
-- `src/SimOpt.Simulation/Templates/RolandPrinter.cs` — v2 domain class
-- `src/SimOpt.Visualization/Models/SimulationModel.cs` — node→entity wiring
-- `src/SimOpt.Optimization/Strategies/ParticleSwarm/` — current PSO stub
-- `src/SimOpt.Optimization/Interfaces/IProblem.cs` — interface to implement
-- `tests/SimOpt.Tests/Helpers/TestProblem.cs` + `TestSolution.cs` — pattern reference
+- New library `src/SimOpt.Ivotion/` (depends on Basics, Mathematics, Simulation, Optimization).
+- `IvotionSolution` — 6-dim int vector, implements ISolution + ITweakable +
+  ICombinable<ISolution>. Clamps out-of-range values at construction.
+- `IvotionTopologyBuilder` — pure headless (no Visualization dep). Returns
+  `IvotionTopologyHandles` exposing Model, Source, ShippedSink, Rolands list,
+  manual stations, buffers, effective service times.
+- `IvotionKpis` — pure record struct. Extract(handles, simDurationMinutes)
+  produces throughput, cost/hr, labor-hr, floor-m², cost/piece.
+- `IvotionProblem` — IProblem with switchable Objective (MaximizeThroughput,
+  MinimizeTotalCost, MinimizeCostPerPiece, MinimizeLaborHours, MinimizeFloorSpace).
+- Known limitation inherited from `RolandPrinter`: one entity emitted per batch.
+  KPI extractor multiplies by `RolandBatchSize` to report physical pieces/hour.
+  SIM-44 will fix per-piece fan-out properly.
+- Test coverage: 37 tests (11 solution + 7 topology + 7 KPIs + 12 problem).
+  594 pass / 1 skip / 0 fail across the full suite.
 
-## First concrete step
+## Next session task
 
-Run `dotnet test tests/SimOpt.Tests/SimOpt.Tests.csproj -c Release` to confirm
-the baseline of 557 passing tests. Then create
-`tests/SimOpt.Tests/Optimization/IvotionProblemTests.cs` and start writing
-the first failing test — probably "decision variables validate within range"
-or "evaluate produces deterministic fitness for fixed seed".
+Phase A.2 = SIM-36: take the existing Particle Swarm stub to a full
+implementation and benchmark it against Sphere/Rosenbrock to validate
+convergence before plugging it into `IvotionProblem`.

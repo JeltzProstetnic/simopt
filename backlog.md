@@ -52,7 +52,7 @@ Plan: `docs/plans/ivotion-optimization-showcase.md`
 Driver: colleague impressed by today's spontaneous Ivotion v1+v2 demo;
 will bring real production data next week and wants to see optimization.
 
-- [ ] **SIM-35** Phase A: IvotionProblem + IvotionSolution + multi-Roland topology builder + KPI extraction (throughput / cost / labor / space) + tests (size: L) — P1
+- [x] **SIM-35** Phase A: IvotionProblem + IvotionSolution + multi-Roland topology builder + KPI extraction (throughput / cost / labor / space) + tests (size: L) — P1: new `SimOpt.Ivotion` library; 37 tests (solution/builder/KPIs/problem); 594 pass, 0 regressions
 - [ ] **SIM-36** Phase A.2: Particle Swarm full implementation (currently a stub) + benchmark validation against Sphere/Rosenbrock (size: M) — P1
 - [ ] **SIM-37** Phase B: Optimization UI panel — objective selector, strategy selector (Random/EA/PSO/Sweep), live fitness chart via ScottPlot.Avalonia, operator-wage input, run/stop, "Apply best to viz" (size: L) — P1
 - [ ] **SIM-38** Phase C: Multi-objective trade-off curve view — non-dominated set highlighted, click-to-preview, baseline-vs-optimized side-by-side, CSV export (size: L) — P1
