@@ -47,15 +47,20 @@ Previous session (2026-04-24): unprepared customer demo went well.
 | `operators_ssb`         | {1, 2}                |
 | `roland_batch_size`     | {10, 15, 20}          |
 
-## Build order (priorities confirmed by user)
+## Build order (revised 2026-04-24 — agile vertical slice + positioning shift)
 
 1. ~~**SIM-35** Phase A: Core problem + multi-Roland topology + KPI extraction + tests (P1)~~ ✓
-2. **SIM-36** Phase A.2: Particle Swarm full impl + benchmark validation (P1)
-3. **SIM-39** Phase D1: CSV import (slot in early — colleague brings data) (P1)
-4. **SIM-37** Phase B: Optimization UI + ScottPlot.Avalonia chart (P1)
-5. **SIM-38** Phase C: Trade-off curve view + apply-to-viz (P1)
-6. **SIM-40..43** Phase D2-D5: replications, heatmap, constraints, ROI (P2)
-7. **SIM-44** RolandPrinter v2.1 fan-out (P3, time-permitting)
+2. **SIM-37** Phase B: Optimization UI + ScottPlot.Avalonia chart (P1) — **next up**
+   - EA + Random wired; PSO dropdown entry greyed out "coming"
+3. **SIM-36** Phase A.2: Particle Swarm full impl + benchmark validation (P1)
+4. **SIM-38** Phase C: Trade-off curve view + apply-to-viz (P1)
+5. **SIM-40..43** Phase D2-D5: replications, heatmap, constraints, ROI (P2)
+6. **SIM-44** RolandPrinter v2.1 fan-out (P3, time-permitting)
+
+~~SIM-39 Phase D1: CSV import~~ — **retired** 2026-04-24. SimOpt is agent-driven
+sim-opt for non-experts; parameterization goes through Claude Code / agent fleet
+dialogue, not a fixed CSV schema. No import layer needed. See
+`docs/decisions.md` "Agent-Driven Sim-Opt Positioning".
 
 ## Tech choices already decided
 

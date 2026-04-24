@@ -52,11 +52,19 @@ Plan: `docs/plans/ivotion-optimization-showcase.md`
 Driver: colleague impressed by today's spontaneous Ivotion v1+v2 demo;
 will bring real production data next week and wants to see optimization.
 
+Build order (agile reorder 2026-04-24 — ship a vertical slice before polishing strategies):
+
+1. **SIM-37** Phase B — UI panel (EA + Random selectable; PSO greyed out "coming")
+2. **SIM-36** Phase A.2 — PSO full impl, unlocks the PSO dropdown entry
+3. **SIM-38** Phase C — trade-off curve
+4. **SIM-40..43** — replications, heatmap, constraints, ROI
+5. **SIM-44** — RolandPrinter fan-out
+
 - [x] **SIM-35** Phase A: IvotionProblem + IvotionSolution + multi-Roland topology builder + KPI extraction (throughput / cost / labor / space) + tests (size: L) — P1: new `SimOpt.Ivotion` library; 37 tests (solution/builder/KPIs/problem); 594 pass, 0 regressions
+- [ ] **SIM-37** Phase B: Optimization UI panel — objective selector, strategy selector (Random/EA/PSO/Sweep), live fitness chart via ScottPlot.Avalonia, operator-wage input, run/stop, "Apply best to viz" (size: L) — P1 **NEXT**
 - [ ] **SIM-36** Phase A.2: Particle Swarm full implementation (currently a stub) + benchmark validation against Sphere/Rosenbrock (size: M) — P1
-- [ ] **SIM-37** Phase B: Optimization UI panel — objective selector, strategy selector (Random/EA/PSO/Sweep), live fitness chart via ScottPlot.Avalonia, operator-wage input, run/stop, "Apply best to viz" (size: L) — P1
 - [ ] **SIM-38** Phase C: Multi-objective trade-off curve view — non-dominated set highlighted, click-to-preview, baseline-vs-optimized side-by-side, CSV export (size: L) — P1
-- [ ] **SIM-39** Phase D1: CSV cycle-time import — schema for per-station cycle times + arrival rates; live recalibration (colleague-data dependency) (size: M) — P1
+- [~] **SIM-39** ~~Phase D1: CSV cycle-time import~~ — **RETIRED 2026-04-24**. Positioning clarified: SimOpt is agent-driven sim-opt for non-experts. Parameterization goes through an LLM agent (Claude Code / agent fleet), not through a fixed CSV schema. Import-layer would solve a problem this product class doesn't have. See `docs/decisions.md` "Agent-Driven Sim-Opt Positioning".
 - [ ] **SIM-40** Phase D2: Replications with error bars — N=10 sim runs per fitness evaluation, mean ± std on chart, configurable N (size: M) — P2
 - [ ] **SIM-41** Phase D3: Bottleneck heatmap overlay on live topology — green/yellow/red by utilization (size: M) — P2
 - [ ] **SIM-42** Phase D4: Constraint handling — UI for max capital / max floor m²; solutions violating constraints excluded (size: M) — P2

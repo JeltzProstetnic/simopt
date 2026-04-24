@@ -82,3 +82,56 @@ preset + v2 RolandPrinter class). The demo flow:
 This is a deliberate capability to maintain. Future demos should preserve
 it: keep the topology DSL declarative, keep the Server template extensible,
 keep test scaffolding ready to validate spontaneous additions.
+
+---
+
+## Agent-Driven Sim-Opt Positioning
+
+**Decided:** 2026-04-24
+
+SimOpt is not aimed at enterprise sim-opt with rigid data contracts and
+PhD-level expert operators. It targets **non-experts using Claude Code or
+agent fleet with the SimOpt skill** to build preliminary or even final
+simulation-optimization systems. Use cases span:
+
+- **Production use** — the output system is good enough to run for real.
+- **Research pre-study** — scouts the problem before a deeper / more rigorous
+  commissioned project.
+- **What-if scratchpad** — throwaway analysis that dies with the conversation.
+
+### Consequences
+
+- **No standardized import schemas.** CSV/JSON import layers are the wrong
+  abstraction — they re-introduce the expert-configuration problem we're
+  trying to remove. When a user has a spreadsheet, the LLM agent reads it and
+  parameterizes the builder directly in natural language. This retired
+  SIM-39 mid-planning; resist the urge to re-add it.
+- **Topology DSL stays declarative and easy to emit.** Anything an LLM has
+  to assemble should be one flat JSON/record-style object, not a multi-step
+  builder API with hidden required calls.
+- **Domain classes (like `RolandPrinter`) belong with the skill's memory,
+  not as customer-facing options.** The user says "it batches 15 pieces at
+  a time"; the agent recognizes the pattern and picks the class. Avoid
+  exposing "pick your server subtype" UX.
+- **Validation lives in tests, not in constructor parameter matrices.**
+  When a user (or agent) proposes an unusual topology, a fast test suite
+  says whether it runs to completion. That is cheaper than schema
+  validation and catches the failures that actually matter.
+- **MCP server (SIM-19/20) is first-class surface area**, not a side
+  feature. It's how the agent reaches the framework.
+
+### What this implies for the Ivoclar demo
+
+The colleague's "real data next week" doesn't require a schema. When the
+numbers arrive — in whatever form — the agent takes them, updates the
+`IvotionTopologyBuilder` baseline constants (or constructs the solution
+vector directly), and reruns. The UI shows the result. No import screen.
+
+### What this does NOT change
+
+- Core engine invariants (discrete-event only, Server→Buffer patterns, etc.)
+  remain authoritative. Agent flexibility stops at the framework's
+  structural guarantees.
+- Test-driven discipline stays mandatory — even when the agent is
+  assembling a throwaway scratchpad, it writes tests. Faster than
+  debugging, and the tests double as "this is what I built" evidence.
