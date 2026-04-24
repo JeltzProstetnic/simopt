@@ -51,7 +51,8 @@ public partial class MainWindowViewModel : ViewModelBase
         "SQSS (Source-Queue-Server-Sink)",
         "Parallel Servers",
         "Production Line",
-        "Factory Floor (Physical Layout)"
+        "Factory Floor (Physical Layout)",
+        "Ivoclar Ivotion Packing Line"
     };
 
     private VizTopology GetSelectedTopology() => SelectedTopology switch
@@ -59,6 +60,7 @@ public partial class MainWindowViewModel : ViewModelBase
         1 => VizTopology.ParallelServers(),
         2 => VizTopology.ProductionLine(),
         3 => VizTopology.FactoryFloor(),
+        4 => VizTopology.IvotionPacking(),
         _ => VizTopology.Sqss()
     };
 

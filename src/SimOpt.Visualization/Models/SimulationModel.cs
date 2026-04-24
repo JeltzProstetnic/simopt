@@ -136,6 +136,13 @@ public class SimulationModel
                 server.AutoContinue = true;
                 return server;
             }
+            case "roland":
+            {
+                int batchSize = (int)node.Params.GetValueOrDefault("batch_size", 15);
+                double perPieceTime = node.Params.GetValueOrDefault("per_piece_time",
+                    node.Params.GetValueOrDefault("service_time", 1.0));
+                return new RolandPrinter(_model, batchSize, perPieceTime, name: node.Id);
+            }
             case "sink":
             {
                 var sink = new SimpleSink(_model, name: node.Id);

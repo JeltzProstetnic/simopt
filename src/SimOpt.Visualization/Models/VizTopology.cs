@@ -183,6 +183,84 @@ public class VizTopology
             new() { From = "packing", To = "shipping" },
         }
     };
+
+    /// <summary>
+    /// Ivoclar Ivotion denture packing line (real production cell, 50m × 14m).
+    /// 5-step manual+automated process: inspection/cleaning → Roland LEF UV print
+    /// → packaging → labeling → SSB placement. Roland printer is the bottleneck
+    /// (60s/pc, batch of 15 = 15min cycle). All other steps operator-bound.
+    /// </summary>
+    public static VizTopology IvotionPacking(int seed = 42) => new()
+    {
+        Name = "Ivoclar Ivotion Packing Line",
+        Seed = seed,
+        Nodes = new List<VizNode>
+        {
+            // Incoming dentures from production
+            new() { Id = "incoming", Type = "source", Label = "Incoming\nDentures",
+                X = 1, Y = 5, Width = 4, Height = 4,
+                Params = new() { ["mean_interval"] = 5.5 }, Color = "#E1BEE7" },
+
+            // Step 1: Inspection & cleaning (10s manual)
+            new() { Id = "buf1", Type = "buffer", Label = "Queue 1",
+                X = 6.5, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 20 } },
+            new() { Id = "inspect", Type = "server", Label = "1. Inspect\n& Clean\n(10s)",
+                X = 10.5, Y = 5, Width = 5, Height = 4,
+                Params = new() { ["service_time"] = 1.0 }, Color = "#4FC3F7" },
+
+            // Step 2: Roland LEF UV printer (60s/pc, batch of 15 — bottleneck)
+            new() { Id = "buf2", Type = "buffer", Label = "Print\nQueue",
+                X = 17, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 30 } },
+            new() { Id = "roland", Type = "roland", Label = "2. Roland LEF\nUV Print\n(15×60s)",
+                X = 21, Y = 4.5, Width = 6, Height = 5,
+                Params = new() { ["per_piece_time"] = 0.4, ["batch_size"] = 15 }, Color = "#FF6F00" },
+
+            // Step 3: Manual packaging (20s)
+            new() { Id = "buf3", Type = "buffer", Label = "Pack\nQueue",
+                X = 28.5, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 20 } },
+            new() { Id = "pack", Type = "server", Label = "3. Manual\nPackaging\n(20s)",
+                X = 32.5, Y = 5, Width = 5, Height = 4,
+                Params = new() { ["service_time"] = 2.0 }, Color = "#66BB6A" },
+
+            // Step 4: Labeling (4s manual + 8s auto)
+            new() { Id = "buf4", Type = "buffer", Label = "Label\nQueue",
+                X = 39, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 15 } },
+            new() { Id = "label", Type = "server", Label = "4. Labeling\n(4s+8s)",
+                X = 43, Y = 5, Width = 5, Height = 4,
+                Params = new() { ["service_time"] = 1.2 }, Color = "#FFCA28" },
+
+            // Step 5: SSB placement (3s manual)
+            new() { Id = "buf5", Type = "buffer", Label = "SSB\nQueue",
+                X = 49.5, Y = 5.5, Width = 2.5, Height = 3,
+                Params = new() { ["capacity"] = 10 } },
+            new() { Id = "ssb", Type = "server", Label = "5. SSB\nPlacement\n(3s)",
+                X = 53.5, Y = 5, Width = 5, Height = 4,
+                Params = new() { ["service_time"] = 0.3 }, Color = "#AB47BC" },
+
+            // Shipping
+            new() { Id = "shipped", Type = "sink", Label = "Shipped",
+                X = 60, Y = 5, Width = 4, Height = 4,
+                Color = "#43A047" },
+        },
+        Connections = new List<VizConnection>
+        {
+            new() { From = "incoming", To = "buf1" },
+            new() { From = "buf1", To = "inspect" },
+            new() { From = "inspect", To = "buf2" },
+            new() { From = "buf2", To = "roland" },
+            new() { From = "roland", To = "buf3" },
+            new() { From = "buf3", To = "pack" },
+            new() { From = "pack", To = "buf4" },
+            new() { From = "buf4", To = "label" },
+            new() { From = "label", To = "buf5" },
+            new() { From = "buf5", To = "ssb" },
+            new() { From = "ssb", To = "shipped" },
+        }
+    };
 }
 
 public class VizNode

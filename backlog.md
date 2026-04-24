@@ -45,3 +45,20 @@
 - [x] **SIM-32** Realistic factory floor renderer: toggle between schematic and realistic 2D view (size: XL) — concrete floor, metallic machines, rack buffers, dock bays, belt conveyors, iso entities, R-key toggle
 - [ ] **SIM-33** Realistic renderer v2: organic factory layout (non-grid), realistic node sizes, building features (walls, doors, corridors, pillars), walkways between stations (size: L)
 - [ ] **SIM-34** Human agent entity: mobile worker that walks between stations, repairs damaged machines, unsticks conveyors, pulls items from machines/belts. Extends simulation primitives with pathfinding + task queue (size: XL)
+
+## Ivotion Optimization Showcase (Ivoclar follow-up demo, next week)
+
+Plan: `docs/plans/ivotion-optimization-showcase.md`
+Driver: colleague impressed by today's spontaneous Ivotion v1+v2 demo;
+will bring real production data next week and wants to see optimization.
+
+- [ ] **SIM-35** Phase A: IvotionProblem + IvotionSolution + multi-Roland topology builder + KPI extraction (throughput / cost / labor / space) + tests (size: L) — P1
+- [ ] **SIM-36** Phase A.2: Particle Swarm full implementation (currently a stub) + benchmark validation against Sphere/Rosenbrock (size: M) — P1
+- [ ] **SIM-37** Phase B: Optimization UI panel — objective selector, strategy selector (Random/EA/PSO/Sweep), live fitness chart via ScottPlot.Avalonia, operator-wage input, run/stop, "Apply best to viz" (size: L) — P1
+- [ ] **SIM-38** Phase C: Multi-objective trade-off curve view — non-dominated set highlighted, click-to-preview, baseline-vs-optimized side-by-side, CSV export (size: L) — P1
+- [ ] **SIM-39** Phase D1: CSV cycle-time import — schema for per-station cycle times + arrival rates; live recalibration (colleague-data dependency) (size: M) — P1
+- [ ] **SIM-40** Phase D2: Replications with error bars — N=10 sim runs per fitness evaluation, mean ± std on chart, configurable N (size: M) — P2
+- [ ] **SIM-41** Phase D3: Bottleneck heatmap overlay on live topology — green/yellow/red by utilization (size: M) — P2
+- [ ] **SIM-42** Phase D4: Constraint handling — UI for max capital / max floor m²; solutions violating constraints excluded (size: M) — P2
+- [ ] **SIM-43** Phase D5: ROI calculator panel — current vs proposed config + demand forecast → payback period + 5-yr NPV delta (size: M) — P2
+- [ ] **SIM-44** RolandPrinter v2.1: per-piece fan-out emit semantics (currently emits 1 representative entity per batch; should release all N) (size: S) — P3
