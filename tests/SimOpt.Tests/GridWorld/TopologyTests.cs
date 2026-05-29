@@ -227,4 +227,28 @@ public class TopologyTests
         for (int i = 0; i < topo.ActionCount; i++)
             topo.ActionName(i).Should().NotBeNullOrEmpty();
     }
+
+    [Fact]
+    public void Rectangular_InvalidActionId_Throws()
+    {
+        var topo = new RectangularTopology(5, 5);
+        var act = () => topo.Step(new Coord2D(2, 2), 99);
+        act.Should().Throw<System.ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Hex_InvalidActionId_Throws()
+    {
+        var topo = new HexTopology(3);
+        var act = () => topo.Step(new HexCoord(0, 0), -1);
+        act.Should().Throw<System.ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Cubic_InvalidActionId_Throws()
+    {
+        var topo = new CubicTopology(3, 3, 3);
+        var act = () => topo.ActionName(7);
+        act.Should().Throw<System.ArgumentOutOfRangeException>();
+    }
 }

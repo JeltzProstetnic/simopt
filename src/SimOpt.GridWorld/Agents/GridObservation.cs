@@ -34,7 +34,7 @@ public class GridObservation<TCoord> where TCoord : struct, IEquatable<TCoord>
         {
             foreach (var (id, pos, alive) in otherAgents)
             {
-                if (grid.Topology.Distance(agentPosition, pos) <= viewRadius)
+                if (cells.ContainsKey(pos))
                     visible.Add(new VisibleAgent<TCoord>(id, pos, alive));
             }
         }

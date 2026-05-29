@@ -124,6 +124,50 @@ public class GridSimulationTests
         act.Should().Throw<System.ArgumentOutOfRangeException>();
     }
 
+    [Fact]
+    public void Tick_AgentMovesOffGridEdge_PositionUnchanged()
+    {
+        var grid = new Grid2D(5, 5);
+        var sim = new GridSimulation<Coord2D>(grid, new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.North);
+        sim.AddAgent(agent.Object, new Coord2D(2, 0));
+
+        sim.Tick();
+
+        agent.Object.Position.Should().Be(new Coord2D(2, 0));
+    }
+
+    [Fact]
+    public void Run_StopWhenAllDeadFalse_ContinuesFullDuration()
+    {
+        var grid = new Grid2D(5, 5);
+        grid[2, 2] = CellType.Hazard;
+        var sim = new GridSimulation<Coord2D>(grid, new GridSimulationConfig { StopWhenAllDead = false });
+        var agent = CreateMockAgent("a1", Actions.Rect.Stay);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
+
+        var result = sim.Run(maxSteps: 10);
+
+        result.AgentsDead.Should().Be(1);
+        result.TotalSteps.Should().Be(10);
+    }
+
+    [Fact]
+    public void Tick_AgentDiesOnHazard_ReceivesTerminalReward()
+    {
+        var grid = new Grid2D(5, 5);
+        grid[2, 2] = CellType.Hazard;
+        var config = new GridSimulationConfig { HazardReward = -99.0 };
+        var sim = new GridSimulation<Coord2D>(grid, config);
+        var agent = CreateMockAgent("a1", Actions.Rect.Stay);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
+
+        sim.Tick();
+
+        agent.Verify(a => a.OnStepComplete(It.IsAny<GridObservation<Coord2D>>(), -99.0), Times.Once);
+        agent.Verify(a => a.OnDeath("hazard"), Times.Once);
+    }
+
     private static Mock<IGridAgent<Coord2D>> CreateMockAgent(string id, int action) =>
         MockAgentHelper.Create2D(id, action);
 }

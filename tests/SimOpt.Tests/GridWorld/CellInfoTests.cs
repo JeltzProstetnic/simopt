@@ -82,7 +82,7 @@ public class CellInfoTests
         sim.Tick();
 
         agent.Object.IsAlive.Should().BeFalse();
-        agent.Verify(a => a.OnStepComplete(It.IsAny<GridObservation<Coord2D>>(), It.IsAny<double>()), Times.Never);
+        agent.Verify(a => a.OnStepComplete(It.IsAny<GridObservation<Coord2D>>(), -10.0), Times.Once);
     }
 
     [Fact]

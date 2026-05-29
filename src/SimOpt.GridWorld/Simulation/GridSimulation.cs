@@ -64,6 +64,8 @@ public class GridSimulation<TCoord> where TCoord : struct, IEquatable<TCoord>
 
             if (cell == CellType.Hazard)
             {
+                reward = _config.HazardReward;
+                agent.OnStepComplete(BuildObservation(agent), reward);
                 var cause = cellInfo.CausalMechanism ?? "hazard";
                 agent.OnDeath(cause);
                 var deathEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.Death,
@@ -71,16 +73,18 @@ public class GridSimulation<TCoord> where TCoord : struct, IEquatable<TCoord>
                 deaths.Add(deathEvent);
                 events.Add(deathEvent);
             }
-            else if (cell == CellType.Resource)
+            else
             {
-                var collectEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.ResourceCollected,
-                    agent.Position, CellInfo: cellInfo);
-                events.Add(collectEvent);
-                reward = _config.ResourceReward;
-            }
+                if (cell == CellType.Resource)
+                {
+                    var collectEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.ResourceCollected,
+                        agent.Position, CellInfo: cellInfo);
+                    events.Add(collectEvent);
+                    reward = _config.ResourceReward;
+                }
 
-            if (agent.IsAlive)
                 agent.OnStepComplete(BuildObservation(agent), reward);
+            }
         }
 
         foreach (var evt in events)

@@ -85,6 +85,7 @@ Results integrate directly into paper before publication.
 - [ ] **SIM-50** FMT gridworld — Phase 3: Prediction 2 — criticality phase transition sweep (spectral radius vs. learning) (size: M) — P2
 - [ ] **SIM-51** FMT gridworld — Phase 3: Prediction 3 — EWM coverage ablation vs. ESM self-prediction accuracy (size: M) — P2
 - [ ] **SIM-52** FMT gridworld — Phase 3: Results reporting + paper-ready figures + statistical analysis (size: M) — P2
+- [ ] **SIM-53** FMT gridworld — Meta-optimization: EnvironmentProblem (IProblem) that optimizes hazard placement/types/density to maximize Cohen's d between FMT and comparison agents, constrained by simpler-agent viability threshold (size: L) — P2
 
 ## Platform follow-ups (captured 2026-04-24)
 

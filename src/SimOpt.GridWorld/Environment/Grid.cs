@@ -31,6 +31,7 @@ public class Grid<TCoord> where TCoord : struct, IEquatable<TCoord>
             if (!_cells.ContainsKey(coord))
                 throw new KeyNotFoundException($"Coordinate {coord} not in grid");
             _cells[coord] = value;
+            _cellInfo.Remove(coord);
         }
     }
 
