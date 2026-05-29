@@ -10,6 +10,8 @@
     <Project Path="src/SimOpt.Simulation/SimOpt.Simulation.csproj" />
     <Project Path="src/SimOpt.Statistics/SimOpt.Statistics.csproj" />
     <Project Path="src/SimOpt.Visualization/SimOpt.Visualization.csproj" />
+    <Project Path="src/SimOpt.GridWorld/SimOpt.GridWorld.csproj" />
+    <Project Path="src/SimOpt.FMT/SimOpt.FMT.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SimOpt.Tests/SimOpt.Tests.csproj" />

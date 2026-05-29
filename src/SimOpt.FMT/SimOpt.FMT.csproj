@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>SimOpt.FMT</RootNamespace>
+    <AssemblyName>SimOpt.FMT</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimOpt.GridWorld\SimOpt.GridWorld.csproj" />
+    <ProjectReference Include="..\SimOpt.Mathematics\SimOpt.Mathematics.csproj" />
+    <ProjectReference Include="..\SimOpt.Statistics\SimOpt.Statistics.csproj" />
+  </ItemGroup>
+</Project>

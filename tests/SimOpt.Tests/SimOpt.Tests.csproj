@@ -31,6 +31,8 @@
     <ProjectReference Include="../../src/SimOpt.Statistics/SimOpt.Statistics.csproj" />
     <ProjectReference Include="../../src/SimOpt.Ivotion/SimOpt.Ivotion.csproj" />
     <ProjectReference Include="../../src/SimOpt.Visualization/SimOpt.Visualization.csproj" />
+    <ProjectReference Include="../../src/SimOpt.GridWorld/SimOpt.GridWorld.csproj" />
+    <ProjectReference Include="../../src/SimOpt.FMT/SimOpt.FMT.csproj" />
   </ItemGroup>
 
 </Project>

@@ -71,6 +71,21 @@ Build order (agile reorder 2026-04-24 — ship a vertical slice before polishing
 - [ ] **SIM-43** Phase D5: ROI calculator panel — current vs proposed config + demand forecast → payback period + 5-yr NPV delta (size: M) — P2
 - [ ] **SIM-44** RolandPrinter v2.1: per-piece fan-out emit semantics (currently emits 1 representative entity per batch; should release all N) (size: S) — P3
 
+## FMT Architectural Validation (formalization paper Phase 4)
+
+Plan: `docs/plans/2026-05-29-fmt-gridworld.md`
+Spec: `~/aIware/docs/simopt-fmt-gridworld-spec.md`
+Paper: `~/aIware/paper/fmt_formal/fmt-formalization.md`
+Driver: FMT formalization paper needs computational validation of three sharp predictions.
+Results integrate directly into paper before publication.
+
+- [ ] **SIM-47** FMT gridworld — Phase 1: SimOpt.GridWorld generic agent-based engine (Grid, agents, step simulation, Q-learning baseline) (size: L) — P2
+- [ ] **SIM-48** FMT gridworld — Phase 2: SimOpt.FMT (ESN reservoir, IWM/ISM/EWM/ESM, permeability gates, FMT agent, comparison agents) (size: XL) — P2
+- [ ] **SIM-49** FMT gridworld — Phase 3: Prediction 1 — ESM ablation experiment + causal transfer test (size: L) — P2
+- [ ] **SIM-50** FMT gridworld — Phase 3: Prediction 2 — criticality phase transition sweep (spectral radius vs. learning) (size: M) — P2
+- [ ] **SIM-51** FMT gridworld — Phase 3: Prediction 3 — EWM coverage ablation vs. ESM self-prediction accuracy (size: M) — P2
+- [ ] **SIM-52** FMT gridworld — Phase 3: Results reporting + paper-ready figures + statistical analysis (size: M) — P2
+
 ## Platform follow-ups (captured 2026-04-24)
 
 - [ ] **SIM-45** More complex factory floor topology — richer than FactoryFloor preset (walls, corridors, multi-bay layout, more realistic process chain; feeds into SIM-33 realistic renderer v2) (size: L) — **P2 proposed**
