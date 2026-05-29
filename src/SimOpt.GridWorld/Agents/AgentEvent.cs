@@ -1,3 +1,5 @@
+using System;
+
 namespace SimOpt.GridWorld.Agents;
 
 public enum AgentEventType
@@ -7,9 +9,8 @@ public enum AgentEventType
     Moved
 }
 
-public record AgentEvent(
+public record AgentEvent<TCoord>(
     string AgentId,
     AgentEventType EventType,
-    int X,
-    int Y,
-    string? Cause = null);
+    TCoord Position,
+    string? Cause = null) where TCoord : struct, IEquatable<TCoord>;

@@ -1,36 +1,35 @@
 using System;
+using SimOpt.GridWorld.Environment;
 
 namespace SimOpt.GridWorld.Agents;
 
-public class RandomAgent : IGridAgent
+public class RandomAgent<TCoord> : IGridAgent<TCoord>
+    where TCoord : struct, IEquatable<TCoord>
 {
-    private static readonly GridAction[] AllActions =
-        (GridAction[])Enum.GetValues(typeof(GridAction));
-
     private readonly Random _rng;
+    private readonly int _actionCount;
 
     public string Id { get; }
-    public int X { get; private set; }
-    public int Y { get; private set; }
+    public TCoord Position { get; private set; }
     public bool IsAlive { get; private set; }
 
-    public RandomAgent(string id, int seed)
+    public RandomAgent(string id, ITopology<TCoord> topology, int seed)
     {
         Id = id;
+        _actionCount = topology.ActionCount;
         _rng = new Random(seed);
     }
 
-    public GridAction SelectAction(GridObservation observation) =>
-        AllActions[_rng.Next(AllActions.Length)];
+    public int SelectAction(GridObservation<TCoord> observation) =>
+        _rng.Next(_actionCount);
 
     public void OnDeath(string cause) => IsAlive = false;
-    public void OnObserve(AgentEvent agentEvent) { }
-    public void OnStepComplete(GridObservation newObservation, double reward) { }
+    public void OnObserve(AgentEvent<TCoord> agentEvent) { }
+    public void OnStepComplete(GridObservation<TCoord> newObservation, double reward) { }
 
-    public void Reset(int startX, int startY)
+    public void Reset(TCoord startPosition)
     {
-        X = startX;
-        Y = startY;
+        Position = startPosition;
         IsAlive = true;
     }
 }

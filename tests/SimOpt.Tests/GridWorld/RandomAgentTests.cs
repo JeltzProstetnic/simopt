@@ -10,31 +10,32 @@ public class RandomAgentTests
     [Fact]
     public void Constructor_SetsId()
     {
-        var agent = new RandomAgent("r1", seed: 42);
+        var grid = new Grid2D(5, 5);
+        var agent = new RandomAgent<Coord2D>("r1", grid.Topology, seed: 42);
         agent.Id.Should().Be("r1");
     }
 
     [Fact]
     public void Reset_SetsPositionAndAlive()
     {
-        var agent = new RandomAgent("r1", seed: 42);
-        agent.Reset(3, 4);
+        var grid = new Grid2D(5, 5);
+        var agent = new RandomAgent<Coord2D>("r1", grid.Topology, seed: 42);
+        agent.Reset(new Coord2D(3, 4));
 
-        agent.X.Should().Be(3);
-        agent.Y.Should().Be(4);
+        agent.Position.Should().Be(new Coord2D(3, 4));
         agent.IsAlive.Should().BeTrue();
     }
 
     [Fact]
     public void SelectAction_ReturnsDifferentActions_WithSeed()
     {
-        var agent = new RandomAgent("r1", seed: 42);
-        agent.Reset(2, 2);
+        var grid = new Grid2D(5, 5);
+        var agent = new RandomAgent<Coord2D>("r1", grid.Topology, seed: 42);
+        agent.Reset(new Coord2D(2, 2));
 
-        var grid = new Grid(5, 5);
-        var obs = GridObservation.FromGrid(grid, 2, 2, viewRadius: 2);
+        var obs = GridObservation<Coord2D>.FromGrid(grid, new Coord2D(2, 2), viewRadius: 2);
 
-        var actions = new System.Collections.Generic.HashSet<GridAction>();
+        var actions = new System.Collections.Generic.HashSet<int>();
         for (int i = 0; i < 100; i++)
             actions.Add(agent.SelectAction(obs));
 
@@ -44,8 +45,9 @@ public class RandomAgentTests
     [Fact]
     public void OnDeath_SetsAliveToFalse()
     {
-        var agent = new RandomAgent("r1", seed: 42);
-        agent.Reset(2, 2);
+        var grid = new Grid2D(5, 5);
+        var agent = new RandomAgent<Coord2D>("r1", grid.Topology, seed: 42);
+        agent.Reset(new Coord2D(2, 2));
 
         agent.OnDeath("hazard");
 
@@ -55,15 +57,28 @@ public class RandomAgentTests
     [Fact]
     public void DeterministicWithSameSeed()
     {
-        var a1 = new RandomAgent("r1", seed: 42);
-        var a2 = new RandomAgent("r2", seed: 42);
-        a1.Reset(2, 2);
-        a2.Reset(2, 2);
+        var grid = new Grid2D(5, 5);
+        var a1 = new RandomAgent<Coord2D>("r1", grid.Topology, seed: 42);
+        var a2 = new RandomAgent<Coord2D>("r2", grid.Topology, seed: 42);
+        a1.Reset(new Coord2D(2, 2));
+        a2.Reset(new Coord2D(2, 2));
 
-        var grid = new Grid(5, 5);
-        var obs = GridObservation.FromGrid(grid, 2, 2, viewRadius: 2);
+        var obs = GridObservation<Coord2D>.FromGrid(grid, new Coord2D(2, 2), viewRadius: 2);
 
         for (int i = 0; i < 20; i++)
             a1.SelectAction(obs).Should().Be(a2.SelectAction(obs));
+    }
+
+    [Fact]
+    public void HexAgent_WorksWithHexTopology()
+    {
+        var grid = new HexGrid(3);
+        var agent = new RandomAgent<HexCoord>("hex1", grid.Topology, seed: 42);
+        agent.Reset(new HexCoord(0, 0));
+
+        var obs = GridObservation<HexCoord>.FromGrid(grid, new HexCoord(0, 0), viewRadius: 1);
+        var action = agent.SelectAction(obs);
+
+        action.Should().BeInRange(0, 6);
     }
 }

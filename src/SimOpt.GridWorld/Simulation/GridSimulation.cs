@@ -6,74 +6,72 @@ using SimOpt.GridWorld.Environment;
 
 namespace SimOpt.GridWorld.Simulation;
 
-public class GridSimulation
+public class GridSimulation<TCoord> where TCoord : struct, IEquatable<TCoord>
 {
-    private readonly List<IGridAgent> _agents = new();
+    private readonly List<IGridAgent<TCoord>> _agents = new();
     private readonly GridSimulationConfig _config;
 
-    public Grid Grid { get; }
-    public IReadOnlyList<IGridAgent> Agents => _agents;
+    public Grid<TCoord> Grid { get; }
+    public IReadOnlyList<IGridAgent<TCoord>> Agents => _agents;
     public int Step { get; private set; }
 
-    public GridSimulation(Grid grid, GridSimulationConfig config)
+    public GridSimulation(Grid<TCoord> grid, GridSimulationConfig config)
     {
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         _config = config ?? throw new ArgumentNullException(nameof(config));
     }
 
-    public void AddAgent(IGridAgent agent, int x, int y)
+    public void AddAgent(IGridAgent<TCoord> agent, TCoord position)
     {
-        if (!Grid.InBounds(x, y))
-            throw new ArgumentOutOfRangeException($"Position ({x},{y}) is out of bounds");
-        agent.Reset(x, y);
+        if (!Grid.InBounds(position))
+            throw new ArgumentOutOfRangeException($"Position {position} is out of bounds");
+        agent.Reset(position);
         _agents.Add(agent);
     }
 
-    public StepResult Tick()
+    public StepResult<TCoord> Tick()
     {
         Step++;
-        var deaths = new List<AgentEvent>();
-        var events = new List<AgentEvent>();
+        var deaths = new List<AgentEvent<TCoord>>();
+        var events = new List<AgentEvent<TCoord>>();
 
         var liveAgents = _agents.Where(a => a.IsAlive).ToList();
 
-        var actions = new Dictionary<IGridAgent, GridAction>();
+        var actions = new Dictionary<IGridAgent<TCoord>, int>();
         foreach (var agent in liveAgents)
         {
             var obs = BuildObservation(agent);
             actions[agent] = agent.SelectAction(obs);
         }
 
-        foreach (var (agent, action) in actions)
+        foreach (var (agent, actionId) in actions)
         {
-            var (dx, dy) = ActionToDelta(action);
-            int nx = agent.X + dx;
-            int ny = agent.Y + dy;
+            var target = Grid.Topology.Step(agent.Position, actionId);
 
-            if (!Grid.InBounds(nx, ny) || Grid[nx, ny] == CellType.Wall)
+            if (!Grid.InBounds(target) || Grid[target] == CellType.Wall)
                 continue;
 
-            agent.Reset(nx, ny);
+            agent.Reset(target);
         }
 
         foreach (var agent in liveAgents)
         {
             if (!agent.IsAlive) continue;
 
-            var cell = Grid[agent.X, agent.Y];
+            var cell = Grid[agent.Position];
             double reward = _config.StepReward;
 
             if (cell == CellType.Hazard)
             {
                 agent.OnDeath("hazard");
-                var deathEvent = new AgentEvent(agent.Id, AgentEventType.Death, agent.X, agent.Y, "hazard");
+                var deathEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.Death, agent.Position, "hazard");
                 deaths.Add(deathEvent);
                 events.Add(deathEvent);
                 reward = _config.HazardReward;
             }
             else if (cell == CellType.Resource)
             {
-                var collectEvent = new AgentEvent(agent.Id, AgentEventType.ResourceCollected, agent.X, agent.Y);
+                var collectEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.ResourceCollected, agent.Position);
                 events.Add(collectEvent);
                 reward = _config.ResourceReward;
             }
@@ -87,12 +85,12 @@ public class GridSimulation
                 agent.OnObserve(evt);
         }
 
-        return new StepResult { StepNumber = Step, Deaths = deaths, Events = events };
+        return new StepResult<TCoord> { StepNumber = Step, Deaths = deaths, Events = events };
     }
 
-    public SimulationResult Run(int maxSteps)
+    public SimulationResult<TCoord> Run(int maxSteps)
     {
-        var allDeaths = new List<AgentEvent>();
+        var allDeaths = new List<AgentEvent<TCoord>>();
 
         for (int i = 0; i < maxSteps; i++)
         {
@@ -103,7 +101,7 @@ public class GridSimulation
             allDeaths.AddRange(result.Deaths);
         }
 
-        return new SimulationResult
+        return new SimulationResult<TCoord>
         {
             TotalSteps = Step,
             AllDeaths = allDeaths,
@@ -112,21 +110,11 @@ public class GridSimulation
         };
     }
 
-    private GridObservation BuildObservation(IGridAgent agent)
+    private GridObservation<TCoord> BuildObservation(IGridAgent<TCoord> agent)
     {
         var others = _agents
             .Where(a => a.Id != agent.Id && a.IsAlive)
-            .Select(a => (a.Id, a.X, a.Y, a.IsAlive));
-        return GridObservation.FromGrid(Grid, agent.X, agent.Y, _config.ViewRadius, others);
+            .Select(a => (a.Id, a.Position, a.IsAlive));
+        return GridObservation<TCoord>.FromGrid(Grid, agent.Position, _config.ViewRadius, others);
     }
-
-    private static (int dx, int dy) ActionToDelta(GridAction action) => action switch
-    {
-        GridAction.North => (0, -1),
-        GridAction.South => (0, 1),
-        GridAction.East => (1, 0),
-        GridAction.West => (-1, 0),
-        GridAction.Stay => (0, 0),
-        _ => (0, 0),
-    };
 }

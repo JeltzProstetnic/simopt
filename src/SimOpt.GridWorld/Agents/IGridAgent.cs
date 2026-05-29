@@ -1,15 +1,16 @@
+using System;
+
 namespace SimOpt.GridWorld.Agents;
 
-public interface IGridAgent
+public interface IGridAgent<TCoord> where TCoord : struct, IEquatable<TCoord>
 {
     string Id { get; }
-    int X { get; }
-    int Y { get; }
+    TCoord Position { get; }
     bool IsAlive { get; }
 
-    GridAction SelectAction(GridObservation observation);
+    int SelectAction(GridObservation<TCoord> observation);
     void OnDeath(string cause);
-    void OnObserve(AgentEvent agentEvent);
-    void OnStepComplete(GridObservation newObservation, double reward);
-    void Reset(int startX, int startY);
+    void OnObserve(AgentEvent<TCoord> agentEvent);
+    void OnStepComplete(GridObservation<TCoord> newObservation, double reward);
+    void Reset(TCoord startPosition);
 }

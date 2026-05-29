@@ -5,55 +5,43 @@ using SimOpt.GridWorld.Environment;
 
 namespace SimOpt.GridWorld.Agents;
 
-public class GridObservation
+public class GridObservation<TCoord> where TCoord : struct, IEquatable<TCoord>
 {
-    public CellType[,] LocalView { get; }
-    public int AgentX { get; }
-    public int AgentY { get; }
+    public IReadOnlyDictionary<TCoord, CellType> Cells { get; }
+    public TCoord AgentPosition { get; }
     public int ViewRadius { get; }
-    public IReadOnlyList<VisibleAgent> VisibleAgents { get; }
+    public IReadOnlyList<VisibleAgent<TCoord>> VisibleAgents { get; }
 
-    private GridObservation(CellType[,] localView, int agentX, int agentY,
-        int viewRadius, IReadOnlyList<VisibleAgent> visibleAgents)
+    public GridObservation(IReadOnlyDictionary<TCoord, CellType> cells,
+        TCoord agentPosition, int viewRadius,
+        IReadOnlyList<VisibleAgent<TCoord>> visibleAgents)
     {
-        LocalView = localView;
-        AgentX = agentX;
-        AgentY = agentY;
+        Cells = cells;
+        AgentPosition = agentPosition;
         ViewRadius = viewRadius;
         VisibleAgents = visibleAgents;
     }
 
-    public static GridObservation FromGrid(Grid grid, int agentX, int agentY,
-        int viewRadius, IEnumerable<(string Id, int X, int Y, bool Alive)>? otherAgents = null)
+    public static GridObservation<TCoord> FromGrid(Grid<TCoord> grid, TCoord agentPosition,
+        int viewRadius, IEnumerable<(string Id, TCoord Position, bool Alive)>? otherAgents = null)
     {
-        int size = 2 * viewRadius + 1;
-        var view = new CellType[size, size];
+        var cells = new Dictionary<TCoord, CellType>();
+        foreach (var coord in grid.Topology.Neighborhood(agentPosition, viewRadius))
+            cells[coord] = grid.GetOrDefault(coord, CellType.Wall);
 
-        for (int dx = -viewRadius; dx <= viewRadius; dx++)
-        {
-            for (int dy = -viewRadius; dy <= viewRadius; dy++)
-            {
-                int wx = agentX + dx;
-                int wy = agentY + dy;
-                int lx = dx + viewRadius;
-                int ly = dy + viewRadius;
-
-                view[lx, ly] = grid.InBounds(wx, wy) ? grid[wx, wy] : CellType.Wall;
-            }
-        }
-
-        var visible = new List<VisibleAgent>();
+        var visible = new List<VisibleAgent<TCoord>>();
         if (otherAgents != null)
         {
-            foreach (var (id, x, y, alive) in otherAgents)
+            foreach (var (id, pos, alive) in otherAgents)
             {
-                if (Math.Abs(x - agentX) <= viewRadius && Math.Abs(y - agentY) <= viewRadius)
-                    visible.Add(new VisibleAgent(id, x, y, alive));
+                if (grid.Topology.Distance(agentPosition, pos) <= viewRadius)
+                    visible.Add(new VisibleAgent<TCoord>(id, pos, alive));
             }
         }
 
-        return new GridObservation(view, agentX, agentY, viewRadius, visible);
+        return new GridObservation<TCoord>(cells, agentPosition, viewRadius, visible);
     }
 }
 
-public record VisibleAgent(string Id, int X, int Y, bool IsAlive);
+public record VisibleAgent<TCoord>(string Id, TCoord Position, bool IsAlive)
+    where TCoord : struct, IEquatable<TCoord>;

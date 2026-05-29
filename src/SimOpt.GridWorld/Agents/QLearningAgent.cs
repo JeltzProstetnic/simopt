@@ -1,49 +1,49 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SimOpt.GridWorld.Environment;
 
 namespace SimOpt.GridWorld.Agents;
 
-public class QLearningAgent : IGridAgent
+public class QLearningAgent<TCoord> : IGridAgent<TCoord>
+    where TCoord : struct, IEquatable<TCoord>
 {
-    private static readonly GridAction[] AllActions =
-        (GridAction[])Enum.GetValues(typeof(GridAction));
-
     private readonly Random _rng;
+    private readonly int _actionCount;
     private readonly double _epsilon;
     private readonly double _learningRate;
     private readonly double _discount;
-    private readonly Dictionary<(int State, GridAction Action), double> _qTable = new();
+    private readonly Dictionary<(int State, int Action), double> _qTable = new();
 
     private int _lastState;
-    private GridAction _lastAction;
+    private int _lastAction;
 
     public string Id { get; }
-    public int X { get; private set; }
-    public int Y { get; private set; }
+    public TCoord Position { get; private set; }
     public bool IsAlive { get; private set; }
 
-    public QLearningAgent(string id, int seed, double epsilon = 0.1,
-        double learningRate = 0.1, double discount = 0.95)
+    public QLearningAgent(string id, ITopology<TCoord> topology, int seed,
+        double epsilon = 0.1, double learningRate = 0.1, double discount = 0.95)
     {
         Id = id;
+        _actionCount = topology.ActionCount;
         _rng = new Random(seed);
         _epsilon = epsilon;
         _learningRate = learningRate;
         _discount = discount;
     }
 
-    public GridAction SelectAction(GridObservation observation)
+    public int SelectAction(GridObservation<TCoord> observation)
     {
         _lastState = ObservationToState(observation);
 
         if (_rng.NextDouble() < _epsilon)
         {
-            _lastAction = AllActions[_rng.Next(AllActions.Length)];
+            _lastAction = _rng.Next(_actionCount);
         }
         else
         {
-            _lastAction = AllActions
+            _lastAction = Enumerable.Range(0, _actionCount)
                 .OrderByDescending(a => GetQValue(_lastState, a))
                 .First();
         }
@@ -51,37 +51,32 @@ public class QLearningAgent : IGridAgent
         return _lastAction;
     }
 
-    public void OnStepComplete(GridObservation newObservation, double reward)
+    public void OnStepComplete(GridObservation<TCoord> newObservation, double reward)
     {
         int newState = ObservationToState(newObservation);
-        double maxNextQ = AllActions.Max(a => GetQValue(newState, a));
+        double maxNextQ = Enumerable.Range(0, _actionCount).Max(a => GetQValue(newState, a));
         double currentQ = GetQValue(_lastState, _lastAction);
         double newQ = currentQ + _learningRate * (reward + _discount * maxNextQ - currentQ);
         _qTable[(_lastState, _lastAction)] = newQ;
     }
 
     public void OnDeath(string cause) => IsAlive = false;
+    public void OnObserve(AgentEvent<TCoord> agentEvent) { }
 
-    public void OnObserve(AgentEvent agentEvent) { }
-
-    public void Reset(int startX, int startY)
+    public void Reset(TCoord startPosition)
     {
-        X = startX;
-        Y = startY;
+        Position = startPosition;
         IsAlive = true;
     }
 
-    public double GetQValue(int state, GridAction action) =>
+    public double GetQValue(int state, int action) =>
         _qTable.TryGetValue((state, action), out var q) ? q : 0.0;
 
-    public int ObservationToState(GridObservation obs)
+    public int ObservationToState(GridObservation<TCoord> obs)
     {
         int hash = 17;
-        int w = obs.LocalView.GetLength(0);
-        int h = obs.LocalView.GetLength(1);
-        for (int x = 0; x < w; x++)
-            for (int y = 0; y < h; y++)
-                hash = hash * 31 + (int)obs.LocalView[x, y];
+        foreach (var kvp in obs.Cells.OrderBy(k => k.Key.GetHashCode()))
+            hash = hash * 31 + (int)kvp.Value;
         return hash;
     }
 }

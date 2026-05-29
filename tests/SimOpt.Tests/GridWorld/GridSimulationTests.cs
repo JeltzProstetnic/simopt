@@ -10,9 +10,9 @@ namespace SimOpt.Tests.GridWorld;
 
 public class GridSimulationTests
 {
-    private static Grid CreateSimpleGrid()
+    private static Grid2D CreateSimpleGrid()
     {
-        var grid = new Grid(5, 5);
+        var grid = new Grid2D(5, 5);
         grid[4, 4] = CellType.Hazard;
         return grid;
     }
@@ -20,9 +20,10 @@ public class GridSimulationTests
     [Fact]
     public void Tick_AdvancesStepCounter()
     {
-        var sim = new GridSimulation(CreateSimpleGrid(), new GridSimulationConfig());
-        var agent = CreateMockAgent("a1", GridAction.Stay);
-        sim.AddAgent(agent.Object, 2, 2);
+        var grid = CreateSimpleGrid();
+        var sim = new GridSimulation<Coord2D>(grid, new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.Stay);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
 
         sim.Step.Should().Be(0);
         sim.Tick();
@@ -32,39 +33,38 @@ public class GridSimulationTests
     [Fact]
     public void Tick_AgentMovesNorth_PositionUpdates()
     {
-        var sim = new GridSimulation(CreateSimpleGrid(), new GridSimulationConfig());
-        var agent = CreateMockAgent("a1", GridAction.North);
-        sim.AddAgent(agent.Object, 2, 2);
+        var grid = CreateSimpleGrid();
+        var sim = new GridSimulation<Coord2D>(grid, new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.North);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
 
         sim.Tick();
 
-        agent.Object.Y.Should().Be(1);
-        agent.Object.X.Should().Be(2);
+        agent.Object.Position.Should().Be(new Coord2D(2, 1));
     }
 
     [Fact]
     public void Tick_AgentMovesIntoWall_PositionUnchanged()
     {
-        var grid = new Grid(5, 5);
+        var grid = new Grid2D(5, 5);
         grid[2, 1] = CellType.Wall;
-        var sim = new GridSimulation(grid, new GridSimulationConfig());
-        var agent = CreateMockAgent("a1", GridAction.North);
-        sim.AddAgent(agent.Object, 2, 2);
+        var sim = new GridSimulation<Coord2D>(grid, new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.North);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
 
         sim.Tick();
 
-        agent.Object.X.Should().Be(2);
-        agent.Object.Y.Should().Be(2);
+        agent.Object.Position.Should().Be(new Coord2D(2, 2));
     }
 
     [Fact]
     public void Tick_AgentMovesOntoHazard_Dies()
     {
-        var grid = new Grid(5, 5);
+        var grid = new Grid2D(5, 5);
         grid[2, 1] = CellType.Hazard;
-        var sim = new GridSimulation(grid, new GridSimulationConfig());
-        var agent = CreateMockAgent("a1", GridAction.North);
-        sim.AddAgent(agent.Object, 2, 2);
+        var sim = new GridSimulation<Coord2D>(grid, new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.North);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
 
         var result = sim.Tick();
 
@@ -76,24 +76,24 @@ public class GridSimulationTests
     [Fact]
     public void Tick_DeadAgent_SkippedInActionSelection()
     {
-        var grid = new Grid(5, 5);
+        var grid = new Grid2D(5, 5);
         grid[2, 1] = CellType.Hazard;
-        var sim = new GridSimulation(grid, new GridSimulationConfig());
-        var agent = CreateMockAgent("a1", GridAction.North);
-        sim.AddAgent(agent.Object, 2, 2);
+        var sim = new GridSimulation<Coord2D>(grid, new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.North);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
 
         sim.Tick();
         sim.Tick();
 
-        agent.Verify(a => a.SelectAction(It.IsAny<GridObservation>()), Times.Once);
+        agent.Verify(a => a.SelectAction(It.IsAny<GridObservation<Coord2D>>()), Times.Once);
     }
 
     [Fact]
     public void Run_StopsAtMaxSteps()
     {
-        var sim = new GridSimulation(CreateSimpleGrid(), new GridSimulationConfig());
-        var agent = CreateMockAgent("a1", GridAction.Stay);
-        sim.AddAgent(agent.Object, 2, 2);
+        var sim = new GridSimulation<Coord2D>(CreateSimpleGrid(), new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.Stay);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
 
         var result = sim.Run(maxSteps: 10);
 
@@ -103,11 +103,11 @@ public class GridSimulationTests
     [Fact]
     public void Run_StopsWhenAllAgentsDead()
     {
-        var grid = new Grid(5, 5);
+        var grid = new Grid2D(5, 5);
         grid[2, 1] = CellType.Hazard;
-        var sim = new GridSimulation(grid, new GridSimulationConfig());
-        var agent = CreateMockAgent("a1", GridAction.North);
-        sim.AddAgent(agent.Object, 2, 2);
+        var sim = new GridSimulation<Coord2D>(grid, new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.North);
+        sim.AddAgent(agent.Object, new Coord2D(2, 2));
 
         var result = sim.Run(maxSteps: 100);
 
@@ -117,26 +117,25 @@ public class GridSimulationTests
     [Fact]
     public void AddAgent_OutOfBounds_Throws()
     {
-        var sim = new GridSimulation(new Grid(5, 5), new GridSimulationConfig());
-        var agent = CreateMockAgent("a1", GridAction.Stay);
+        var sim = new GridSimulation<Coord2D>(new Grid2D(5, 5), new GridSimulationConfig());
+        var agent = CreateMockAgent("a1", Actions.Rect.Stay);
 
-        var act = () => sim.AddAgent(agent.Object, 5, 0);
+        var act = () => sim.AddAgent(agent.Object, new Coord2D(5, 0));
         act.Should().Throw<System.ArgumentOutOfRangeException>();
     }
 
-    private static Mock<IGridAgent> CreateMockAgent(string id, GridAction action)
+    private static Mock<IGridAgent<Coord2D>> CreateMockAgent(string id, int action)
     {
-        var mock = new Mock<IGridAgent>();
-        int x = 0, y = 0;
+        var mock = new Mock<IGridAgent<Coord2D>>();
+        var pos = new Coord2D(0, 0);
         bool alive = true;
 
         mock.SetupGet(a => a.Id).Returns(id);
-        mock.SetupGet(a => a.X).Returns(() => x);
-        mock.SetupGet(a => a.Y).Returns(() => y);
+        mock.SetupGet(a => a.Position).Returns(() => pos);
         mock.SetupGet(a => a.IsAlive).Returns(() => alive);
-        mock.Setup(a => a.SelectAction(It.IsAny<GridObservation>())).Returns(action);
-        mock.Setup(a => a.Reset(It.IsAny<int>(), It.IsAny<int>()))
-            .Callback<int, int>((sx, sy) => { x = sx; y = sy; alive = true; });
+        mock.Setup(a => a.SelectAction(It.IsAny<GridObservation<Coord2D>>())).Returns(action);
+        mock.Setup(a => a.Reset(It.IsAny<Coord2D>()))
+            .Callback<Coord2D>(p => { pos = p; alive = true; });
         mock.Setup(a => a.OnDeath(It.IsAny<string>()))
             .Callback<string>(_ => alive = false);
 
