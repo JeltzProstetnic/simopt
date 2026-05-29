@@ -1,4 +1,4 @@
 task: true
-file: docs/next-session-handoff.md
-backlog: SIM-36
-description: SIM-36 — Particle Swarm Optimization full implementation. Current state: `SimOpt.Optimization/Strategies/ParticleSwarm` contains `ParticleSwarmOptimization`, `SwarmingAlgorithm`, `IParticleSwarmConfiguration` as scaffolds. Finish the algorithm (particle state, inertia + cognitive/social weights, velocity update, boundary handling), benchmark against Sphere and Rosenbrock test problems to validate convergence, then wire into `IvotionOptimizationEngine`: (1) add `IvotionStrategyKind.ParticleSwarm` path in the `Run` switch, (2) flip `IvotionStrategyInfo.IsEnabled(ParticleSwarm) => true`, (3) drop the `NotSupportedException` guard, (4) remove the corresponding engine test `RunAsync_ParticleSwarm_Throws`. Consider adding a follow-up VM test verifying PSO is now selectable. Full context: docs/pending-ivotion-optimization.md (reference), backlog SIM-36. Also file a 15-min follow-up test for `VizTopology.IvotionPacking(IvotionSolution)` — parametric viz shipped untested.
+file: docs/plans/2026-05-29-fmt-gridworld.md
+backlog: SIM-48
+description: Phase 2 — SimOpt.FMT implementation (Echo State Network, IWM/ISM/EWM/ESM, permeability gates, FMT agent, comparison agents). Plan Tasks 11-15. Note: plan code examples use pre-generalization API and need adapting to IGridAgent<TCoord>/Grid<TCoord>/GridObservation<TCoord>.

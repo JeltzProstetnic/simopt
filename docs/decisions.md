@@ -146,6 +146,56 @@ numbers arrive — in whatever form — the agent takes them, updates the
 `IvotionTopologyBuilder` baseline constants (or constructs the solution
 vector directly), and reruns. The UI shows the result. No import screen.
 
+---
+
+## FMT Architectural Validation Gridworld
+
+**Decided:** 2026-05-29
+
+### Sub-project placement
+FMT gridworld lives inside SimOpt (not a separate repo). Bidirectional value:
+SimOpt gains agent-based gridworld as a new simulation paradigm; FMT gets
+SimOpt's math/stats/stochastic infrastructure for free.
+
+### Two-project split
+`SimOpt.GridWorld` (generic agent-based engine) + `SimOpt.FMT` (FMT-specific
+architectures). GridWorld is reusable beyond FMT; FMT depends on GridWorld.
+
+### .NET/C# over Python
+Spec recommended Python + gymnasium. User chose .NET to keep everything in
+the SimOpt ecosystem. Reservoir computing, Q-learning, and grid simulation
+are straightforward to implement in C#.
+
+### Topology-agnostic architecture
+`ITopology<TCoord>` with `Coord2D`/`Coord3D`/`HexCoord` coordinate types.
+Agents generic over `TCoord`. Concrete convenience: `Grid2D`, `Grid3D`,
+`HexGrid`. Richer connectivity (hex, 3D) strengthens the causal-structure
+vs flat-association distinction for FMT experiments.
+
+### MoveTo/Reset separation
+`MoveTo(TCoord)` for tick-by-tick movement, `Reset(TCoord)` for episode
+lifecycle initialization. Motivated by round-1 review finding that using
+Reset for movement would corrupt any agent that clears learned state on reset.
+
+### CellInfo metadata for causal mechanisms
+`CellInfo(Type, HazardFamily, CausalMechanism)` stored sparsely alongside
+`CellType`. Enables FMT Prediction 1 (causal transfer): lava (thermal) vs
+deep water (submersion) share death outcome but differ in mechanism.
+
+### Terminal reward before death
+`OnStepComplete(HazardReward)` is called before `OnDeath()` in the same tick,
+so RL agents receive the terminal transition signal. Round-2 review finding.
+
+### Environment meta-optimization (SIM-53)
+Use SimOpt's own optimization framework (IProblem/IStrategy) to find the
+environment configuration that maximizes effect size between FMT and comparison
+agents, constrained by simpler-agent viability. The optimizer optimizes the
+environment, not the agent.
+
+---
+
+## Agent-Driven Sim-Opt Positioning (continued)
+
 ### What this does NOT change
 
 - Core engine invariants (discrete-event only, Server→Buffer patterns, etc.)

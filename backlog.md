@@ -86,6 +86,7 @@ Results integrate directly into paper before publication.
 - [ ] **SIM-51** FMT gridworld — Phase 3: Prediction 3 — EWM coverage ablation vs. ESM self-prediction accuracy (size: M) — P2
 - [ ] **SIM-52** FMT gridworld — Phase 3: Results reporting + paper-ready figures + statistical analysis (size: M) — P2
 - [ ] **SIM-53** FMT gridworld — Meta-optimization: EnvironmentProblem (IProblem) that optimizes hazard placement/types/density to maximize Cohen's d between FMT and comparison agents, constrained by simpler-agent viability threshold (size: L) — P2
+- [ ] **SIM-54** FMT gridworld — GridWorld Avalonia visualization: tile renderer (rect/hex), agent dots with architecture-colored markers, death flash animations, observation cones, learning-event indicators, per-agent stats overlay, speed controls. Extends existing SimOpt.Visualization (size: XL) — P2
 
 ## Platform follow-ups (captured 2026-04-24)
 
