@@ -7,6 +7,7 @@ namespace SimOpt.GridWorld.Environment;
 public class Grid<TCoord> where TCoord : struct, IEquatable<TCoord>
 {
     private readonly Dictionary<TCoord, CellType> _cells;
+    private readonly Dictionary<TCoord, CellInfo> _cellInfo;
 
     public ITopology<TCoord> Topology { get; }
     public IReadOnlyCollection<TCoord> AllCoords { get; }
@@ -16,6 +17,7 @@ public class Grid<TCoord> where TCoord : struct, IEquatable<TCoord>
         Topology = topology ?? throw new ArgumentNullException(nameof(topology));
         var coordList = coords.ToList();
         _cells = new Dictionary<TCoord, CellType>(coordList.Count);
+        _cellInfo = new Dictionary<TCoord, CellInfo>(coordList.Count);
         foreach (var c in coordList)
             _cells[c] = CellType.Empty;
         AllCoords = coordList.AsReadOnly();
@@ -36,6 +38,15 @@ public class Grid<TCoord> where TCoord : struct, IEquatable<TCoord>
 
     public CellType GetOrDefault(TCoord coord, CellType defaultValue = CellType.Wall) =>
         _cells.TryGetValue(coord, out var ct) ? ct : defaultValue;
+
+    public void SetCell(TCoord coord, CellInfo info)
+    {
+        this[coord] = info.Type;
+        _cellInfo[coord] = info;
+    }
+
+    public CellInfo GetCellInfo(TCoord coord) =>
+        _cellInfo.TryGetValue(coord, out var info) ? info : new CellInfo(GetOrDefault(coord));
 }
 
 public class Grid2D : Grid<Coord2D>
@@ -47,8 +58,6 @@ public class Grid2D : Grid<Coord2D>
         : base(new Topologies.RectangularTopology(width, height),
                GenerateCoords(width, height))
     {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
         Width = width;
         Height = height;
     }
@@ -79,9 +88,6 @@ public class Grid3D : Grid<Coord3D>
         : base(new Topologies.CubicTopology(width, height, depth),
                GenerateCoords(width, height, depth))
     {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        if (depth <= 0) throw new ArgumentOutOfRangeException(nameof(depth));
         Width = width;
         Height = height;
         Depth = depth;
@@ -111,7 +117,6 @@ public class HexGrid : Grid<HexCoord>
     public HexGrid(int radius)
         : base(new Topologies.HexTopology(radius), GenerateCoords(radius))
     {
-        if (radius <= 0) throw new ArgumentOutOfRangeException(nameof(radius));
         Radius = radius;
     }
 

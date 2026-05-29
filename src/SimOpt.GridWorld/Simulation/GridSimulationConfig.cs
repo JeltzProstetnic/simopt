@@ -2,9 +2,9 @@ namespace SimOpt.GridWorld.Simulation;
 
 public class GridSimulationConfig
 {
-    public int ViewRadius { get; set; } = 2;
-    public bool StopWhenAllDead { get; set; } = true;
-    public double HazardReward { get; set; } = -10.0;
-    public double ResourceReward { get; set; } = 1.0;
-    public double StepReward { get; set; } = -0.01;
+    public int ViewRadius { get; init; } = 2;
+    public bool StopWhenAllDead { get; init; } = true;
+    public double HazardReward { get; init; } = -10.0;
+    public double ResourceReward { get; init; } = 1.0;
+    public double StepReward { get; init; } = -0.01;
 }

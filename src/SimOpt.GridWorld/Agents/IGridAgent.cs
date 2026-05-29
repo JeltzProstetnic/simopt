@@ -9,6 +9,7 @@ public interface IGridAgent<TCoord> where TCoord : struct, IEquatable<TCoord>
     bool IsAlive { get; }
 
     int SelectAction(GridObservation<TCoord> observation);
+    void MoveTo(TCoord position);
     void OnDeath(string cause);
     void OnObserve(AgentEvent<TCoord> agentEvent);
     void OnStepComplete(GridObservation<TCoord> newObservation, double reward);

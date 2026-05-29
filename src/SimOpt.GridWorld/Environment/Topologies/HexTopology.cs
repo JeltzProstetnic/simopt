@@ -18,12 +18,23 @@ public class HexTopology : ITopology<HexCoord>
 
     public HexTopology(int radius)
     {
+        if (radius < 0) throw new ArgumentOutOfRangeException(nameof(radius));
         Radius = radius;
     }
 
-    public string ActionName(int actionId) => Names[actionId];
+    public string ActionName(int actionId)
+    {
+        if ((uint)actionId >= (uint)Names.Length)
+            throw new ArgumentOutOfRangeException(nameof(actionId), $"Must be 0..{ActionCount - 1}");
+        return Names[actionId];
+    }
 
-    public HexCoord Step(HexCoord from, int actionId) => from + Deltas[actionId];
+    public HexCoord Step(HexCoord from, int actionId)
+    {
+        if ((uint)actionId >= (uint)Deltas.Length)
+            throw new ArgumentOutOfRangeException(nameof(actionId), $"Must be 0..{ActionCount - 1}");
+        return from + Deltas[actionId];
+    }
 
     public IEnumerable<HexCoord> Neighbors(HexCoord coord)
     {

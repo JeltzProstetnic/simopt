@@ -24,7 +24,7 @@ public class GridSimulation<TCoord> where TCoord : struct, IEquatable<TCoord>
     public void AddAgent(IGridAgent<TCoord> agent, TCoord position)
     {
         if (!Grid.InBounds(position))
-            throw new ArgumentOutOfRangeException($"Position {position} is out of bounds");
+            throw new ArgumentOutOfRangeException(nameof(position), $"Position {position} is out of bounds");
         agent.Reset(position);
         _agents.Add(agent);
     }
@@ -51,7 +51,7 @@ public class GridSimulation<TCoord> where TCoord : struct, IEquatable<TCoord>
             if (!Grid.InBounds(target) || Grid[target] == CellType.Wall)
                 continue;
 
-            agent.Reset(target);
+            agent.MoveTo(target);
         }
 
         foreach (var agent in liveAgents)
@@ -59,24 +59,28 @@ public class GridSimulation<TCoord> where TCoord : struct, IEquatable<TCoord>
             if (!agent.IsAlive) continue;
 
             var cell = Grid[agent.Position];
+            var cellInfo = Grid.GetCellInfo(agent.Position);
             double reward = _config.StepReward;
 
             if (cell == CellType.Hazard)
             {
-                agent.OnDeath("hazard");
-                var deathEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.Death, agent.Position, "hazard");
+                var cause = cellInfo.CausalMechanism ?? "hazard";
+                agent.OnDeath(cause);
+                var deathEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.Death,
+                    agent.Position, cause, cellInfo);
                 deaths.Add(deathEvent);
                 events.Add(deathEvent);
-                reward = _config.HazardReward;
             }
             else if (cell == CellType.Resource)
             {
-                var collectEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.ResourceCollected, agent.Position);
+                var collectEvent = new AgentEvent<TCoord>(agent.Id, AgentEventType.ResourceCollected,
+                    agent.Position, CellInfo: cellInfo);
                 events.Add(collectEvent);
                 reward = _config.ResourceReward;
             }
 
-            agent.OnStepComplete(BuildObservation(agent), reward);
+            if (agent.IsAlive)
+                agent.OnStepComplete(BuildObservation(agent), reward);
         }
 
         foreach (var evt in events)

@@ -60,6 +60,7 @@ public class QLearningAgent<TCoord> : IGridAgent<TCoord>
         _qTable[(_lastState, _lastAction)] = newQ;
     }
 
+    public void MoveTo(TCoord position) => Position = position;
     public void OnDeath(string cause) => IsAlive = false;
     public void OnObserve(AgentEvent<TCoord> agentEvent) { }
 
@@ -75,7 +76,7 @@ public class QLearningAgent<TCoord> : IGridAgent<TCoord>
     public int ObservationToState(GridObservation<TCoord> obs)
     {
         int hash = 17;
-        foreach (var kvp in obs.Cells.OrderBy(k => k.Key.GetHashCode()))
+        foreach (var kvp in obs.Cells.OrderBy(k => k.Key))
             hash = hash * 31 + (int)kvp.Value;
         return hash;
     }

@@ -23,6 +23,7 @@ public class RandomAgent<TCoord> : IGridAgent<TCoord>
     public int SelectAction(GridObservation<TCoord> observation) =>
         _rng.Next(_actionCount);
 
+    public void MoveTo(TCoord position) => Position = position;
     public void OnDeath(string cause) => IsAlive = false;
     public void OnObserve(AgentEvent<TCoord> agentEvent) { }
     public void OnStepComplete(GridObservation<TCoord> newObservation, double reward) { }

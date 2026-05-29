@@ -20,14 +20,27 @@ public class CubicTopology : ITopology<Coord3D>
 
     public CubicTopology(int width, int height, int depth)
     {
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (depth <= 0) throw new ArgumentOutOfRangeException(nameof(depth));
         Width = width;
         Height = height;
         Depth = depth;
     }
 
-    public string ActionName(int actionId) => Names[actionId];
+    public string ActionName(int actionId)
+    {
+        if ((uint)actionId >= (uint)Names.Length)
+            throw new ArgumentOutOfRangeException(nameof(actionId), $"Must be 0..{ActionCount - 1}");
+        return Names[actionId];
+    }
 
-    public Coord3D Step(Coord3D from, int actionId) => from + Deltas[actionId];
+    public Coord3D Step(Coord3D from, int actionId)
+    {
+        if ((uint)actionId >= (uint)Deltas.Length)
+            throw new ArgumentOutOfRangeException(nameof(actionId), $"Must be 0..{ActionCount - 1}");
+        return from + Deltas[actionId];
+    }
 
     public IEnumerable<Coord3D> Neighbors(Coord3D coord)
     {

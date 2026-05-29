@@ -17,13 +17,25 @@ public class RectangularTopology : ITopology<Coord2D>
 
     public RectangularTopology(int width, int height)
     {
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
         Width = width;
         Height = height;
     }
 
-    public string ActionName(int actionId) => Names[actionId];
+    public string ActionName(int actionId)
+    {
+        if ((uint)actionId >= (uint)Names.Length)
+            throw new ArgumentOutOfRangeException(nameof(actionId), $"Must be 0..{ActionCount - 1}");
+        return Names[actionId];
+    }
 
-    public Coord2D Step(Coord2D from, int actionId) => from + Deltas[actionId];
+    public Coord2D Step(Coord2D from, int actionId)
+    {
+        if ((uint)actionId >= (uint)Deltas.Length)
+            throw new ArgumentOutOfRangeException(nameof(actionId), $"Must be 0..{ActionCount - 1}");
+        return from + Deltas[actionId];
+    }
 
     public IEnumerable<Coord2D> Neighbors(Coord2D coord)
     {
