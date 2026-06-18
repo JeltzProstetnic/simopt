@@ -92,3 +92,4 @@ Results integrate directly into paper before publication.
 
 - [ ] **SIM-45** More complex factory floor topology — richer than FactoryFloor preset (walls, corridors, multi-bay layout, more realistic process chain; feeds into SIM-33 realistic renderer v2) (size: L) — **P2 proposed**
 - [ ] **SIM-46** Live before/after viz compare — side-by-side canvases running baseline vs. optimized topology with synchronized clock; lets demo audience see throughput delta in real time (size: L) — **P2 proposed**
+- [ ] **SIM-55** Glass production-line demo polish & follow-ups: extract `SimOpt.Glass` to its own project; richer glass floor layout; live before/after compare; resolve pre-existing Ivotion VM default test mismatch (`IvotionOptimizationViewModelTests.Defaults_MatchLockedInDecisions`). See `docs/pending-glass-demo.md` (size: M) — **P2 proposed**

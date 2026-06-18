@@ -204,3 +204,18 @@ environment, not the agent.
 - Test-driven discipline stays mandatory — even when the agent is
   assembling a throwaway scratchpad, it writes tests. Faster than
   debugging, and the tests double as "this is what I built" evidence.
+
+## 2026-06-18 — Glass production-line digital-twin demo
+
+- **Public-repo content boundary:** simopt is a public GitHub repo, so customer/pilot
+  specifics never go into committed source — new demo code uses generic "Glass" naming.
+  Tracked+public files (decisions, backlog, pending, next-session-task) stay generic;
+  gitignored files (session-context, session-log, session-history) may hold specifics.
+- **Reuse over clone:** the glass optimization reuses the generic EA/Random optimizer;
+  only the domain (solution/problem/topology/KPIs) is new. Domain classes were placed in
+  the existing SimOpt.Ivotion assembly (namespace SimOpt.Glass) to avoid the broken .slnx
+  project-add path — flagged as tech debt (SIM-55).
+- **Twin authoring workflow validated end-to-end:** a plain-language line description maps
+  to a `VizTopology` factory method that the visualization auto-renders, and the optimizer
+  applies its best solution back to the live twin — the "semantics + data → ad-hoc,
+  optimizable digital twin" loop.
