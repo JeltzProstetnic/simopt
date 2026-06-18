@@ -16,15 +16,11 @@ namespace SimOpt.Visualization.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     public IvotionOptimizationViewModel Optimization { get; }
-    public GlassOptimizationViewModel GlassOptimization { get; }
 
     public MainWindowViewModel()
     {
         Optimization = new IvotionOptimizationViewModel();
         Optimization.ApplyToVizRequested += OnApplyToVizRequested;
-
-        GlassOptimization = new GlassOptimizationViewModel();
-        GlassOptimization.ApplyToVizRequested += OnGlassApplyToVizRequested;
     }
 
     private bool _resumePendingFromApply;
@@ -45,22 +41,6 @@ public partial class MainWindowViewModel : ViewModelBase
             $"batch {best.RolandBatchSize}  |  press Space to run";
     }
 
-    private void OnGlassApplyToVizRequested(object? sender, SimOpt.Glass.GlassSolution best)
-    {
-        SelectedTopology = 5; // Glass entry in dropdown (display only — we override below)
-        if (Canvas == null) return;
-
-        Stop();
-        var parametricTopology = VizTopology.GlassLine(best);
-        Canvas.LoadTopologyPaused(parametricTopology, duration: 200.0, speedMs: Speed);
-        _resumePendingFromApply = true;
-        IsRunning = false;
-        StatusText =
-            $"Loaded optimized glass line: {best.NumberOfMixers}× mix, " +
-            $"{best.NumberOfProcessingLines}× proc, buffer {best.IntermediateBufferCapacity}, " +
-            $"ops Q{best.OperatorsQuality}/P{best.OperatorsPacking}  |  press Space to run";
-    }
-
     [ObservableProperty]
     private string _statusText = "Ready  |  Space=play/pause  -/+=speed  F=fullscreen  D=detach";
 
@@ -71,7 +51,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private int _speed = 30;
 
     [ObservableProperty]
-    private int _selectedTopology = 5;
+    private int _selectedTopology = 0;
 
     [ObservableProperty]
     private bool _controlBarVisible = true;
@@ -99,8 +79,7 @@ public partial class MainWindowViewModel : ViewModelBase
         "Parallel Servers",
         "Production Line",
         "Factory Floor (Physical Layout)",
-        "Ivoclar Ivotion Packing Line",
-        "Glass Production Line (Base Mass)"
+        "Ivoclar Ivotion Packing Line"
     };
 
     private VizTopology GetSelectedTopology() => SelectedTopology switch
@@ -109,7 +88,6 @@ public partial class MainWindowViewModel : ViewModelBase
         2 => VizTopology.ProductionLine(),
         3 => VizTopology.FactoryFloor(),
         4 => VizTopology.IvotionPacking(),
-        5 => VizTopology.GlassLine(),
         _ => VizTopology.Sqss()
     };
 

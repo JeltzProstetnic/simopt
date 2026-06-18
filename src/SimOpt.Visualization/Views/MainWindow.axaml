@@ -67,9 +67,5 @@
                 <controls:SimulationCanvas x:Name="SimCanvas"/>
             </DockPanel>
         </TabItem>
-
-        <TabItem Header="Optimization (Glass)">
-            <views:GlassOptimizationView DataContext="{Binding GlassOptimization}"/>
-        </TabItem>
     </TabControl>
 </Window>
