@@ -5,6 +5,18 @@ NOT a rule sheet (that's CLAUDE.md). NOT session state (that's session-context.m
 
 ---
 
+## Glass digital-twin → dual-repo split (furkansim)
+
+**Decided:** 2026-06-18 — after the glass base-mass demo for Furkan Bolat (Value Stream Manager Glass, Ivoclar) was delivered and validated.
+
+- **Dual repo.** `simopt` stays the generic, reusable simulation-optimization framework and is **PUBLIC**. A new repo **`furkansim`** (private, `IvoclarR-D-AIOrg`) holds all Ivoclar/glass-ceramics-specific code, calibration, and customer data. Rationale: keep confidential Ivoclar production data and customer-specific topology out of the public framework; let the framework stay clean and reusable.
+- **Confidential data committed into the private repo by design.** Furkan's SAP export (`WBZ_DLZ_Analyse_2026.xlsx`) lives in `furkansim/data/`; calibration reference in `furkansim/docs/`. Never to be mirrored to public `simopt`.
+- **Framework dependency = sibling ProjectReference.** furkansim `.csproj` references `../simopt/src/SimOpt.*.csproj` directly (both repos checked out side-by-side). Chosen over git submodule / NuGet packages for solo-dev simplicity and instant rebuilds against framework changes.
+- **Calibration must precede in-data work because simopt is public:** the Glass code is extracted from simopt into furkansim *before* calibrating with real station names/timing/operators (calibrating in-place would leak to the public repo).
+- **Realism direction:** calibrate sim + optimizer from Furkan's real data (stations, value-stream routings, per-step dwell, ~2.6 orders/day arrivals, ~178 KG batches, DLZ median ≈11 working days), then add the 10 real operators as mobile resources walking/carrying between station clusters, then integrate a real floor plan (background image + geometry/distance source) when Furkan provides it. Full plan: `furkansim/docs/furkan-data-calibration.md`, `furkansim/backlog.md`.
+
+---
+
 ## Optimization Showcase (Ivoclar Ivotion follow-up demo)
 
 **Decided:** 2026-04-24 — after a successful spontaneous customer demo
