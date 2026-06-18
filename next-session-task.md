@@ -1,4 +1,4 @@
 task: true
-file: docs/plans/2026-05-29-fmt-gridworld.md
-backlog: SIM-48
-description: Phase 2 — SimOpt.FMT implementation (Echo State Network, IWM/ISM/EWM/ESM, permeability gates, FMT agent, comparison agents). Plan Tasks 11-15. Note: plan code examples use pre-generalization API and need adapting to IGridAgent<TCoord>/Grid<TCoord>/GridObservation<TCoord>.
+file: docs/pending-glass-demo.md
+backlog: SIM-55
+description: Glass production-line demo polish & follow-ups (see docs/pending-glass-demo.md): extract SimOpt.Glass to its own project; richer glass floor layout; live before/after compare; resolve the pre-existing Ivotion VM default test mismatch; integrate the staged viz-twin knowledge into the fleet knowledge base.
