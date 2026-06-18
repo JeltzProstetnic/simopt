@@ -5,6 +5,23 @@ NOT a rule sheet (that's CLAUDE.md). NOT session state (that's session-context.m
 
 ---
 
+## FSIM-03 — glass code extracted to furkansim (2026-06-18)
+- **simopt is now framework-only.** The Ivoclar glass base-mass digital twin + optimizer was
+  moved out of public simopt into the private `IvoclarR-D-AIOrg/furkansim` (commits: simopt
+  b1c2fc8, furkansim f573ee5). Rationale: simopt is PUBLIC; real Ivoclar station names/timing/
+  operators (coming in Phase B calibration) cannot live there.
+- **Extraction shape:** only the 11 `Glass*.cs` (namespace `SimOpt.Glass`) moved — they lived
+  inside `SimOpt.Ivotion` alongside the Ivotion denture-packing domain, which STAYS public.
+  furkansim reuses simopt's generic viz primitives (`SimulationCanvas`, `VizTopology`,
+  `AutoLayout`, `ViewModelBase`) via **sibling ProjectReference** into `../simopt/src/SimOpt.*`.
+- **Namespace kept as `SimOpt.Glass`** in furkansim deliberately — makes the move mechanical
+  (no churn on using-statements); renaming to a furkansim namespace is a separate later task.
+- **furkansim is an agent-fleet project now:** has `.claude/` (so `af` CWD-detects it) and is in
+  cfg `registry.md`/`dashboard-cache.md`. Cross-project edits (cfg, furkansim) were made from
+  this simopt session at the user's explicit request rather than via separate sessions.
+
+---
+
 ## Glass digital-twin → dual-repo split (furkansim)
 
 **Decided:** 2026-06-18 — after the glass base-mass demo for Furkan Bolat (Value Stream Manager Glass, Ivoclar) was delivered and validated.
