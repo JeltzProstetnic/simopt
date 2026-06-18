@@ -71,5 +71,9 @@
         <TabItem Header="Optimization (Ivotion)">
             <views:IvotionOptimizationView DataContext="{Binding Optimization}"/>
         </TabItem>
+
+        <TabItem Header="Optimization (Glass)">
+            <views:GlassOptimizationView DataContext="{Binding GlassOptimization}"/>
+        </TabItem>
     </TabControl>
 </Window>
