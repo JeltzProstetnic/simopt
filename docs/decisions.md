@@ -248,3 +248,25 @@ environment, not the agent.
   to a `VizTopology` factory method that the visualization auto-renders, and the optimizer
   applies its best solution back to the live twin — the "semantics + data → ad-hoc,
   optimizable digital twin" loop.
+
+## 2026-07-05 — Critical-subsystem code review (Opus 4.8, 3 parallel agents)
+
+- **Fable availability:** the injected agent roster still tags Fable 5 as geo-blocked — that's stale.
+  Per MG (2026-07-05) Fable is re-enabled for EU (temporary, revocable); already tracked in the
+  cross-project inbox for cfg-agent-fleet to fix the agent description + `fleet-capabilities.md`.
+  This review ran on **Opus 4.8** (the reliable fallback; Fable's content-gate has been observed
+  flapping). No re-run on Fable — the Opus findings stand.
+- **Scope = the 3 correctness-critical cores only** (DES engine, optimizer+coupling, math/stats),
+  not viz/learning/logging — the places where a silent bug poisons every result.
+- **Verdict:** kernels are healthy (deterministic scheduler, comprehensive deterministic reset,
+  consistent maximization, fixed linear-algebra + RandomStrategy). The correctness debt sits in
+  (a) the **stochastic layer** — the default MersenneTwister violates its `[0,1)` contract and
+  crashes on `int.MinValue`, cascading into +∞ draws from every log-based distribution;
+  Triangular/Gamma/Median are independently wrong — and (b) the **strategy↔solution operator seam**
+  — wall-clock RNG breaks reproducibility, EA aliases its best-so-far, PSO's reflection contract
+  fits only the unit-test solution. Full findings + fixes: `docs/2026-07-05-critical-code-review.md`;
+  tracked SIM-56..60.
+- **PSO status clarified:** `ParticleSwarmOptimization` is a real implementation (the `[Obsolete]`
+  `SwarmingAlgorithm` is the stub), but coupled via reflection to a settable `double[] Parameters`
+  that only `TestSolution` provides → zero search on real problems. SIM-36's "PSO is a stub" note
+  needs reconciling.

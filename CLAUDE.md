@@ -1,3 +1,4 @@
+<!-- agent-fleet-managed: DO NOT run /init — this file is configured by agent-fleet -->
 # SimOpt — Simulation-Optimization Framework
 
 .NET 9 framework coupling a discrete-event simulation engine with pluggable metaheuristic optimizers.
