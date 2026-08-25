@@ -44,6 +44,24 @@ the tool surface.
   fail (`IvotionOptimizationViewModelTests.Defaults_MatchLockedInDecisions`, SIM-55) / 1 skip.
 - **Commit per backlog item**, with the finding and its confirmation in the message.
 
+## Present this at the start of the next session — SIM-87
+
+**The beachhead may be wrong, and it is worth ten minutes of the owner's attention before more is
+built on it.** On 2026-08-25 the owner disclosed (D-05) that he holds a practice as a **gerichtlich
+beeideter Sachverständiger**, that SimOpt is an instrument of that practice, and that the product
+exists to *simulate the interaction of computer systems with the real world in order to prove
+cases*. That was not known when the beachhead was chosen.
+
+It changes the picture because the forensic market scores better on nearly every axis that matters
+to a solo owner with almost no time — he already has standing in it, already has the network, the
+willingness to pay is far higher, there is essentially no competition, he is customer zero, and
+what it demands is exactly what Slice 0 just built. Against it: much smaller, relationship-led
+selling, and simulation-as-evidence has an admissibility literature that must be done properly
+before any claim is made. The two may not be exclusive — forensic as the wedge, manufacturing as
+the volume, one engine.
+
+**Present it. Do not decide it.** Full reasoning and the comparison table: `docs/decisions.md` D-05.
+
 ## Owner decisions — SETTLED 2026-08-25
 
 Both previously-open questions are decided. See `docs/decisions.md` D-01..D-04.
@@ -58,9 +76,16 @@ Both previously-open questions are decided. See `docs/decisions.md` D-01..D-04.
 4. **Employer boundary (D-04):** positioning does not lead with dental; `SimOpt.Ivotion` code
    stays public per FSIM-03, which is explicitly *not* reversed.
 
-**Two owner actions remain, neither blocking the queue:** SIM-85 (confirm dissertation provenance
-carries no institutional claim) and SIM-79 (written Nebentätigkeit acknowledgment). Both must
-close before first revenue.
+5. **Legal basis (D-05): CLOSED.** Both previously-outstanding owner actions are resolved. The
+   dissertation code is entirely the owner's (SIM-85). The employer-boundary question dissolves
+   rather than being satisfied: he holds a separately constituted practice as a **gerichtlich
+   beeideter Sachverständiger**, software he creates falls within that Gutachtertätigkeit, and
+   commercialisation is an extension of an existing business at his discretion (SIM-79). The
+   business review's conflict-of-interest analysis (§D) assumed the ordinary employee-side-project
+   structure and is **superseded** — do not re-apply it.
+
+**No owner actions are outstanding.** The only thing waiting on the owner is the SIM-87 decision
+above, and that is a strategic choice, not a blocker.
 
 ## Do not do
 - Do not start UI work before Slice 1 is green. Every week of interface built on wrong numbers is

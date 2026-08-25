@@ -366,3 +366,67 @@ The product is: an FSL-licensed engine anyone can read and use, a proprietary ap
 runs a local model by default so nothing leaves the customer's building, sold into general
 discrete manufacturing through consultants, with correctness proven against closed-form results
 before any of it is offered for money.
+
+---
+
+## D-05 — SimOpt is an instrument of the Gutachtertätigkeit (2026-08-25)
+
+**Stated by MG on 2026-08-25, closing SIM-79 and SIM-85 and reframing the venture's basis:**
+
+> "Already have right to work as Gutachter. Any software I create would be part of my
+> Gutachtertätigkeit. I need to be able to simulate the interaction of computer systems with the
+> real world to prove cases, this is why I have that product. Selling it as a side earner is a
+> simple extension of that business at my discretion."
+
+### What this settles
+
+- **SIM-85 (dissertation provenance): CLOSED.** The code is MG's own; no institutional claim.
+- **SIM-79 (employer boundary): CLOSED, and on a stronger footing than the one proposed.** The
+  business review assumed the standard structure — employee starts a side software business, needs
+  a Nebentätigkeit acknowledgment. That is not the situation. MG holds an existing, separately
+  constituted professional practice as a **gerichtlich beeideter Sachverständiger**, and software
+  he creates falls within it. SimOpt is a tool of that practice, not a new venture beside the
+  employment. Commercialisation is an extension of an existing business, exercised at his
+  discretion.
+- The conflict-of-interest framing in `docs/commercial/2026-08-25-business-strategy.md` §D is
+  therefore **superseded**. Its advice was sound for the structure it assumed; the structure is
+  different.
+
+### What this reveals — the origin use case was never recorded
+
+The product exists to answer a forensic question: *how did this computer system behave when it met
+the real world, and can that be demonstrated?* That is a different discipline from capacity
+planning, and it carries requirements the User Needs did not capture, because nobody had written
+down why the tool was built. Added as UN-033..UN-036.
+
+The important consequence is that **the forensic bar is strictly higher than the commercial one,
+and we have already been building to it by accident.** Everything Slice 0 fixed — a random source
+that honours its contract, a triangular sampler that is not silently truncated, a reset path that
+does not diverge between runs, a seed derivation that survives a process restart — is precisely
+what an opposing expert would attack first. Reproducibility (UN-009) stops being good engineering
+practice and becomes an evidentiary property: a result that cannot be reproduced on another
+machine, months later, by someone else, is not evidence.
+
+### Open strategic question — deliberately NOT decided here
+
+The beachhead decision of 2026-08-25 (general discrete manufacturing, sold through independent
+consultants) was taken without this information on the table. It is worth revisiting, because on
+the criteria that matter to a solo owner with no marketing time, the forensic/Sachverständiger
+market scores better on almost every axis:
+
+| | Manufacturing consultants | Sachverständige / forensic |
+|---|---|---|
+| Owner's standing in the market | none yet | **already a practitioner** |
+| Distribution | must be built | existing professional network |
+| Willingness to pay | €790/yr is a considered purchase | expert-witness work bills at multiples of that |
+| Competition | AnyLogic/FlexSim/Simio are strongest here | **essentially unserved** |
+| What the product must be excellent at | breadth of features | **correctness and reproducibility — what we just built** |
+| Owner can be customer zero | no | **yes** |
+
+Against it: the market is far smaller, sales are relationship-led rather than product-led, and
+"simulation as evidence" has an admissibility literature that would need real work before any
+claim is made. It may be the better *wedge* while general manufacturing remains the better
+*volume* market — the two are not exclusive, and the engine is the same.
+
+**Do not act on this unilaterally.** It is an owner decision, recorded here so the next session
+presents it rather than rediscovering it. Tracked as SIM-87.

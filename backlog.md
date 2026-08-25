@@ -6,20 +6,22 @@ SimOpt is now being built as a **commercial product**, not a research framework.
 
 | Document | Purpose |
 |---|---|
-| `docs/needs/01_User-Needs.md` | Vision + 32 user needs (UN-001..032), roles, coverage matrix — **read before building** |
+| `docs/needs/01_User-Needs.md` | Vision + 36 user needs (UN-001..036), 6 roles, coverage matrix — **read before building** |
 | `docs/commercial/2026-08-25-architecture-readiness-review.md` | Technical gap analysis + slice plan (§E) + MCP tool design (§C) |
 | `docs/commercial/2026-08-25-business-strategy.md` | Market, pricing, financial model, GTM, kill gates |
 
-**Owner decisions 2026-08-25:** open-core licensing (instrument still open, UN-031) · beachhead is
-general discrete manufacturing sold through independent consultants · one engine with two heads
-(MCP + desktop app), usable with or without either · ambition is *prove it earns anything first*,
-so time-to-first-sale outranks completeness everywhere.
+**Owner decisions 2026-08-25 (D-01..D-05 in `docs/decisions.md`):** engine under **FSL-1.1-ALv2**,
+app proprietary · **local-first model access**, cloud optional · beachhead is general discrete
+manufacturing sold through independent consultants (**under review — see SIM-87**) · one engine with
+two heads (MCP + desktop app), usable with or without either · ambition is *prove it earns anything
+first* · **SimOpt is an instrument of MG's Gutachtertätigkeit** as a gerichtlich beeideter
+Sachverständiger, and commercialisation is an extension of that existing practice.
 
-**Slice 0 is the existing SIM-56..58 critical-review debt.** It is not optional and it is not
-deferrable: the product's entire claim is "trust these numbers", and today the default RNG violates
-its contract, every triangular draw is mathematically wrong, and the reset path silently diverges
-across evaluations. Both the architecture and the business review independently placed this at the
-top of the commercial critical path, ahead of all UI work.
+**Slice 0 — CLOSED 2026-08-25.** SIM-56, 57, 58 and 62 are done, test-first, zero regressions; the
+suite went 694 → 809. The engine no longer produces knowingly wrong numbers, the reset path no
+longer diverges between evaluations, and seeds survive a process restart. Both reviews independently
+placed this at the top of the commercial critical path ahead of all UI work, and D-05 raised the bar
+further: the same properties are what an opposing expert attacks first in a forensic context.
 
 ### Slice 0 — Trustworthy engine (blocks everything)
 - [x] **SIM-56** RNG contract fixes — see P1 section below (size: M) — **P0** — done 2026-08-25
@@ -54,7 +56,7 @@ top of the commercial critical path, ahead of all UI work.
 
 ### Slice 5 — Commercial plumbing
 - [x] **SIM-73** **Licensing decision + LICENSE file** (UN-031) — **DECIDED + SHIPPED 2026-08-25.** `LICENSE.md` in place: engine under **FSL-1.1-ALv2** (canonical text, free for any purpose except a Competing Use, auto-converts to Apache-2.0 two years after each release); application proprietary in a separate private repo. See `docs/decisions.md` D-01, including the correction that FSL permits commercial and consultant use of the engine for free — the paid value must live in the application layer.
-- [ ] **SIM-85** Confirm dissertation-era code provenance carries no institutional claim (split out of SIM-73). Austrian universities normally leave dissertation copyright with the author; verify rather than assume. **Owner action — cannot be done by an agent.** Blocks nothing until first sale, but must close before revenue. (size: S) — **P1**
+- [x] **SIM-85** Dissertation-era code provenance — **CLOSED 2026-08-25.** Owner confirms the code is entirely his own; no institutional claim. (size: S)
 - [ ] **SIM-74** Signed installer + update channel: OV/EV code-signing certificate (unsigned installers kill conversion via SmartScreen), Windows first, macOS notarization later. Serves UN-026. (size: M) — **P2**
 - [ ] **SIM-75** Licence keys + merchant-of-record checkout (Paddle or Lemon Squeezy — MoR owns all EU/global VAT). Serves UN-029. (size: M) — **P2**
 - [ ] **SIM-76** Privacy statement for LLM egress + free-tier limits + first-run wizard (key entry or Ollama auto-detection). Serves UN-021, UN-022, UN-026, UN-028. (size: M) — **P2**
@@ -62,8 +64,7 @@ top of the commercial critical path, ahead of all UI work.
 ### Slice 6 — Go-to-market (runs in parallel, not after)
 - [ ] **SIM-77** Landing page + waitlist + canonical 3-minute demo video. Cannot start before a recordable demo exists (end of Slice 2 at the earliest). (size: M) — **P2**
 - [ ] **SIM-78** Content pipeline: LinkedIn cadence (2–3/week, agent-drafted, owner-approved, each a short screen capture of a sim answering a real question), YouTube demo series, agent-generated SEO comparison pages. Owner time budget ~2h/week total. (size: M, ongoing) — **P2**
-- [ ] **SIM-79** Employer-boundary hygiene before first sale: obtain a written Nebentätigkeit acknowledgment worded generically ("simulation software", no dental specifics), and do not lead the **public positioning** with dental. Structural, not moral — do it before revenue exists, not after. **Owner action.** (size: S) — **P1**
-  - ⚠ **Scope correction 2026-08-25.** An earlier wording said "keep Ivotion material internal", which conflated positioning with code location and would have silently reversed **FSIM-03**. FSIM-03 (2026-06-18) moved the *glass* code to private `furkansim` because it carried real Ivoclar station names, timings and operators, and deliberately kept **`SimOpt.Ivotion` public** because it carries none. Both hold: the code stays public; the marketing does not lead with dental. The trigger that would move Ivotion out is the same one that moved glass — real Ivoclar production data entering it. See `docs/decisions.md` D-04.
+- [x] **SIM-79** Employer boundary — **CLOSED 2026-08-25 by owner statement, on a stronger footing than proposed.** MG holds an existing practice as a **gerichtlich beeideter Sachverständiger**; software he creates falls within that Gutachtertätigkeit. SimOpt is an instrument of an existing business, not a new venture beside the employment, and commercialisation is an extension of it at his discretion. The conflict-of-interest analysis in the business review §D assumed the ordinary employee-side-project structure and is **superseded**. See `docs/decisions.md` D-05. FSIM-03's ruling that `SimOpt.Ivotion` stays public is unaffected and stands.
 - [x] **SIM-80** Resolve model-access economics (UN-032) — **DECIDED 2026-08-25: local-first, cloud optional.** A locally hosted model is the default path; commercial providers stay supported but opt-in. Removes the product's sharpest contradiction (the primary persona has no API key), makes confidentiality a headline feature in the EU-manufacturing beachhead, and drops marginal inference cost to zero on both sides. See `docs/decisions.md` D-02. Spawns SIM-82/83/84.
 
 ### Slice 4a — Local-first model access (from D-02)
@@ -78,6 +79,11 @@ top of the commercial critical path, ahead of all UI work.
 > semantic validation (UN-008) catching what the model cannot. If SIM-84 cannot reach the gate,
 > the fallback is cloud-default with local as the confidentiality option, not abandoning the
 > product.
+
+### Slice 7 — Evidentiary defensibility (from D-05, the forensic origin use case)
+- [ ] **SIM-86** Result provenance + assumption record: every reported figure carries model version, seed, replication count, warm-up handling, tool version and all parameter values, exportable in a form that goes into an expert report; declared simplifications and inferred-vs-supplied parameters reported alongside results. Serves UN-033, UN-034, UN-035. **Cheap — it rides on SIM-63's replication runner rather than adding a subsystem** — and it strengthens the commercial product too: "here is exactly what this assumed" is what makes a consultant's deliverable defensible in a client workshop as well as in court. (size: M) — **P1**
+- [ ] **SIM-88** Tamper-evident result records: integrity check over a stored run's inputs and outputs, detectable without trusting the storer. Serves UN-036. **Later than MVP, but design the record format in SIM-86 with the hook in place** rather than retrofitting it. (size: S) — **P3**
+- [ ] **SIM-87** **Beachhead re-evaluation — owner decision.** The 2026-08-25 beachhead choice (general discrete manufacturing via consultants) was made before D-05 put the forensic/Sachverständiger market on the table. On the criteria that matter to a solo owner with no marketing time, forensic scores better on nearly every axis — existing standing, existing network, far higher willingness to pay, essentially no competition, owner is customer zero, and what it demands (correctness, reproducibility) is exactly what Slice 0 just built. Against it: much smaller market, relationship-led rather than product-led selling, and "simulation as evidence" has an admissibility literature that needs real work before any claim is made. Possibly not exclusive — forensic as the *wedge*, manufacturing as the *volume*, same engine. **Present this; do not decide it.** See `docs/decisions.md` D-05. (size: S, decision) — **P1**
 
 ### Kill gates (from the business review — measurable, dated from commercial build start)
 | When | Gate | If missed |

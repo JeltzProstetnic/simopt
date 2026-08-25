@@ -94,7 +94,21 @@ A developer, data scientist or AI engineer who drives SimOpt from their own agen
 and headless operation. Smallest population, earliest to adopt, and the cheapest to serve — reaches
 the product through channels the others don't.
 
-### R5 · Researcher / Educator
+### R5 · Court-Appointed Expert (Gerichtlich beeideter Sachverständiger) — *added 2026-08-25*
+An expert witness who must demonstrate, to a court or an opposing expert, how a computer system
+behaved when it interacted with the real world. **This is the role the product was originally built
+for** (see `docs/decisions.md` D-05), and it was absent from this document only because nobody had
+written down why the tool exists.
+
+Their bar is higher than every other role's, on a narrow axis: the result must survive adversarial
+scrutiny. Not "is it useful" but "can it be reproduced by someone hostile to the conclusion,
+months later, on different hardware, and can every assumption behind it be named". They do not need
+breadth of features. They need the parts that are true to be provably true.
+
+Serving this role costs almost nothing extra, because it demands the same properties the commercial
+product already needs — correctness, reproducibility, stated assumptions — only enforced harder.
+
+### R6 · Researcher / Educator
 Uses the free engine tier for teaching or publication. Generates no revenue directly and is served
 last, deliberately — but supplies the citation lineage and the credibility that the commercial
 claim rests on. The dissertation heritage makes this role structurally cheap to serve.
@@ -384,6 +398,47 @@ engagement on this.
 
 ---
 
+## Chapter 9b — Evidentiary Defensibility — *added 2026-08-25*
+
+*What a result must carry to be usable as evidence rather than merely as advice. Serves R5;
+everything here also strengthens the commercial product, which is why it is cheap to build.*
+
+### UN-033: Independently Reproducible Results — *added 2026-08-25*
+**As a** Court-Appointed Expert, **I want** any result to be reproducible by a third party from
+what I hand them, **so that** it can be relied on when someone is paid to discredit it.
+- A run is reproducible from its stored inputs alone — model, seed, version, parameters — by
+  someone who was not present when it was produced.
+- Reproduction on different hardware, a different operating system and a later date yields
+  identical figures, not merely similar ones.
+- **System boundary:** does not own whether the *model* corresponds to reality — that is the
+  expert's professional judgement and must never be implied by the tool.
+- Strengthens UN-009. Where UN-009 asks for determinism as engineering hygiene, this asks for it
+  as an evidentiary property, which is a materially stronger obligation.
+
+### UN-034: Complete Provenance of a Result — *added 2026-08-25*
+**As a** Court-Appointed Expert, **I want** every reported figure to carry the full chain that
+produced it, **so that** I can answer "where does that number come from" without reconstructing it.
+- Model version, seed, replication count, warm-up handling, tool version and every parameter value
+  travel with the result rather than beside it.
+- The chain is exportable in a form that goes into an expert report.
+- Extends UN-010.
+
+### UN-035: Declared Model Assumptions and Limits — *added 2026-08-25*
+**As a** Court-Appointed Expert, **I want** the tool to state plainly what it did not model,
+**so that** I do not have to defend a claim the tool never made.
+- Simplifications, distributional assumptions and anything inferred rather than supplied are
+  reported explicitly alongside results.
+- Where a question is outside what the model can answer, the tool says so rather than answering it.
+- Consumes UN-002 and UN-008 output.
+
+### UN-036: Tamper-Evident Result Records — *added 2026-08-25*
+**As a** Court-Appointed Expert, **I want** a stored result to be detectably unaltered,
+**so that** the record I produced and the record submitted are demonstrably the same.
+- A stored run carries an integrity check over its inputs and outputs.
+- Alteration after the fact is detectable without trusting the person who stored it.
+- **Later than MVP** — worth stating now so the record format is designed with the hook in place
+  rather than retrofitted.
+
 ## Chapter 10 — Questions That Were Carried as Needs
 
 *Recorded here rather than resolved, so they could not be silently decided by implementation.
@@ -447,8 +502,9 @@ non-expert accessibility, **so that** the architecture does not decide it by acc
 | 6 · Seeing It Run | UN-018..019 | R1, R3 | UN-018 yes (largely built) · UN-019 yes (Consultant tier) |
 | 7 · Provider Independence | UN-020..022 | R2, R3, R4 | UN-020,021 yes · UN-022 open (UN-032) |
 | 8 · Access Without the Application | UN-023..025 | R4, R3 | **All yes — owner requirement** |
-| 9 · Getting In and Paying | UN-026..030 | R2, R3, R5 | UN-026,028,029,030 yes · UN-027 partial |
-| 10 · Open Questions | UN-031..032 | owner | Decisions, not build items |
+| 9 · Getting In and Paying | UN-026..030 | R2, R3, R6 | UN-026,028,029,030 yes · UN-027 partial |
+| 9b · Evidentiary Defensibility | UN-033..036 | R5 | UN-033,034,035 yes (cheap — they ride on Slice 0/1) · UN-036 later |
+| 10 · Decided Questions | UN-031..032 | owner | Decided 2026-08-25 (D-01, D-02) |
 
 **Baseline against today's codebase** (per the 2026-08-25 architecture review):
 UN-018 largely built · UN-001/004 partially built (MCP schema too narrow to express the product's own
@@ -456,7 +512,10 @@ examples) · UN-006/009 **actively defective** (SIM-56..59 open) · UN-011/012 *
 the engine has no output-statistics subsystem · UN-015 not built generically · everything in
 Chapters 7 and 9 unbuilt.
 
-**32 needs total: 1 largely met, 2 partially met, 4 met-but-defective, 25 unbuilt.**
+**36 needs total: 1 largely met, 2 partially met, 25 unbuilt, and 8 formerly-defective needs now
+repaired** — UN-006, UN-007 (partially), UN-009 and UN-033's determinism basis were closed by
+Slice 0 on 2026-08-25 (SIM-56/57/58/62, 694 → 809 tests). The stochastic layer no longer produces
+knowingly wrong numbers and the reset path no longer diverges between evaluations.
 
 ---
 
