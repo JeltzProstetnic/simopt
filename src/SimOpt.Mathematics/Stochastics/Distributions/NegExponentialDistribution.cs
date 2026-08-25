@@ -208,7 +208,11 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		public double Next()
 		{
             DrawCount++;
-			return -(1 / lambda) * Math.Log(rnd.NextDouble()) + shift;
+			// SIM-56: NextDouble() legitimately returns 0.0 and log(0) is -infinity, which made
+			// this return +infinity — an event scheduled at the end of time. Sampling 1-U instead
+			// of U is the standard inverse-transform form: distributionally identical, but the
+			// singularity moves to U=1, which the half-open contract excludes.
+			return -(1 / lambda) * Math.Log(1.0 - rnd.NextDouble()) + shift;
 		}
 		
 		#endregion

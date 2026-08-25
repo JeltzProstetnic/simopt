@@ -217,7 +217,10 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 
 			for (int lc = 1; lc <= k; lc++)
 			{
-				res *= rnd.NextDouble();
+				// SIM-56: a single zero factor drove the product to zero and the logarithm below
+				// to -infinity. Sampling 1-U keeps each factor in (0,1] — same distribution, no
+				// singularity. See NegExponentialDistribution.Next().
+				res *= 1.0 - rnd.NextDouble();
 			}
 
 			return -(1 / lambda) * Math.Log(res) + shift;

@@ -162,7 +162,12 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         /// <returns></returns>
         public int NextInteger()
         {
-            return antitheticSummandInteger + Math.Abs((int)NextUInt()) * antitheticFactor;
+            // SIM-56: the previous Math.Abs((int)NextUInt()) threw OverflowException on the single
+            // draw 0x80000000 and folded two draws onto int.MaxValue, putting NextDouble() on the
+            // closed [0,1]. UniformMapping rejects the excluded endpoint instead.
+            int value;
+            while (!UniformMapping.TryMapToInteger(NextUInt(), out value)) { }
+            return antitheticSummandInteger + value * antitheticFactor;
         }
 
         /// <summary>
@@ -172,7 +177,8 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         /// <returns></returns>
         public double NextDouble()
         {
-            return (double)NextInteger() / (double)int.MaxValue;
+            // Derived from NextInteger so the antithetic reflection applies to both.
+            return UniformMapping.ToDouble(NextInteger());
         }
 
         #region ISerializableGrubi

@@ -145,9 +145,15 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         /// caution: in RELEASE mode this will NOT throw an exception if the instance is not initialized! (a ClassInitializationException will be thrown in DEBUG mode, though)
         /// </summary>
         /// <returns></returns>
-		public int NextInteger() 
-        { 
-            return antitheticSummandInteger + Next(int.MaxValue) * antitheticFactor; 
+		public int NextInteger()
+        {
+            // SIM-56: this passed int.MaxValue where Next() expects a BIT COUNT. The resulting
+            // shift (48 - int.MaxValue) masks to 49, and internalSeed is only 48 bits wide, so the
+            // result was always 0 — every UniformIntegerDistribution on an LCG returned its
+            // minimum forever. 31 bits is the correct width; reject the excluded endpoint.
+            int value;
+            do { value = Next(31); } while (value == int.MaxValue);
+            return antitheticSummandInteger + value * antitheticFactor;
         }
 		
         /// <summary>

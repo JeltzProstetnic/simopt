@@ -139,6 +139,12 @@ tmp/
 # Claude Code (local settings, session lock)
 .claude/settings.local.json
 .claude/.session-lock
+.claude/.session-role.*
+.post-rotation-commit
+
+# Per-session terminal captures — machine-generated session noise, not project history.
+# Remove this line if you want them tracked; the files themselves are untouched on disk.
+docs/terminal-logs/
 
 # Serena (track project.yml and .gitignore only)
 .serena/cache/

@@ -316,7 +316,11 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 					v = Math.Pow(1 + c * x, 3);
 				} while (v <= 0);
 
-				u = dblUniform.Next();
+				// SIM-56: the acceptance step below takes Math.Log(u), and the uniform source
+				// legitimately yields 0.0. Sampling 1-U keeps u in (0,1] — still uniform, so the
+				// squeeze test is unchanged — without admitting log(0) = -infinity, which would
+				// accept a candidate the second condition was meant to reject.
+				u = 1.0 - dblUniform.Next();
 				if (u < 1 - 0.0331 * Math.Pow(x, 4))
 				{
 					fin = false;

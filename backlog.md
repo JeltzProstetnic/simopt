@@ -1,5 +1,78 @@
 # SimOpt Backlog
 
+## P0 — Commercial Track (added 2026-08-25)
+
+SimOpt is now being built as a **commercial product**, not a research framework. Governing documents:
+
+| Document | Purpose |
+|---|---|
+| `docs/needs/01_User-Needs.md` | Vision + 32 user needs (UN-001..032), roles, coverage matrix — **read before building** |
+| `docs/commercial/2026-08-25-architecture-readiness-review.md` | Technical gap analysis + slice plan (§E) + MCP tool design (§C) |
+| `docs/commercial/2026-08-25-business-strategy.md` | Market, pricing, financial model, GTM, kill gates |
+
+**Owner decisions 2026-08-25:** open-core licensing (instrument still open, UN-031) · beachhead is
+general discrete manufacturing sold through independent consultants · one engine with two heads
+(MCP + desktop app), usable with or without either · ambition is *prove it earns anything first*,
+so time-to-first-sale outranks completeness everywhere.
+
+**Slice 0 is the existing SIM-56..58 critical-review debt.** It is not optional and it is not
+deferrable: the product's entire claim is "trust these numbers", and today the default RNG violates
+its contract, every triangular draw is mathematically wrong, and the reset path silently diverges
+across evaluations. Both the architecture and the business review independently placed this at the
+top of the commercial critical path, ahead of all UI work.
+
+### Slice 0 — Trustworthy engine (blocks everything)
+- [x] **SIM-56** RNG contract fixes — see P1 section below (size: M) — **P0** — done 2026-08-25
+- [ ] **SIM-57** Distribution/median math — see P1 section below (size: M) — **P0**
+- [ ] **SIM-58** DES reset-path fixes — see P1 section below (size: M) — **P0**
+- [ ] **SIM-62** Stable per-node seed derivation in `ModelRegistry` — `node.Id.GetHashCode()` (`ModelRegistry.cs:76,117`) uses .NET's per-process randomized string hashing, so the same topology + seed yields different streams after every process restart. Replace with FNV-1a over UTF-8 or an ordinal node index. Breaks UN-009 (reproducibility). Found by the 2026-08-25 architecture review. (size: S) — **P0**
+
+### Slice 1 — Output statistics + analytic verification
+- [ ] **SIM-63** Engine output-statistics subsystem: event-driven tallies (wait time, cycle time), time-weighted collectors (queue length, utilisation), warm-up truncation, replication runner with confidence intervals. **Must live in the engine, not the UI** — utilisation is currently computed by polling in `SimulationCanvas.cs:297-332` and is unreachable from headless/MCP runs. Serves UN-011, UN-012. Largest genuinely new engineering item in the product. (size: L) — **P0**
+- [ ] **SIM-64** Analytic benchmark battery as a CI gate: M/M/1, M/M/c, M/G/1 (Pollaczek-Khinchine), small Jackson network — simulated results must fall within CI of closed-form answers. Plus distribution goodness-of-fit tests on large samples. Serves UN-007. This is simultaneously the quality gate and the strongest marketing asset the product has. (size: M) — **P0**
+
+### Slice 2 — Model schema v1 + experiment tools
+- [ ] **SIM-65** Topology schema v1: multi-capacity `station(servers: c)`, distribution objects (exponential/triangular/uniform/lognormal/gamma/constant/empirical), routers (probabilistic/shortest-queue/by-attribute), declared metrics, `schema_version` field, published JSON Schema via `get_schema`. Today's schema has 4 node types, exponential only, single-capacity servers — **it cannot express the product's own flagship example**. Serves UN-001, UN-004. Blocked by SIM-56/57 (wiring Triangular before the fix would industrialise the bug). (size: L) — **P0**
+- [ ] **SIM-66** MCP tools `validate_model` / `patch_model` / `run_experiment`: three-layer validation (schema → semantic lint with analytic ρ pre-checks → 1s trial replication), all errors structured and returned at once; scenario arrays evaluated in one call; result payloads under ~400 tokens. Serves UN-003, UN-008, UN-013, UN-023. (size: L) — **P0**
+- [ ] **SIM-67** Model persistence: save/load/export topology JSON, re-hydrate on reconnect. Models currently die with the process (in-memory `ConcurrentDictionary`, `ModelRegistry.cs:20`). Serves UN-005. (size: S) — **P1**
+- [ ] **SIM-20** MCP server integration testing — **promoted to P0.** Zero tests exist against the MCP surface today. Serves UN-023, UN-025.
+
+### Slice 3 — Generic optimisation
+- [ ] **SIM-68** `TopologyProblem`: a generic `IProblem` whose genome is decision variables declared as references into the topology JSON, applied as patches, evaluated over N replications. Eliminates hand-written per-domain `IProblem`s and gives EA/SA/PSO a uniform non-reflection vector contract — fixes SIM-59's PSO defect by design. **The keystone component of the whole product.** Serves UN-015. (size: L) — **P0**
+- [ ] **SIM-69** MCP `optimize` tool: variables, objective, constraints, budget, replications-per-eval, strategy selection. The "opt" in SimOpt is currently absent from the MCP surface entirely. Serves UN-015. (size: M) — **P0**
+- [ ] **SIM-59** Optimizer integrity — see P1 section below. Required before optimisation results can be trusted or reproduced. (size: L) — **P0**
+
+> **v0.9 "Pro" ships at the end of Slice 3** — MCP head only, driven from Claude Code/Cursor/any MCP
+> client, zero UI code. This is the earliest possible revenue and the fastest test of whether anyone
+> pays, which is exactly the owner's stated ambition. Architecture review estimate: ~6–7 agent-weeks.
+
+### Slice 4 — Desktop application with embedded chat
+- [ ] **SIM-70** Extract `SimulationTools` + `ModelRegistry` + experiment/optimize layer into a shared `SimOpt.Engine.Api` library with two heads: the existing stdio MCP server, and in-process consumption by the desktop app. Contract test asserts both heads expose an identical tool list. **Structural prerequisite for UN-025 (capability parity).** (size: M) — **P1**
+- [ ] **SIM-71** `SimOpt.App`: Avalonia desktop app hosting the agent loop in-process via `Microsoft.Extensions.AI` `IChatClient` (Anthropic/OpenAI/Ollama/LM Studio). Streaming chat pane, model read-back panel, results table. OS-native credential storage only (DPAPI/Keychain/libsecret) — never a settings file. Serves UN-001, UN-002, UN-020, UN-021. (size: XL) — **P1**
+- [ ] **SIM-72** Visualization ↔ MCP unification: map `TopologyDefinition` → `VizTopology` (AutoLayout exists) so MCP-built models are watchable. Two disjoint topology representations exist today. Serves UN-018. High demo value. (size: M) — **P2**
+
+### Slice 5 — Commercial plumbing
+- [ ] **SIM-73** **Licensing decision + LICENSE file** (UN-031). Repo is public with no licence → all rights reserved by default. Owner has chosen open-core in principle; instrument undecided (permissive Apache-2.0 vs source-available FSL/PolyForm converting to permissive). Business review recommends against permissive on the engine. **Owner decision required — blocks public launch.** Also: confirm dissertation-era provenance carries no institutional claim. (size: S, but blocking) — **P0 (decision)**
+- [ ] **SIM-74** Signed installer + update channel: OV/EV code-signing certificate (unsigned installers kill conversion via SmartScreen), Windows first, macOS notarization later. Serves UN-026. (size: M) — **P2**
+- [ ] **SIM-75** Licence keys + merchant-of-record checkout (Paddle or Lemon Squeezy — MoR owns all EU/global VAT). Serves UN-029. (size: M) — **P2**
+- [ ] **SIM-76** Privacy statement for LLM egress + free-tier limits + first-run wizard (key entry or Ollama auto-detection). Serves UN-021, UN-022, UN-026, UN-028. (size: M) — **P2**
+
+### Slice 6 — Go-to-market (runs in parallel, not after)
+- [ ] **SIM-77** Landing page + waitlist + canonical 3-minute demo video. Cannot start before a recordable demo exists (end of Slice 2 at the earliest). (size: M) — **P2**
+- [ ] **SIM-78** Content pipeline: LinkedIn cadence (2–3/week, agent-drafted, owner-approved, each a short screen capture of a sim answering a real question), YouTube demo series, agent-generated SEO comparison pages. Owner time budget ~2h/week total. (size: M, ongoing) — **P2**
+- [ ] **SIM-79** Employer-boundary hygiene before first sale: document dissertation provenance, obtain written Nebentätigkeit acknowledgment (generic "simulation software", no dental specifics), keep Ivotion material internal and **out of the public beachhead**. Structural, not moral — do it before revenue exists, not after. (size: S) — **P1**
+- [ ] **SIM-80** Resolve model-access economics (UN-032): BYO-key margin vs. non-expert accessibility. Options are pro-first (defer the keyless persona), bundled metered key at a premium tier, or local-model-as-default. **Owner decision required before Slice 4 onboarding is designed.** (size: S, decision) — **P1 (decision)**
+
+### Kill gates (from the business review — measurable, dated from commercial build start)
+| When | Gate | If missed |
+|---|---|---|
+| Month 3 | Chat→correct-model succeeds unassisted ≥50% of attempts; SIM-56..59 closed | Core thesis fails → pivot to consultant-operated tool, or stop |
+| Month 6 | 100+ free activations, ≥10 paying, ≥1 paying **stranger** (not network) | Distribution thesis broken → one more channel experiment, then stop |
+| Month 12 | €500+ MRR-equivalent, first-cohort churn <50%/yr | Wind down to maintenance, or open-source for reputation value |
+| Month 24 | €2,000+ MRR and a repeatable channel | Hold deliberately as a lifestyle product, or sell the asset |
+
+---
+
 ## P1 — High Priority
 
 - [x] **SIM-01** Fix EventScheduler.Remove last event (size: S) — Phase 3
@@ -98,7 +171,7 @@ Results integrate directly into paper before publication.
 
 Source: `docs/2026-07-05-critical-code-review.md` (3 parallel Opus 4.8 review agents over DES engine, optimization+coupling, math/stats). Findings are hypotheses — fix each **test-first** (the failing test confirms the bug). Root-cause: SIM-56 (RNG) is upstream of several others; do it first.
 
-- [ ] **SIM-56** RNG contract fixes (P1): MersenneTwister `[0,1)` + `Math.Abs(int.MinValue)` overflow; R250_521 buffer overrun (`!=520`); LCG `NextInteger` always-0; exp-family `U=0` +∞ guards (NegExponential/Erlang/Gamma). Highest leverage — upstream of SIM-57 exp-family + `Extensions` crashes. (size: M)
+- [x] **SIM-56** RNG contract fixes (P1): MersenneTwister `[0,1)` + `Math.Abs(int.MinValue)` overflow; R250_521 buffer overrun (`!=520`); LCG `NextInteger` always-0; exp-family `U=0` +∞ guards (NegExponential/Erlang/Gamma). Highest leverage — upstream of SIM-57 exp-family + `Extensions` crashes. (size: M) — **DONE 2026-08-25.** All four findings confirmed by failing tests first. Extracted the shared raw-draw→contract-range fold into `UniformMapping` (new, boundary-tested exhaustively) because three generators duplicated it and two got it wrong; MT's defect is a 2⁻³¹ event and is *not* reachable by sampling, so the pure function is the only honest gate. Exp-family guards use the `1−U` inverse-transform form rather than rejection — distributionally identical, no singularity, and no infinite loop on a degenerate source. 42 new tests in `RandomSourceContractTests`; 736 pass / 0 regressions.
 - [ ] **SIM-57** Distribution/median math (P1): Triangular sampler wrong CDF (**CRITICAL** — every triangular draw invalid); Gamma integer `1/3`; `Uniform*.Mean` `(max-min)/2`→`(min+max)/2`; `MMath.Median` off-by-one + N≤2 crash. (size: M)
 - [ ] **SIM-58** DES reset-path fixes (P1): `Delay.Reset` NRE + no re-schedule (silent cross-eval divergence); `ResourceManager.Reset` snapshot aliasing; `Server.ClearCurrentMaterial` clears wrong list; `EventScheduler.timeOfNextScheduledEvent` sentinel/stale; `Model.RemoveEvent` same-time guard. (size: M)
 - [ ] **SIM-59** Optimizer integrity (P2): seed the solution operators (Ivotion `Tweak`/`CombineWith` use wall-clock `new Random()` — reproducibility broken); EA clone `BestSolution`; EA clone-before-mutate (elitism/parent corruption); SA `while(T>0)` + T==0 guard; PSO explicit vector contract (reflection fits only `TestSolution` → zero search on real problems). Reconcile with SIM-36 (PSO is implemented, not a stub, but uncoupled). (size: L)

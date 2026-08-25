@@ -183,7 +183,9 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         
             i1 = (i1 != 249) ? (i1 + 1) : 0;
             r250_index = i1;
-            i2 = (i2 != 521) ? (i2 + 1) : 0;
+            // SIM-56: r521_buffer holds 521 entries, so its last valid index is 520. Wrapping at
+            // 521 let the index reach one past the end and the next draw read out of bounds.
+            i2 = (i2 != 520) ? (i2 + 1) : 0;
             r521_index = i2;
             
             return r ^ s;
@@ -196,7 +198,11 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         /// <returns></returns>
         public int NextInteger()
         {
-            return antitheticSummandInteger + Math.Abs((int)NextUInt()) * antitheticFactor;
+            // SIM-56: see UniformMapping — Math.Abs((int)raw) overflows on 0x80000000 and admits
+            // int.MaxValue, which the documented half-open interval excludes.
+            int value;
+            while (!UniformMapping.TryMapToInteger(NextUInt(), out value)) { }
+            return antitheticSummandInteger + value * antitheticFactor;
         }
 
         /// <summary>
@@ -206,8 +212,9 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         /// <returns></returns>
         public double NextDouble()
         {
-            // TODO: check if this uint->double conversion is correct!
-            return antitheticSummandDouble + ((double)NextUInt() / (double)uint.MaxValue) * antitheticFactor;
+            // SIM-56: dividing by uint.MaxValue put this on the closed [0,1]; the contract is
+            // half-open, and a returned 1.0 breaks inverse-transform samplers. Scale by 2^32.
+            return antitheticSummandDouble + UniformMapping.ToDouble(NextUInt()) * antitheticFactor;
         }
 
         #region ISerializableGrubi
