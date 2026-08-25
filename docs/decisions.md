@@ -407,7 +407,12 @@ what an opposing expert would attack first. Reproducibility (UN-009) stops being
 practice and becomes an evidentiary property: a result that cannot be reproduced on another
 machine, months later, by someone else, is not evidence.
 
-### Open strategic question — deliberately NOT decided here
+### Open strategic question — ANSWERED 2026-08-26, see D-06
+
+> **Resolved.** The owner chose *forensic as proving ground, manufacturing as the public face,
+> sequenced* — see **D-06** at the end of this file. The comparison below is retained because the
+> reasoning is what future sessions need, but the question is closed and must not be re-opened on
+> the strength of the forensic origin alone.
 
 The beachhead decision of 2026-08-25 (general discrete manufacturing, sold through independent
 consultants) was taken without this information on the table. It is worth revisiting, because on
@@ -430,3 +435,52 @@ claim is made. It may be the better *wedge* while general manufacturing remains 
 
 **Do not act on this unilaterally.** It is an owner decision, recorded here so the next session
 presents it rather than rediscovering it. Tracked as SIM-87.
+
+---
+
+## D-06 — Beachhead resolved: forensic as proving ground, manufacturing as the public face (2026-08-26)
+
+**Owner decision, 2026-08-26.** Presented as SIM-87, answered: **option C, sequenced B-then-A.**
+
+The question was reopened by D-05 (below), which disclosed that the product's origin use case is
+forensic — an instrument of MG's Gutachtertätigkeit as a gerichtlich beeideter Sachverständiger —
+information that was not on the table when the 2026-08-25 beachhead was chosen.
+
+### What was decided
+
+**Forensic casework is the proving ground now. Manufacturing remains the public positioning.
+A deliberate forensic go-to-market is revisited only once the engine has survived real case use.**
+
+Concretely:
+
+| | Effect |
+|---|---|
+| Public positioning, landing page, content pipeline (SIM-77, SIM-78) | Unchanged — general discrete manufacturing via independent consultants. |
+| Proving ground / customer zero | MG's own casework, starting immediately. It costs nothing extra because that work is happening anyway. |
+| Month-3 kill gate | Unchanged as written (chat→correct-model ≥50% unassisted). Real case use is an *additional* signal, not a replacement gate. |
+| Slice 7 (SIM-86 provenance, SIM-88 tamper-evidence) | Retained and justified — they serve the proving ground directly, and they strengthen the commercial deliverable independently. |
+| Evidentiary claims in marketing | **None, until the admissibility basis is researched.** No public material may state or imply that SimOpt output is court-admissible. |
+
+### Why this shape rather than a switch
+
+The forensic market scores better on nearly every axis that matters to a solo owner with a few
+hours a week — existing standing, existing network, far higher willingness to pay, essentially no
+competition, owner is customer zero, and what it demands (correctness, reproducibility) is exactly
+what Slice 0 built. But it is genuinely small, it is relationship-led rather than product-led, and
+it cannot be sold by an agent writing LinkedIn posts.
+
+Sequencing captures the asymmetry without paying for it: the fastest available validation loop
+runs immediately at zero marketing cost, while the repositioning cost stays deferred until there
+is evidence to justify it, and no evidentiary claim is made before its basis exists.
+
+### What this obliges
+
+1. **Use it on real casework.** The decision is only worth what the proving ground actually
+   produces. A session that reports "no case use yet" three months running has falsified the
+   premise, not merely failed to act on it.
+2. **Do not re-litigate the beachhead** on the strength of the forensic origin alone. That
+   argument has now been made and answered.
+3. **Research admissibility before any claim.** Unpriced work, deliberately unscheduled — it
+   becomes urgent the moment marketing wants to say the word "evidence".
+
+Closes SIM-87. Supersedes the "Open strategic question" section of D-05.

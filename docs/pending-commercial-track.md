@@ -1,9 +1,13 @@
-<!-- Action: act -->
-<!-- Tracked-by: SIM-58, SIM-62, SIM-63, SIM-64, SIM-73, SIM-80 -->
+<!-- Action: reference -->
+<!-- Tracked-by: SIM-63, SIM-64, SIM-65, SIM-66, SIM-68, SIM-69, SIM-87 -->
 # Commercial track — working handoff
 
 Established 2026-08-25. This is the standing work order for autonomous sessions on SimOpt.
 It says what to do next and, more importantly, what not to do.
+
+> **Status lives in `backlog.md`, not here.** Everything below is method and rationale. Item
+> state (open / in-progress / done) is authoritative in `backlog.md` alone. Demoted to
+> `reference` on 2026-08-26 after every item it carried was promoted to the backlog.
 
 ## Read first
 1. `docs/needs/01_User-Needs.md` — the vision and the 32 needs everything traces to.
@@ -44,23 +48,20 @@ the tool surface.
   fail (`IvotionOptimizationViewModelTests.Defaults_MatchLockedInDecisions`, SIM-55) / 1 skip.
 - **Commit per backlog item**, with the finding and its confirmation in the message.
 
-## Present this at the start of the next session — SIM-87
+## Beachhead — SETTLED 2026-08-26 (SIM-87 closed)
 
-**The beachhead may be wrong, and it is worth ten minutes of the owner's attention before more is
-built on it.** On 2026-08-25 the owner disclosed (D-05) that he holds a practice as a **gerichtlich
-beeideter Sachverständiger**, that SimOpt is an instrument of that practice, and that the product
-exists to *simulate the interaction of computer systems with the real world in order to prove
-cases*. That was not known when the beachhead was chosen.
+The owner answered: **forensic casework is the proving ground; manufacturing stays the public
+face; a deliberate forensic go-to-market is revisited only once the engine has survived real case
+use.** Full reasoning in `docs/decisions.md` **D-06**.
 
-It changes the picture because the forensic market scores better on nearly every axis that matters
-to a solo owner with almost no time — he already has standing in it, already has the network, the
-willingness to pay is far higher, there is essentially no competition, he is customer zero, and
-what it demands is exactly what Slice 0 just built. Against it: much smaller, relationship-led
-selling, and simulation-as-evidence has an admissibility literature that must be done properly
-before any claim is made. The two may not be exclusive — forensic as the wedge, manufacturing as
-the volume, one engine.
+Two obligations this places on every future session:
 
-**Present it. Do not decide it.** Full reasoning and the comparison table: `docs/decisions.md` D-05.
+- **No marketing, landing-page, demo or social copy may state or imply that SimOpt output is
+  court-admissible** until the admissibility literature has actually been researched. That work is
+  unpriced and deliberately unscheduled; it becomes urgent the moment anyone wants to use the word
+  "evidence" in public.
+- **Do not re-open the beachhead** on the strength of the forensic origin. That argument has been
+  made and answered.
 
 ## Owner decisions — SETTLED 2026-08-25
 
