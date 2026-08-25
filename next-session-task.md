@@ -1,5 +1,5 @@
-<!-- task: true -->
+<!-- task handoff -->
 task: true
-file: docs/2026-07-05-critical-code-review.md
-backlog: SIM-56
-description: Fix the critical-review findings test-first, starting with SIM-56 (RNG contract — MersenneTwister `[0,1)` + int.MinValue overflow, R250_521 overrun, LCG NextInteger, exp-family U=0 guards). It is the root cause upstream of SIM-57's exp-family infinities and the Extensions crashes. Then SIM-57 (Triangular/Gamma/Median), SIM-58 (DES reset paths), SIM-59 (optimizer integrity), SIM-60 (low-severity math). Each fix: write the failing test first. Also ask the user whether to retire SIM-55 (glass — obsolete post-FSIM-03).
+file: docs/pending-beachhead-decision.md
+backlog: SIM-63
+description: FIRST — present the beachhead decision in docs/pending-beachhead-decision.md (SIM-87): three options with a recommendation, arising from D-05's disclosure that the product's origin use case is forensic expert evidence. It is an owner call, must not be decided by an agent, and blocks nothing. THEN continue the work queue in docs/pending-commercial-track.md. Slice 0 is closed (SIM-56/57/58/62 done, 809 tests passing). Begin Slice 1 — SIM-63, the engine output-statistics subsystem: event-driven tallies (wait/cycle time), time-weighted collectors (queue length, utilisation), warm-up truncation, replication runner with confidence intervals. It must live in the engine, not the UI. Then SIM-64, the M/M/1 + M/M/c + M/G/1 analytic battery as a CI gate. Both owner decisions are settled (D-01 licensing, D-02 local-first); two owner ACTIONS remain outstanding and block first revenue only — SIM-85 dissertation provenance and SIM-79 Nebentaetigkeit acknowledgment.
