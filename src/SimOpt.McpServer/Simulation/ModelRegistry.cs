@@ -73,7 +73,7 @@ namespace SimOpt.McpServer.Simulation
                             throw new InvalidOperationException($"Source '{node.Id}': mean_interval must be positive.");
 
                         // Build a seed-initialised NegExponentialDistribution
-                        var dist = CreateNegExp(topology.Seed ^ node.Id.GetHashCode(), meanInterval);
+                        var dist = CreateNegExp(topology.Seed ^ StableHash.Of(node.Id), meanInterval);
                         int localCounter = entityCounter; // closure capture
                         Func<SimpleEntity> generator = () =>
                         {
@@ -114,7 +114,7 @@ namespace SimOpt.McpServer.Simulation
                         if (serviceTime <= 0)
                             throw new InvalidOperationException($"Server '{node.Id}': service_time must be positive.");
 
-                        var dist = CreateNegExp(topology.Seed ^ (node.Id.GetHashCode() + 1), serviceTime);
+                        var dist = CreateNegExp(topology.Seed ^ (StableHash.Of(node.Id) + 1), serviceTime);
                         var server = new SimpleServer(
                             model,
                             dist,

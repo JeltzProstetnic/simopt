@@ -11,18 +11,28 @@ It says what to do next and, more importantly, what not to do.
    §E is the slice plan. §A is the honest state of the codebase.
 3. `backlog.md`, section **P0 — Commercial Track**.
 
+## Slice 0 is CLOSED (2026-08-25)
+
+SIM-56, SIM-57, SIM-58 and SIM-62 are all done, test-first, with zero regressions. The suite went
+from 694 to 809 passing. The engine no longer produces knowingly wrong numbers, and reset-and-
+re-run is deterministic. **This was the precondition for everything else.**
+
 ## Immediate queue
 
 | Order | Item | Why now |
 |---|---|---|
-| 1 | **SIM-58** DES reset-path fixes | `Delay.Reset` never re-schedules its initial item, so evaluation #1 and #2 of the same model silently diverge — and reset-and-re-run is exactly the loop `IProblem.Evaluate` and the MCP `run_simulation` tool depend on. Optimisation results are untrustworthy until this is closed. |
-| 2 | **SIM-62** Stable per-node seeding | `node.Id.GetHashCode()` is randomised per process, so the same topology and seed give different streams after a restart. Breaks UN-009 outright. Small, cheap, blocking. |
-| 3 | **SIM-63** Output-statistics subsystem | The largest genuinely new engineering item in the product. No waiting-time tallies, no time-weighted stats, no warm-up, no replications exist today; utilisation is polled in the UI layer and is unreachable from headless runs. Serves UN-011/UN-012. |
-| 4 | **SIM-64** Analytic benchmark battery | M/M/1, M/M/c, M/G/1 against closed form as a CI gate. Simultaneously the quality gate and the strongest marketing asset available. Serves UN-007. |
+| 1 | **SIM-63** Output-statistics subsystem | The largest genuinely new engineering item in the product. No waiting-time tallies, no time-weighted stats, no warm-up, no replications exist today; utilisation is polled in the UI layer (`SimulationCanvas.cs:297-332`) and is unreachable from headless or MCP runs. An operations manager asking "how long do people wait?" currently gets no answer at all. Serves UN-011/UN-012. |
+| 2 | **SIM-64** Analytic benchmark battery | M/M/1, M/M/c, M/G/1 against closed form as a CI gate. Simultaneously the quality gate and the strongest marketing asset available — an LLM-written one-off script has no such proof. Serves UN-007. Do it immediately after SIM-63 so the statistics are validated as they land. |
+| 3 | **SIM-65 / SIM-66** Schema v1 + experiment tools | Multi-capacity stations, distribution objects, routing, then `validate_model` / `patch_model` / `run_experiment`. Today's schema cannot express the product's own flagship example. |
+| 4 | **SIM-68 / SIM-69** `TopologyProblem` + `optimize` | The keystone. Turns every MCP-built model into an optimisable one and kills hand-written per-domain `IProblem`s. |
 
-Then Slice 2 (schema v1 + experiment tools) and Slice 3 (`TopologyProblem` + `optimize`), after
-which **v0.9 ships on the MCP channel** — no UI code required, and the earliest possible test of
+Then **v0.9 ships on the MCP channel** — no UI code required, and the earliest possible test of
 whether anyone actually pays.
+
+**Note the ordering constraint added by D-02 (local-first):** SIM-83 (schema-constrained decoding)
+depends on SIM-65, and SIM-84 (reference-model benchmark) is the Month-3 kill gate. Build SIM-84
+early enough to fail cheaply rather than discovering at month three that no local model can drive
+the tool surface.
 
 ## Method — non-negotiable
 - **Test-first, always.** Every finding in the 2026-07-05 review is a *hypothesis*; the failing
@@ -34,18 +44,23 @@ whether anyone actually pays.
   fail (`IvotionOptimizationViewModelTests.Defaults_MatchLockedInDecisions`, SIM-55) / 1 skip.
 - **Commit per backlog item**, with the finding and its confirmation in the message.
 
-## Owner decisions outstanding
-These block later slices, not the immediate queue. Do not decide them by implementation.
+## Owner decisions — SETTLED 2026-08-25
 
-1. **UN-031 / SIM-73 — licensing instrument.** Repo is public with no LICENSE, so all rights are
-   reserved by default and nothing has been given away. Owner chose open-core in principle; the
-   instrument is undecided. The business review recommends *against* a permissive engine licence
-   and proposes FSL (source-available, converting to Apache-2.0 after two years). Legally
-   consequential and irreversible in practice. Blocks public launch.
-2. **UN-032 / SIM-80 — model-access economics.** Bring-your-own-key gives ~95% gross margin but
-   the primary target user has no API key and won't obtain one. Options: sell to key-holding
-   personas first, bundle a metered key at a premium tier, or make local models the default path.
-   Blocks the desktop app's onboarding design.
+Both previously-open questions are decided. See `docs/decisions.md` D-01..D-04.
+
+1. **Licensing (D-01):** FSL-1.1-ALv2 on the engine, proprietary on the app. `LICENSE.md` shipped.
+   Note the recorded correction: FSL permits *any purpose except a Competing Use*, so commercial
+   and consultant use of the engine is free — the paid value must live in the application layer.
+2. **Model access (D-02):** local-first, cloud optional. No need may assume the user holds an API
+   key. Spawned SIM-82 (runtime detection + hardware floor), SIM-83 (schema-constrained decoding),
+   SIM-84 (reference-model benchmark = the Month-3 kill gate).
+3. **Priorities (D-03):** as proposed.
+4. **Employer boundary (D-04):** positioning does not lead with dental; `SimOpt.Ivotion` code
+   stays public per FSIM-03, which is explicitly *not* reversed.
+
+**Two owner actions remain, neither blocking the queue:** SIM-85 (confirm dissertation provenance
+carries no institutional claim) and SIM-79 (written Nebentätigkeit acknowledgment). Both must
+close before first revenue.
 
 ## Do not do
 - Do not start UI work before Slice 1 is green. Every week of interface built on wrong numbers is

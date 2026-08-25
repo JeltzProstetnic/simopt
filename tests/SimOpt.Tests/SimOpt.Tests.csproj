@@ -33,6 +33,8 @@
     <ProjectReference Include="../../src/SimOpt.Visualization/SimOpt.Visualization.csproj" />
     <ProjectReference Include="../../src/SimOpt.GridWorld/SimOpt.GridWorld.csproj" />
     <ProjectReference Include="../../src/SimOpt.FMT/SimOpt.FMT.csproj" />
+    <!-- SIM-62 / SIM-20: the MCP surface had no test coverage at all. -->
+    <ProjectReference Include="../../src/SimOpt.McpServer/SimOpt.McpServer.csproj" />
   </ItemGroup>
 
 </Project>
