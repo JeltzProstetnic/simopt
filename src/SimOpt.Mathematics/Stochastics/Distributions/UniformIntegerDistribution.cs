@@ -88,10 +88,11 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         }
 
         /// <summary>
-        /// Caution, this is round((max - min) / 2).
+        /// Caution, this is round((min + max) / 2).
         /// The exact value is returned by (this as IDistribution&lt;double>).Mean
         /// </summary>
-        public int Mean { get { return (int)Math.Round(((double)max - (double)min) / 2d); } }
+        // SIM-57: returned the half-width instead of the midpoint; wrong whenever min != 0.
+        public int Mean { get { return (int)Math.Round(((double)min + (double)max) / 2d); } }
 
         #region IDistribution<double>
 
@@ -102,7 +103,8 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 
         double IDistribution<double>.Mean
         {
-            get { return ((double)max - (double)min) / 2d; }
+            // SIM-57: midpoint, not half-width.
+            get { return ((double)min + (double)max) / 2d; }
         }
 
         #endregion

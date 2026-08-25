@@ -274,10 +274,16 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         {
             DrawCount++;
 
+            // SIM-57: `top` is the CDF evaluated at the mode, F(mode) = (mode-min)/(max-min).
+            // It was written as the reciprocal, which makes it greater than one for every
+            // parameterisation, so the branch test below was always true and the descending half
+            // of the density was never sampled. The final rescale then used the wrong width.
+            // Together they truncated the support: Tri(10,12,20) could never exceed 14.47.
+            // The correct formulation is the "old version" preserved in the remarks above.
             double result;
-            double top = (maximum - minimum) / (mode - minimum);
+            double top = (mode - minimum) / (maximum - minimum);
             double random = rnd.NextDouble();
-            
+
             if (random <= top)
             {
                 result = Math.Sqrt(random * top);
@@ -286,8 +292,8 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             {
                 result = 1d - Math.Sqrt((1d - top) * (1d - random));
             }
-            
-            return minimum + (result * (mode - minimum));
+
+            return minimum + (result * (maximum - minimum));
         }
 
         #endregion

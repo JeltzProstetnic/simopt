@@ -78,7 +78,9 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
             set { rnd.Reset(value); }
         }
 
-        public double Mean { get { return (max - min) / 2; } }
+        // SIM-57: this returned the half-width (max-min)/2 instead of the midpoint. Identical
+        // whenever min is zero, which is why it survived every casual test.
+        public double Mean { get { return (min + max) / 2; } }
 
         #endregion
         #region ctor
@@ -149,11 +151,17 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         public void Initialize(int seed, bool antithetic = false)
         {
             this.rnd = new MersenneTwister(seed, antithetic);
+            // SIM-57: these two overloads used to set only the source, leaving `interval` at its
+            // implicit zero. Next() then returned `min + U * 0` — a constant — for the whole life
+            // of the instance, silently. Establish the interval from the current bounds so an
+            // instance built from a seed alone honours the documented default range.
+            Configure(this.min, this.max);
         }
 
         public void Initialize(IRandomSource rnd)
         {
             this.rnd = rnd;
+            Configure(this.min, this.max);
         }
 
         public void Initialize(int seed, double min = 0d, double max = 1d, bool antithetic = false)

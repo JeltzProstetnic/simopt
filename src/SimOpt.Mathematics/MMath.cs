@@ -2777,9 +2777,12 @@ namespace SimOpt.Mathematics
 
             int N = data.Length;
 
+            // SIM-57: both branches indexed one position too high. For even N the two central
+            // elements are N/2-1 and N/2, not N/2 and N/2+1; for odd N the centre is N/2, not
+            // (N+1)/2. As written, N=1 and N=2 also read past the end of the array.
             if ((N % 2) == 0)
-                return (data[N / 2] + data[(N / 2) + 1]) * 0.5; // N is even 
-            else return data[(N + 1) / 2];                      // N is odd
+                return (data[(N / 2) - 1] + data[N / 2]) * 0.5; // N is even
+            else return data[N / 2];                            // N is odd
         }
 
         /// <summary>Computes the Variance of the given values.</summary>
@@ -3499,7 +3502,7 @@ namespace SimOpt.Mathematics
         public static double Median(this List<int> values)
         {
             if (values.Count == 1) return values[0];
-            return values.Count.IsOdd() ? values[((values.Count - 1) / 2) + 1] : (double)(values[(values.Count / 2) - 1] + values[(values.Count / 2)]) / 2d;
+            return values.Count.IsOdd() ? values[(values.Count - 1) / 2] : (double)(values[(values.Count / 2) - 1] + values[(values.Count / 2)]) / 2d;
         }
 
         /// <summary>
@@ -3510,7 +3513,7 @@ namespace SimOpt.Mathematics
         public static double Median(this List<long> values)
         {
             if (values.Count == 1) return values[0];
-            return values.Count.IsOdd() ? values[((values.Count - 1) / 2) + 1] : (double)(values[values.Count / 2] + values[(values.Count / 2) - 1]) / 2d;
+            return values.Count.IsOdd() ? values[(values.Count - 1) / 2] : (double)(values[values.Count / 2] + values[(values.Count / 2) - 1]) / 2d;
         }
 
         /// <summary>
@@ -3521,7 +3524,7 @@ namespace SimOpt.Mathematics
         public static float Median(this List<float> values)
         {
             if (values.Count == 1) return values[0];
-            return values.Count.IsOdd() ? values[((values.Count - 1) / 2) + 1] : (values[values.Count / 2] + values[(values.Count / 2) - 1]) / 2f;
+            return values.Count.IsOdd() ? values[(values.Count - 1) / 2] : (values[values.Count / 2] + values[(values.Count / 2) - 1]) / 2f;
         }
 
         /// <summary>
@@ -3532,7 +3535,7 @@ namespace SimOpt.Mathematics
         public static double Median(this List<double> values)
         {
             if (values.Count == 1) return values[0];
-            return values.Count.IsOdd() ? values[((values.Count - 1) / 2) + 1] : (values[values.Count / 2] + values[(values.Count / 2) - 1]) / 2d;
+            return values.Count.IsOdd() ? values[(values.Count - 1) / 2] : (values[values.Count / 2] + values[(values.Count / 2) - 1]) / 2d;
         }
 
         /// <summary>
@@ -3543,7 +3546,7 @@ namespace SimOpt.Mathematics
         public static decimal Median(this List<decimal> values)
         {
             if (values.Count == 1) return values[0];
-            return values.Count.IsOdd() ? values[((values.Count - 1) / 2) + 1] : (decimal)(values[values.Count / 2] + values[(values.Count / 2) - 1]) / 2m;
+            return values.Count.IsOdd() ? values[(values.Count - 1) / 2] : (decimal)(values[values.Count / 2] + values[(values.Count / 2) - 1]) / 2m;
         }
 
         #endregion

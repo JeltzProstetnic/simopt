@@ -43,9 +43,17 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         /// </returns>
         public static bool TryMapToInteger(uint raw, out int value)
         {
-            // A one-bit right shift clears the sign bit, so the cast is always defined and always
-            // non-negative — unlike the Math.Abs form it replaces.
-            value = (int)(raw >> 1);
+            // Masking the sign bit clears it without discarding any other, so the cast is always
+            // defined and always non-negative — unlike the Math.Abs form it replaces.
+            //
+            // Masking rather than shifting is deliberate. A one-bit right shift is equally
+            // unbiased for a source that is uniform across all 32 bits, but MersenneTwister
+            // pre-seeds its buffer from System.Random.Next(), which returns [0, int.MaxValue) and
+            // therefore never sets the high bit. Under a shift its first 624 draws would be
+            // confined to the lower half of the range and NextDouble() would return values in
+            // [0, 0.5) — a far worse defect than the one being fixed. Masking keeps the low bits,
+            // which carry the entropy in both the seeded and the twisted regime.
+            value = (int)(raw & 0x7FFFFFFFu);
             return value != int.MaxValue;
         }
 

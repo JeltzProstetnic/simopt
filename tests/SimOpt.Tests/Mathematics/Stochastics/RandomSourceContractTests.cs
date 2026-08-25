@@ -68,9 +68,41 @@ public class RandomSourceContractTests
     [Fact]
     public void UniformMapping_ExcludedEndpoint_IsRejected()
     {
-        // Two raw draws fold onto int.MaxValue under a one-bit right shift.
-        UniformMapping.TryMapToInteger(0xFFFFFFFEu, out _).Should().BeFalse();
+        // Exactly two raw draws fold onto int.MaxValue once the sign bit is masked away.
+        UniformMapping.TryMapToInteger(0x7FFFFFFFu, out _).Should().BeFalse();
         UniformMapping.TryMapToInteger(0xFFFFFFFFu, out _).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// The mapping must not discard entropy. Masking the sign bit preserves the low 31 bits;
+    /// shifting instead would confine MersenneTwister's first 624 draws — which come straight
+    /// from <c>System.Random.Next()</c> and never set the high bit — to the lower half of the
+    /// range, putting <c>NextDouble()</c> on [0, 0.5).
+    /// </summary>
+    [Theory]
+    [InlineData(0x00000001u, 1)]
+    [InlineData(0x12345678u, 0x12345678)]
+    [InlineData(0x7FFFFFFEu, 0x7FFFFFFE)]
+    public void UniformMapping_PreservesLowBits(uint raw, int expected)
+    {
+        UniformMapping.TryMapToInteger(raw, out var value).Should().BeTrue();
+        value.Should().Be(expected);
+    }
+
+    /// <summary>
+    /// The whole documented range must be reachable from a source whose high bit is never set —
+    /// which is precisely MersenneTwister's seeded state.
+    /// </summary>
+    [Fact]
+    public void MersenneTwister_FirstDraws_SpanTheFullUnitInterval()
+    {
+        var rnd = new MersenneTwister(20260825);
+        var values = new double[600]; // fewer than the 624-draw seeded window
+        for (int i = 0; i < values.Length; i++) values[i] = rnd.NextDouble();
+
+        System.Linq.Enumerable.Average(values).Should().BeApproximately(0.5, 0.05,
+            "the seeded window must not be confined to a sub-interval");
+        System.Linq.Enumerable.Max(values).Should().BeGreaterThan(0.9);
     }
 
     [Fact]

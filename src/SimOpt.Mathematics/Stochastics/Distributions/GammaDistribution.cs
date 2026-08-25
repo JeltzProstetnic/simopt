@@ -303,7 +303,9 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		/// <returns></returns>
 		private double StandardDoubleGamma(double k)
 		{
-			double d = k - 1 / 3;
+			// SIM-57: `1 / 3` is integer division and evaluates to zero, so d collapsed to k and
+			// every draw was inflated by roughly (k + 1/3)/k — about 17% at shape 2.
+			double d = k - 1.0 / 3.0;
 			double c = 1 / Math.Sqrt(9 * d);
 			double v, u, x;
 			bool fin = true;
