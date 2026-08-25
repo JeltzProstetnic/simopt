@@ -138,7 +138,10 @@ namespace SimOpt.Simulation.Tools
         public void Reset() 
         {
             orderCounter = 0;
-            managedResources = initialResources;
+            // SIM-58 (DES-4): assigning the snapshot itself aliased it to the live pool, so the
+            // next Manage/UnManage mutated the snapshot and every later reset restored a
+            // progressively more corrupted baseline. Copy it.
+            managedResources = new List<IResource>(initialResources);
             activeReservations.Clear();
         }
 

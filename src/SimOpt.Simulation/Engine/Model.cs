@@ -1006,6 +1006,19 @@ namespace SimOpt.Simulation.Engine
         /// <param name="evnt"></param>
         public void RemoveEvent(IEventInstance evnt)
         {
+            // SIM-58 (DES-6): ProcessNextPointInTime enumerates the events at the current time
+            // live, so a handler removing a sibling event at that same time mutates the collection
+            // being iterated and the run dies with an opaque "Collection was modified". This method
+            // has always documented that it throws in exactly this situation, but never did —
+            // TryRemoveEvent carries the equivalent guard. Fail with a message that names the real
+            // problem, and only while the scheduler is actually iterating: removing a past- or
+            // present-timed event outside processing is harmless and callers rely on it.
+            if (eventScheduler.IsProcessingEvents && !double.IsNaN(evnt.Time) && evnt.Time.CompareTo(currentTime) <= 0)
+                throw new InvalidOperationException(
+                    "Cannot remove event '" + evnt.Name + "' scheduled at the current point in time (" +
+                    currentTime + ") while the scheduler is processing that point in time — doing so " +
+                    "would corrupt the event iteration. Use TryRemoveEvent, which ignores such events.");
+
             eventScheduler.Remove(evnt);
         }
 

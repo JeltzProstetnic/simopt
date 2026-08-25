@@ -885,7 +885,9 @@ namespace SimOpt.Simulation.Templates
         /// </summary>
         public void ClearCurrentMaterial()
         {
-            activeMaterial.Clear();
+            // SIM-58 (DES-5): this cleared activeMaterial — the list ClearActiveMaterial already
+            // owns — leaving currentMaterial untouched and work-in-progress accounting wrong.
+            currentMaterial.Clear();
         }
 
         #endregion

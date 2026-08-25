@@ -57,8 +57,28 @@ namespace SimOpt.Simulation.Templates
         public override void Reset()
         {
             base.Reset();
-            hasItem = !initialItem.Equals(default(T));
+
+            // SIM-58 (DES-1): initialItem is null whenever T is a reference type and no initial
+            // item was supplied — the ordinary case — and Reset runs on every evaluation.
+            hasItem = !object.Equals(initialItem, default(T));
             currentItem = initialItem;
+
+            // SIM-58 (DES-2): InitializeDelay schedules the initial item's release, but Reset used
+            // to restore hasItem without re-scheduling it. The item then sat here forever and
+            // blocked every Put, so evaluation #2 of the same model behaved differently from
+            // evaluation #1 — silently, which is what makes it dangerous to an optimizer.
+            // Model.Reset() clears the event scheduler before resetting entities, so re-scheduling
+            // from here lands in a freshly cleared calendar.
+            if (hasItem && intervalInitialized)
+            {
+                double delay = randomIntervalGenerator.Next();
+
+                nextItemReleasedSimpleInstance = itemReleasedSimple.GetInstance(this, currentItem);
+                nextItemReleasedInstance = itemReleased.GetInstance(this, currentItem, delay);
+
+                Model.AddEvent(delay, nextItemReleasedInstance);
+                Model.AddEvent(delay, nextItemReleasedSimpleInstance);
+            }
         }
 
         #endregion

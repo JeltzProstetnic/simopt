@@ -84,7 +84,15 @@ namespace SimOpt.Simulation.Engine
         private List<IEventInstance> tmpHandledEvents;
         private Dictionary<IEventInstance, Priority> eventKeyMap;
         private KeyValuePair<double, SortedDictionary<Priority, IEventInstance>> tmpPointInTime;
-        private double timeOfNextScheduledEvent = double.MaxValue;
+        // SIM-58 (DES-3): the class used two different "no next event" sentinels — double.MaxValue
+        // here and at the NextScheduledEvent guard, double.PositiveInfinity after processing.
+        // NextScheduledEvent only tested for MaxValue, so once the other sentinel was in force it
+        // indexed the event list at positive infinity and threw. One sentinel now, and emptiness
+        // is tested directly rather than by comparing against a magic value.
+        private double timeOfNextScheduledEvent = NoNextEvent;
+
+        /// <summary>Sentinel time meaning "the schedule is empty".</summary>
+        private const double NoNextEvent = double.PositiveInfinity;
         private bool logging = true;
         private int eventCounter = 0;
         private int handlerCounter = 0;
@@ -153,8 +161,12 @@ namespace SimOpt.Simulation.Engine
         {
             get
             {
-                if(timeOfNextScheduledEvent == double.MaxValue || eventList[timeOfNextScheduledEvent].Count == 0) return null;
-                else return eventList[timeOfNextScheduledEvent].First().Value;
+                // SIM-58: test the list, not the sentinel — a stale or differently-signalled
+                // "empty" used to reach the indexer and throw KeyNotFoundException.
+                if (eventList.Count == 0) return null;
+                if (!eventList.TryGetValue(timeOfNextScheduledEvent, out var eventsAtTheTime)) return null;
+                if (eventsAtTheTime.Count == 0) return null;
+                return eventsAtTheTime.First().Value;
             }
         }
 
@@ -255,8 +267,13 @@ namespace SimOpt.Simulation.Engine
             if (tmpEventsAtTheTimeRemove.Count == 0) eventList.Remove(evnt.Time);
 
             // calculate next point in time with events
+            // SIM-58: removing the last event used to leave the previous finite time in place, so
+            // external consumers (visualization, logging) asked for events at a time that no
+            // longer had any.
             if (eventList.Count > 0)
                 timeOfNextScheduledEvent = eventList.First<KeyValuePair<double, SortedDictionary<Priority, IEventInstance>>>().Key;
+            else
+                timeOfNextScheduledEvent = NoNextEvent;
         }
 
         #endregion
@@ -322,7 +339,7 @@ namespace SimOpt.Simulation.Engine
             if (eventList.Any())
                 timeOfNextScheduledEvent = eventList.First<KeyValuePair<double, SortedDictionary<Priority, IEventInstance>>>().Key;
             else
-                timeOfNextScheduledEvent = double.PositiveInfinity;
+                timeOfNextScheduledEvent = NoNextEvent;
 
             tmpHandledEvents.Clear();
         }
@@ -348,6 +365,9 @@ namespace SimOpt.Simulation.Engine
             orderCounter = 0;
             eventList.Clear();
             eventKeyMap.Clear();
+            // SIM-58: Reset cleared the calendar but left the cached next-event time behind, so a
+            // freshly reset model still advertised the previous run's schedule.
+            timeOfNextScheduledEvent = NoNextEvent;
 #if ImmediateEvents
             processingImmediate = false;
             immediateList.Clear();

@@ -11,4 +11,12 @@
     <ProjectReference Include="..\SimOpt.Logging\SimOpt.Logging.csproj" />
     <ProjectReference Include="..\SimOpt.Mathematics\SimOpt.Mathematics.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- SIM-58: EventScheduler.Reset() is internal, and its reset semantics are exactly what the
+         reset-path regression tests need to pin. Exposing internals to the test assembly is
+         cheaper and safer than widening the public surface of the engine kernel. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>SimOpt.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>
