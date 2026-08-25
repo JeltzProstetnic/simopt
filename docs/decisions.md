@@ -270,3 +270,99 @@ environment, not the agent.
   `SwarmingAlgorithm` is the stub), but coupled via reflection to a settable `double[] Parameters`
   that only `TestSolution` provides → zero search on real problems. SIM-36's "PSO is a stub" note
   needs reconciling.
+
+---
+
+## Commercial pivot — the four founding decisions (2026-08-25)
+
+Decided by MG in one sitting after two independent Fable review passes
+(`docs/commercial/2026-08-25-architecture-readiness-review.md`,
+`docs/commercial/2026-08-25-business-strategy.md`). These four settle questions that were
+previously carried as open needs (UN-031, UN-032) and they govern everything downstream.
+
+### D-01 · Licensing: FSL-1.1-ALv2 on the engine, proprietary on the app
+
+**Decided.** The public repository is licensed **FSL-1.1-ALv2** (`LICENSE.md`). The desktop
+application, its embedded assistant and the commercial infrastructure are separate works in a
+separate private repository, and are not covered by it.
+
+- **The prior state was the asset.** Public repo with *no* licence file meant all rights reserved
+  by default: nothing had been given away, so every option was still open. It was spent
+  deliberately rather than drifted out of.
+- **Why FSL rather than Apache-2.0.** The business review's argument, accepted: the engine is the
+  trust layer that the whole product claim rests on, and a one-person shop cannot outrun a fork.
+  FSL blocks *competition* while permitting everything else.
+- **Correcting an earlier mis-description.** FSL was initially presented to MG as "free for
+  non-commercial use, paid for commercial use". That is PolyForm's model, not FSL's. FSL permits
+  **any purpose except a Competing Use** — so commercial internal use, and consultants' client
+  work, are free. The revenue therefore has to come from the closed application layer, not from
+  licensing the engine. MG's decision stands with the accurate reading; it is in fact closer to
+  the open-core he originally chose.
+- **Two-year Apache conversion is a feature, not a concession.** It preserves the dissertation
+  lineage's academic credibility — citable, inspectable, eventually fully open — which is the
+  cheapest credibility available to this product.
+- **Still owed:** confirm the dissertation-era code provenance carries no institutional claim.
+  Austrian universities normally leave dissertation copyright with the author; verify rather than
+  assume. Tracked as SIM-73.
+
+### D-02 · Model access: local-first, cloud optional
+
+**Decided.** The default path is a **locally-hosted model** (Ollama / LM Studio). Commercial
+providers remain fully supported but are opt-in, not the happy path.
+
+This resolves UN-032, and it resolves it in the direction that removes the product's sharpest
+contradiction: bring-your-own-key gave ~95% gross margin but assumed an API key that the primary
+persona — a plant engineer at an SMB manufacturer — does not have and will not obtain.
+
+Consequences, all of which are now requirements rather than options:
+
+- **Confidentiality becomes a headline feature, not a compliance footnote.** A factory's layout
+  never leaves the building. In EU manufacturing — the chosen beachhead — this is a selling point
+  that no cloud-based competitor can match.
+- **Zero marginal inference cost for both sides.** Neither we nor the customer pays per token.
+- **Constrained decoding becomes the mechanism that makes this viable.** llama.cpp and Ollama can
+  constrain generation to a JSON schema, so topology output can be made **syntactically valid by
+  construction** rather than by hoping the model behaves. This is a capability local inference has
+  and several cloud APIs do not — it converts the main weakness of small models into a
+  non-problem for the structural half of the task. Tracked as SIM-83.
+- **The honest risk.** A small local model is materially weaker at *inferring* a correct model
+  from a vague description, even when its JSON is well-formed. Two mitigations, both already in
+  the needs: the read-back-and-confirm loop (UN-002) becomes load-bearing rather than a nicety,
+  and the validation layer (UN-008) must catch semantic nonsense the model cannot.
+- **A hardware floor now exists and must be stated.** A useful model needs roughly 8–16 GB of
+  VRAM or comparable system memory. Some target-persona laptops will not clear it; those users
+  fall back to a cloud provider. This must be checked at first run, not discovered at first
+  failure. Tracked as SIM-82.
+- **A named reference model is now a product artefact.** We must pick one, ship against it, and
+  measure it — "works with local models" is not a claim until a specific model passes a specific
+  benchmark. Tracked as SIM-84, which is also the Month-3 kill-gate measurement.
+
+### D-03 · Backlog priorities as proposed
+
+**Decided.** SIM-62/63/64/68/69 at P0; SIM-67/70/71/79/80 at P1; remainder P2. No changes
+requested.
+
+### D-04 · Employer boundary handled before revenue, not after
+
+**Decided.** Document the dissertation provenance, obtain a written Nebentätigkeit acknowledgment
+worded generically ("simulation software", no dental specifics), and do not lead the public
+positioning with dental. Tracked as SIM-79.
+
+**Reconciled against FSIM-03, which already ruled on this and is NOT reversed.** FSIM-03
+(2026-06-18) moved the *glass* code to the private `furkansim` because it carried real Ivoclar
+station names, timings and operators, and deliberately kept the **Ivotion denture-packing domain
+public** because it carries no confidential data. The business review's "keep Ivotion material
+internal" is about *marketing positioning* — do not make dental the public beachhead — not about
+code location. Both hold simultaneously:
+
+- **Code:** `SimOpt.Ivotion` stays public, per FSIM-03. The trigger that would change this is real
+  Ivoclar production data entering it — the same trigger that moved glass out.
+- **Positioning:** the public beachhead is general discrete manufacturing sold through independent
+  consultants. Ivotion is a showcase vertical, not the story we lead with.
+
+### What these four decide together
+
+The product is: an FSL-licensed engine anyone can read and use, a proprietary application that
+runs a local model by default so nothing leaves the customer's building, sold into general
+discrete manufacturing through consultants, with correctness proven against closed-form results
+before any of it is offered for money.

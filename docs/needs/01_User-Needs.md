@@ -46,14 +46,17 @@ Three commitments follow from that sentence, and every need below serves one of 
 2. **The numbers are defensible or they are not shipped.** Every result carries replications and
    confidence intervals by default. The engine is validated against closed-form results that a
    sceptical reader can check independently.
-3. **The user owns their intelligence and their data.** The LLM provider is the user's choice,
-   including a local model. A factory's layout never has to leave the building.
+3. **The user owns their intelligence and their data.** A locally hosted model is the default, so
+   a factory's layout never leaves the building unless the user chooses otherwise. Commercial
+   providers are available to anyone who wants more capability, but nobody is required to hold an
+   account with anyone to get an answer.
 
 ### Strategic frame (owner decisions, 2026-08-25)
 
 | Decision | Choice | Consequence for these needs |
 |---|---|---|
-| Licensing | Open-core — engine public and readable, commercial layer paid. Exact instrument still open (see UN-031). | Needs must be separable into a free engine tier and a paid product tier. |
+| Licensing | Open-core. Engine under **FSL-1.1-ALv2** (free for any purpose except competing; converts to Apache-2.0 after two years); application proprietary and in a separate private repository. Decided 2026-08-25. | Needs must be separable into a free engine tier and a paid product tier. The engine being free *commercially* means the paid value has to live in the application layer. |
+| Model access | **Local-first.** A locally hosted model is the default path; commercial providers are supported but opt-in. Decided 2026-08-25 (D-02). | No need may assume the user holds an API key. Confidentiality (UN-021) is promoted from an option to a headline capability, and model capability — not onboarding friction — becomes the risk to manage. |
 | Beachhead | General discrete manufacturing, sold **through independent operations consultants** to SMB manufacturers. | The Consultant is the primary buyer persona; the Plant Engineer is the primary *user*. |
 | Form factor | One engine, two heads: an MCP endpoint and a desktop application. Usable **with or without the UI, with or without MCP**. | No need may assume a UI, and no need may assume an MCP client. Theme G exists for this. |
 | Ambition | Prove it earns money at all, first. | Needs are marked for MVP or later; time-to-first-sale outranks completeness everywhere. |
@@ -304,9 +307,10 @@ not paying twice and not locked to a vendor's choice.
 key, **so that** the first five minutes don't require an account with a company I've never dealt
 with.
 - There is a path to a first useful result that does not begin with obtaining a credential.
-- **Open tension, deliberately recorded:** this conflicts with UN-020's economics, which are the
-  basis of the product's margin. Resolution is a product decision, not a technical one —
-  see UN-032. Flagged by both the architecture and business reviews as the sharpest product risk.
+- **RESOLVED 2026-08-25 (D-02): the keyless path is the default, not the fallback.** A locally
+  hosted model requires no credential at all, so this need and UN-020 no longer compete. The cost
+  moves from onboarding friction to model capability, which is addressed by UN-002's read-back
+  loop and UN-008's validation rather than by asking the user for a key.
 
 ---
 
@@ -380,11 +384,35 @@ engagement on this.
 
 ---
 
-## Chapter 10 — Open Questions Carried as Needs
+## Chapter 10 — Questions That Were Carried as Needs
 
-*Recorded here rather than resolved, so they cannot be silently decided by implementation.*
+*Recorded here rather than resolved, so they could not be silently decided by implementation.
+**Both were decided by the owner on 2026-08-25** — see `docs/decisions.md` D-01 and D-02. They
+are kept, with their resolutions, because the reasoning is what future sessions need.*
 
-### UN-031: Licensing Instrument — OPEN
+### UN-031: Licensing Instrument — **DECIDED 2026-08-25**
+
+**Resolution: FSL-1.1-ALv2 on the engine, proprietary on the application.** `LICENSE.md` is in
+place. Note the correction recorded in D-01: FSL permits *any purpose except a Competing Use*, so
+commercial and consultant use of the engine are free and the revenue must come from the closed
+application layer. Remaining obligation: confirm dissertation-era provenance carries no
+institutional claim (SIM-73).
+
+### UN-032: Model-Access Economics — **DECIDED 2026-08-25**
+
+**Resolution: local-first, cloud optional.** A locally-hosted model is the default path; commercial
+providers stay fully supported but opt-in. This resolves the UN-020/UN-022 conflict in favour of
+accessibility and confidentiality, and makes three things requirements rather than options:
+schema-constrained decoding so topology output is valid by construction (SIM-83), a first-run
+hardware check with a stated floor (SIM-82), and a named reference model measured against a
+benchmark before "works with local models" may be claimed (SIM-84).
+
+**UN-022 is therefore no longer in tension with UN-020** — the tension noted in Chapter 7 is
+resolved by making the keyless path the default rather than the fallback.
+
+### Original statements, retained
+
+### UN-031 (as originally raised): Licensing Instrument
 **As the** owner, **I want** a licensing posture that keeps the engine publicly readable and
 citable while preventing a competitor from taking the commercial layer, **so that** the academic
 lineage keeps working as credibility without funding a fork.
@@ -397,7 +425,7 @@ lineage keeps working as credibility without funding a fork.
   reconcilable via FSL but the choice is legally consequential and irreversible in practice.
 - Prerequisite: confirm dissertation-era code provenance carries no institutional claim.
 
-### UN-032: Model-Access Economics — OPEN
+### UN-032 (as originally raised): Model-Access Economics
 **As the** owner, **I want** a resolution of the tension between bring-your-own-key margin and
 non-expert accessibility, **so that** the architecture does not decide it by accident.
 - UN-020 (BYO key, ~95% gross margin, no inference cost) directly conflicts with UN-022 (the target
