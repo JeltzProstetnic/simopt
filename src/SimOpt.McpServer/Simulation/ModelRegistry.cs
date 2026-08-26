@@ -50,7 +50,13 @@ namespace SimOpt.McpServer.Simulation
 
         private static ActiveModel BuildModel(string registryId, TopologyDefinition topology)
         {
-            var model = new Model(topology.Name, topology.Seed, 0d);
+            // SIM-89: built at a deliberately different seed, then reset to the real one at the end
+            // of this method. Model.Reset sets seedChange only when the seed actually differs
+            // (Model.cs:1191), and StochasticEntity re-derives its per-node seed from SeedID only
+            // while seedChange is set (StochasticEntity.cs:41-49). A model constructed at its final
+            // seed would therefore never apply any SeedID, and every node would silently keep the
+            // construction-order seed it happened to be handed.
+            var model = new Model(topology.Name, unchecked(topology.Seed + 1), 0d);
             model.LoggingEnabled = false;
 
             var sources = new Dictionary<string, SimpleSource>();
@@ -72,8 +78,7 @@ namespace SimOpt.McpServer.Simulation
                         if (meanInterval <= 0)
                             throw new InvalidOperationException($"Source '{node.Id}': mean_interval must be positive.");
 
-                        // Build a seed-initialised NegExponentialDistribution
-                        var dist = CreateNegExp(topology.Seed ^ StableHash.Of(node.Id), meanInterval);
+                        var dist = CreateNegExp(meanInterval);
                         int localCounter = entityCounter; // closure capture
                         Func<SimpleEntity> generator = () =>
                         {
@@ -82,8 +87,14 @@ namespace SimOpt.McpServer.Simulation
                             return new SimpleEntity(model, $"E{localCounter}", $"E{localCounter}");
                         };
 
+                        // SIM-62/SIM-89: the node's random stream is keyed to its stable ID, not to
+                        // its position in the node list, so reordering the topology JSON cannot
+                        // change any node's stream. The seedID must be supplied at construction —
+                        // StochasticEntity seeds itself in its constructor and the SeedID setter
+                        // refuses to run afterwards (StochasticEntity.cs:157-160).
                         var source = new SimpleSource(
                             model,
+                            StableHash.Of(node.Id),
                             dist,
                             generator,
                             autoStartDelay: 0d,
@@ -114,12 +125,23 @@ namespace SimOpt.McpServer.Simulation
                         if (serviceTime <= 0)
                             throw new InvalidOperationException($"Server '{node.Id}': service_time must be positive.");
 
-                        var dist = CreateNegExp(topology.Seed ^ (StableHash.Of(node.Id) + 1), serviceTime);
+                        var dist = CreateNegExp(serviceTime);
                         var server = new SimpleServer(
                             model,
+                            StableHash.Of(node.Id),   // see the source case above
                             dist,
                             id: node.Id,
                             name: node.Id);
+                        // SIM-90 (open): this server deliberately keeps the DEFAULT product
+                        // generator, which manufactures a fresh SimpleEntity with a null
+                        // Identifier rather than passing the input entity through. That is wrong
+                        // in two ways — Buffer.Put keys on Identifier, so a server feeding a
+                        // downstream buffer will fail, and entity identity is destroyed, which
+                        // makes an end-to-end cycle time unmeasurable. The obvious fix
+                        // (createProduct: m => m[0]) cannot be applied yet: Server defers the
+                        // product factory to event-firing time while InternalFinishedHandler
+                        // clears activeMaterial, so the delegate is invoked against an empty list.
+                        // Tracked separately rather than bundled into this repair.
                         server.AutoContinue = true;
                         servers[node.Id] = server;
                         break;
@@ -184,6 +206,19 @@ namespace SimOpt.McpServer.Simulation
                     if (servers.TryGetValue(to, out SimpleServer? downSrv))
                     {
                         downSrv.ConnectTo(upBuf);
+                        // SIM-89: a server *pulls* from its buffer, so connecting the two is only
+                        // half the wiring — an idle server has nothing telling it that work has
+                        // arrived. Without this handler the buffer fills and never drains, the run
+                        // completes "successfully", and every sink reports zero. Every other
+                        // builder in the repository does this (SimulationModel.cs:197,
+                        // IvotionTopologyBuilder.cs:106, and both example programs); ModelRegistry
+                        // was the only one that did not, which is why no MCP-built model has ever
+                        // produced throughput.
+                        SimpleServer pulling = downSrv;
+                        upBuf.ItemReceivedEvent.AddHandler((_, _) =>
+                        {
+                            if (pulling.Idle) pulling.Start();
+                        });
                         connected = true;
                     }
                     else if (sinks.TryGetValue(to, out _))
@@ -241,16 +276,31 @@ namespace SimOpt.McpServer.Simulation
                 }
             }
 
+            // Apply the real seed. This is the reset that makes every SeedID assignment above take
+            // effect; from here on the per-node streams are a pure function of (topology.Seed,
+            // node.Id) and survive both a process restart and a reordering of the node list.
+            model.Reset(topology.Seed);
+
             return new ActiveModel(model, sources, buffers, servers, sinks, topology);
         }
 
         /// <summary>
-        /// Creates a seed-initialised negative exponential distribution with the given mean.
+        /// Creates a <b>configured but deliberately uninitialised</b> negative exponential
+        /// distribution with the given mean.
         /// </summary>
-        private static NegExponentialDistribution CreateNegExp(int seed, double mean)
+        /// <remarks>
+        /// SIM-89: this method used to call <c>dist.Initialize(seed)</c> as well. That made every
+        /// call to <c>create_model</c> throw, because <see cref="SimOpt.Simulation.Engine.Random{T}"/>
+        /// rejects an already-initialised distribution (Random.cs:75) — the wrapper owns
+        /// initialisation, since it is what registers the generator with its seed source. The
+        /// exception was swallowed by the tool layer's catch-all and returned as a JSON
+        /// <c>error</c> field, so the MCP head looked like a working tool rejecting a bad model.
+        /// Seeding is now done the engine's own way: see the <c>SeedID</c> assignments in
+        /// <see cref="BuildModel"/>.
+        /// </remarks>
+        private static NegExponentialDistribution CreateNegExp(double mean)
         {
             var dist = new NegExponentialDistribution();
-            dist.Initialize(seed);
             dist.ConfigureMean(mean);
             return dist;
         }

@@ -1205,11 +1205,21 @@ namespace SimOpt.Simulation.Engine
                 rnd.Reset(seed, antithetic, nonStochasticMode);
 
             // reset objects
-            foreach (IIdentifiable obj in items.Values)
+            //
+            // SIM-89: iterate a snapshot. Resetting an entity can legitimately register new
+            // entities with this model — a Source built with autoStartDelay 0 calls Start(0) from
+            // its own Reset, which raises EntityCreatedEvent synchronously, runs the generator, and
+            // the resulting Entity constructor adds itself to `items`. Enumerating the live
+            // dictionary therefore threw "Collection was modified" out of the middle of Reset for
+            // every auto-starting model, which is every model the MCP head builds.
+            //
+            // Entities created during the reset are newly constructed and already in their initial
+            // state, so omitting them from this pass is correct, not merely tolerable.
+            foreach (IIdentifiable obj in new List<IIdentifiable>(items.Values))
                 if(obj is IEntity) (obj as IEntity).Reset();
 
-            // reset other resettable objects
-            foreach (IResettable obj in resettables)
+            // reset other resettable objects (snapshot for the same reason)
+            foreach (IResettable obj in new List<IResettable>(resettables))
                 obj.Reset();
 
             seedChange = false;
