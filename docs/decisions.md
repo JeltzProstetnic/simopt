@@ -547,3 +547,49 @@ expert evidence, and each cost more than the obvious alternative:
   either.
 - **A null half-width at one replication, never zero.** Zero reads as infinite precision. It is the
   single most dangerous number the subsystem could emit.
+
+## 2026-08-26 — the analytic battery (SIM-64), and three rulings
+
+### A 95% interval is the wrong thing to gate a build on
+
+The battery makes fourteen containment assertions. At 95% each, a **correct** engine on a fresh set
+of seeds fails at least one of them about half the time — 0.95¹⁴ ≈ 0.49. Seeds are pinned so any
+given build is deterministic, but the next legitimate change to the random number stream re-rolls
+all fourteen, and SIM-81 is exactly that change.
+
+**Adopted:** the reported interval stays at 95% and is asserted to be *narrow* (half-width ≤ 5% of
+the analytic value); containment is gated at 99.9%, where the fourteen pass together 98.6% of the
+time. Both are computed from the same replication data. Nothing is loosened except the threshold at
+which the build goes red, and the tightness assertion is what stops a high-variance engine hiding
+inside a wide interval — without it, garbage with enough spread sails through a containment check.
+
+### Means cannot see a queue discipline, and this was measured rather than argued
+
+Switching every queue in the battery from FIFO to LIFO leaves the engine work-conserving, so every
+mean-based assertion still passes: Wq, Lq, ρ, Little's law, Pollaczek–Khinchine, Erlang-C, the
+Jackson product form, and even the second-moment M/D/1-against-M/G/1 pair. The distributional check
+on M/M/1 sojourn times fails immediately (√n·D 0.66 → 2.78 against a critical 1.63; A² 0.56 → 14.08
+against 3.86) while the mean sits unmoved at 2.07 against a truth of 2.
+
+**Consequence:** a benchmark suite made only of closed-form *means* is not a verification of a
+discrete-event engine, however many systems it covers. At least one whole-distribution check is
+structural, not a nicety.
+
+### A goodness-of-fit test on autocorrelated data is not a goodness-of-fit test
+
+Consecutive sojourn times from one run are heavily autocorrelated — about 82 customers' worth at
+ρ = 0.8 — and a KS test assumes independence. Run naively it credits the sample with roughly 82
+times the information it holds and rejects a correct engine. The check therefore runs at ρ = 0.5
+(autocorrelation time ≈ 10) and keeps one completion in 50. The distributional claim is exact at
+every stable ρ, so the weaker-looking design gives up nothing.
+
+### Owner rulings, 2026-08-26
+
+- **The Ivotion optimisation surface is fixed, not retired** (SIM-93, P1). Its tab is currently
+  unreachable from `MainWindow.axaml`, so the KPIs are repaired on a surface nobody can open today
+  — accepted deliberately, so that re-enabling the Ivoclar demo is a wiring change rather than a
+  rebuild against engine statistics that will have moved again by then.
+- **SIM-81 promoted P2 → P1, to be done next.** The battery was built to make replacing the random
+  number stream provable rather than merely different, and the evidence is freshest immediately
+  after it lands. Doing it before more benchmarks are pinned also means fewer numbers to re-baseline.
+- **SIM-95 P2, SIM-92 P1, SIM-94 P3, SIM-96 P2, SIM-97 P3** as proposed.
