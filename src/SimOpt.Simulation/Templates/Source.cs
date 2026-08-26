@@ -354,8 +354,40 @@ namespace SimOpt.Simulation.Templates
         public override void Reset()
         {
             base.Reset();
-            if (AutoStart) Start(autoStartDelay);
-            else running = false;
+            if (!AutoStart)
+            {
+                running = false;
+                return;
+            }
+
+            if (autoStartDelay == 0d)
+            {
+                // SIM-91: schedule the zero-delay start as a t=0 action instead of raising it here.
+                //
+                // Start(0) raises EntityCreatedEvent SYNCHRONOUSLY, and Model.Reset walks its
+                // entities in insertion order — so a source that fires its first arrival from
+                // inside Reset hits downstream entities that have not been reset yet. What then
+                // happens to that arrival depends on how the PREVIOUS run left them:
+                //
+                //   • downstream server still idle  → it pulls the entity and schedules its finish
+                //     events into the freshly cleared calendar; Server.Reset then runs, wipes
+                //     `working` and the material, but cannot cancel those events. They fire during
+                //     the run and deliver a phantom product to the sink.
+                //   • downstream server still busy  → the entity waits in the buffer, and
+                //     Buffer.Reset destroys it three lines later.
+                //
+                // So the first run of a model produced one ghost arrival and every subsequent run
+                // silently shot the genuine t=0 arrival. Neither is correct, and the two disagreed
+                // — which is how this surfaced (476/2862 on run one against a stable 475/2859).
+                //
+                // Deferring to a t=0 action fires the arrival after Model.Reset has completed,
+                // against fully reset state. It is the same idiom Server.Reset already uses for its
+                // own auto-start. Model.AddEventAt permits pointInTime == currentTime while the
+                // model is not running, and DoRun processes it at run start.
+                running = false;
+                Model.Schedule(0d, () => Start(0d));
+            }
+            else Start(autoStartDelay);
         }
 
         #endregion

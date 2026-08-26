@@ -141,15 +141,10 @@ public class ModelRegistrySmokeTests
         // fitness comparison built on top of it. This is the MCP-surface analogue of SIM-58.
         second.Should().Be(third);
 
-        // KNOWN GAP — SIM-91, open. The FIRST run of a freshly built model does not yet agree with
-        // the ones after it: measured 476/2/2862 against a stable 475/2/2859 for every later run.
-        // The assertion below is deliberately NOT written as `first.Should().Be(second)`, because a
-        // red test is not a tracked defect and would gate nothing useful. It is written as the
-        // strongest true statement available, so that this test still fails loudly if repeated runs
-        // ever start diverging from each other as well.
-        //   Do not "fix" this by deleting the comment when SIM-91 lands — replace this block with
-        //   `first.Should().Be(second)` and the gap is closed.
-        first.Queue.Should().Be(second.Queue, "even the polluted first run must leave the same residue");
+        // SIM-91, closed. The first run of a freshly built model used to disagree with every later
+        // one (476/2862 against a stable 475/2859) because Source.Reset raised its t=0 arrival
+        // synchronously, mid-reset, against downstream entities that had not been reset yet.
+        first.Should().Be(second, "the first run of a model must not differ from the ones after it");
     }
 
     [Fact]
