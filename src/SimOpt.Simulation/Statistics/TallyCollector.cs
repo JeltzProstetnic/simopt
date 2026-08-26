@@ -87,6 +87,13 @@ namespace SimOpt.Simulation.Statistics
             if (value > max) max = value;
         }
 
+        /// <summary>
+        /// The mean of the retained observations. The <paramref name="now"/> argument is part of
+        /// the shared collector contract and is unused here — an observation-based statistic is
+        /// complete the moment its last observation was made, with no open interval to close.
+        /// </summary>
+        public double Estimate(double now) => Mean;
+
         public override void Reset() => ResetState();
 
         private void ResetState()

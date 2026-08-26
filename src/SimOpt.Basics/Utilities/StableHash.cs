@@ -1,17 +1,17 @@
 using System.Text;
 
-namespace SimOpt.McpServer.Simulation;
+namespace SimOpt.Basics.Utilities;
 
 /// <summary>
-/// A process-stable string hash, used to derive a distinct random seed per node from a single
-/// topology seed.
+/// A process-stable string hash, used to derive a distinct random seed from a stable string key —
+/// a topology node's id, or a replication index.
 /// </summary>
 /// <remarks>
 /// <para>
 /// SIM-62. The obvious choice, <see cref="string.GetHashCode()"/>, is wrong here and wrong in a
 /// way that is invisible in any single session: .NET randomises string hashing per process, so
 /// the same topology and the same seed produce different random streams after every restart of
-/// the MCP server. Reproducibility (UN-009) then holds only within one session, which is exactly
+/// the host process. Reproducibility (UN-009) then holds only within one session, which is exactly
 /// when nobody is checking it.
 /// </para>
 /// <para>

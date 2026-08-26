@@ -129,6 +129,7 @@ namespace SimOpt.Simulation.Templates
         private List<IItemSource<T>> sources;
         private Action<T> notifyItemNotAccepted;
         private BinaryEvent<IEntity, T> itemReceivedEvent;
+        private BinaryEvent<IEntity, T> itemRemovedEvent;
         private UnaryEvent<IEntity> bufferFullEvent;
         private UnaryEvent<IEntity> bufferEmptyEvent;
 
@@ -173,6 +174,18 @@ namespace SimOpt.Simulation.Templates
         /// If you call Put in a handler it will probably result in an infinite loop.
         /// </summary>
         public BinaryEvent<IEntity, T> ItemReceivedEvent { get { return itemReceivedEvent; } }
+        
+        /// <summary>
+        /// Raised synchronously whenever an item leaves the buffer, from every Get overload.
+        /// CAUTION: This is an immediate event. Some event schedulers may not process it.
+        /// </summary>
+        /// <remarks>
+        /// SIM-63. Added so waiting time and queue length can be measured by the engine rather
+        /// than by polling the UI. Raising it is free of side effects on the simulation: it draws
+        /// no random numbers and schedules nothing, so the event calendar of an instrumented run is
+        /// identical to that of an uninstrumented one and the SIM-58 reset guarantees are untouched.
+        /// </remarks>
+        public BinaryEvent<IEntity, T> ItemRemovedEvent { get { return itemRemovedEvent; } }
         
         /// <summary>
         /// CAUTION: This is an immediate event. Some event schedulers may not process it.
@@ -292,6 +305,11 @@ namespace SimOpt.Simulation.Templates
             bufferEmptyEvent.Priority = new Priority(type: PriorityType.LowLevelAfterOthers);
             itemReceivedEvent = new BinaryEvent<IEntity, T>(EntityName + ".ItemReceived");
             itemReceivedEvent.Priority = new Priority(type: PriorityType.LowLevelAfterOthers);
+            // SIM-63: counterpart of ItemReceivedEvent. Without it there is no per-item removal
+            // notification anywhere on the buffer, so a waiting time cannot be closed and a queue
+            // length cannot be decremented from the engine.
+            itemRemovedEvent = new BinaryEvent<IEntity, T>(EntityName + ".ItemRemoved");
+            itemRemovedEvent.Priority = new Priority(type: PriorityType.LowLevelAfterOthers);
         }
 
         #endregion
@@ -442,6 +460,11 @@ namespace SimOpt.Simulation.Templates
                 itemsByPriority.Remove(priority);
                 LogGetMsg(result);
 
+                // SIM-63: raised before the empty-event so a statistics handler sees the removal
+                // in order, and raised from all three Get overloads so a collector cannot drift
+                // from the buffer's real contents by watching only one of them.
+                itemRemovedEvent.Raise(this, result);
+
 #if ImmediateEvents
                 if (IsEmpty) Model.AddImmediateEvent(bufferEmptyEvent.GetInstance(this));
 #else
@@ -469,6 +492,11 @@ namespace SimOpt.Simulation.Templates
                 entityIDs.Remove(id);
                 itemsByPriority.Remove(priority);
                 LogGetMsg(result);
+
+                // SIM-63: raised before the empty-event so a statistics handler sees the removal
+                // in order, and raised from all three Get overloads so a collector cannot drift
+                // from the buffer's real contents by watching only one of them.
+                itemRemovedEvent.Raise(this, result);
 
 #if ImmediateEvents
                 if (IsEmpty) Model.AddImmediateEvent(bufferEmptyEvent.GetInstance(this));
@@ -498,6 +526,11 @@ namespace SimOpt.Simulation.Templates
                 entityIDs.Remove(iid);
                 itemsByPriority.Remove(priority);
                 LogGetMsg(result);
+
+                // SIM-63: raised before the empty-event so a statistics handler sees the removal
+                // in order, and raised from all three Get overloads so a collector cannot drift
+                // from the buffer's real contents by watching only one of them.
+                itemRemovedEvent.Raise(this, result);
 
 #if ImmediateEvents
                 if (IsEmpty) Model.AddImmediateEvent(bufferEmptyEvent.GetInstance(this));

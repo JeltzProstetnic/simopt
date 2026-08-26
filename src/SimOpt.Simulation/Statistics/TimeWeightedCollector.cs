@@ -152,6 +152,9 @@ namespace SimOpt.Simulation.Statistics
             return TimeIntegral(now) / span;
         }
 
+        /// <summary>The time-average as of <paramref name="now"/>.</summary>
+        public double Estimate(double now) => TimeAverage(now);
+
         public override void Reset() => ResetState();
 
         // ── internals ────────────────────────────────────────────────────────

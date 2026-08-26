@@ -34,6 +34,19 @@ namespace SimOpt.Simulation.Statistics
         long Count { get; }
 
         /// <summary>
+        /// The collector's single summary figure as of <paramref name="now"/> — a mean for an
+        /// observation-based statistic, a time-average for a time-persistent one — or
+        /// <see cref="double.NaN"/> when <see cref="HasData"/> is false.
+        /// </summary>
+        /// <remarks>
+        /// This exists so the replication runner can aggregate every collector uniformly instead of
+        /// switching on its concrete type. A type switch there would silently omit any collector
+        /// kind added later, and the omission would look like a metric that simply was not
+        /// instrumented rather than like a bug.
+        /// </remarks>
+        double Estimate(double now);
+
+        /// <summary>
         /// Whether any data survived warm-up truncation. When false, every reported figure is
         /// <see cref="double.NaN"/> rather than zero — "nothing was measured" and "the measured
         /// value was zero" are different claims and must not be confused in a result a decision

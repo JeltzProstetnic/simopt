@@ -212,6 +212,7 @@ namespace SimOpt.Simulation.Templates
         private Random<double> rndFailureTime;
         private Random<double> rndRecoverTime;
 
+        private BinaryEvent<IEntity, bool> workingChangedEvent;
         private UnaryEvent<IEntity> recoverEvent;
         private UnaryEvent<IEntity> repeaterEvent;
         
@@ -332,6 +333,27 @@ namespace SimOpt.Simulation.Templates
         public BinaryEvent<IEntity, TProduct> EntityFinishedEvent
         {
             get { return entityFinishedSimpleEvent; }
+        }
+
+        /// <summary>
+        /// Raised synchronously whenever this server starts or stops working, carrying the new
+        /// state. This is the only way to observe the busy/idle transition from outside the server.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// SIM-63. Utilisation was previously obtained by sampling <see cref="Working"/> once per
+        /// UI render tick, which cannot see a busy interval shorter than the poll gap and is
+        /// unreachable from a headless run. An event-driven transition is exact.
+        /// </para>
+        /// <para>
+        /// Note the semantics deliberately follow <see cref="Working"/>, which is true during the
+        /// pre-failure work interval. <see cref="Busy"/> is a different measure, being
+        /// working-or-recovering; availability analysis wants that one and is a separate collector.
+        /// </para>
+        /// </remarks>
+        public BinaryEvent<IEntity, bool> WorkingChangedEvent
+        {
+            get { return workingChangedEvent; }
         }
 
         public TernaryEvent<IEntity, TProduct, TData> EntityWithDataFinishedEvent
@@ -526,6 +548,11 @@ namespace SimOpt.Simulation.Templates
             currentMaterial = new List<TMaterial>();
             activeMaterial = new List<TMaterial>();
 
+            // SIM-63: created at initialize time, never per reset, so handlers registered once by
+            // an instrument survive every Model.Reset exactly as the other server events do.
+            workingChangedEvent = new BinaryEvent<IEntity, bool>(EntityName + ".WorkingChanged");
+            workingChangedEvent.Priority = new Priority(type: PriorityType.LowLevelAfterOthers);
+
             // init material checks
             if (checkMaterialUsable == null) this.checkMaterialUsable = DefaultMaterialUsableCheck;
             else this.checkMaterialUsable = checkMaterialUsable;
@@ -598,6 +625,11 @@ namespace SimOpt.Simulation.Templates
             currentMaterial = new List<TMaterial>();
             activeMaterial = new List<TMaterial>();
 
+            // SIM-63: created at initialize time, never per reset, so handlers registered once by
+            // an instrument survive every Model.Reset exactly as the other server events do.
+            workingChangedEvent = new BinaryEvent<IEntity, bool>(EntityName + ".WorkingChanged");
+            workingChangedEvent.Priority = new Priority(type: PriorityType.LowLevelAfterOthers);
+
             // init material checks
             if (checkMaterialUsable == null) this.checkMaterialUsable = DefaultMaterialUsableCheck;
             else this.checkMaterialUsable = checkMaterialUsable;
@@ -642,7 +674,7 @@ namespace SimOpt.Simulation.Templates
 
         private void InternalFailureHandler(IEntity sender, TProduct product, TData data)
         {
-            working = false;
+            SetWorking(false);
             damaged = true;
             nextTimeToFailure = rndFailureTime.Next();
             if(hasRecover && autoRecover) StartRecovering();
@@ -650,7 +682,7 @@ namespace SimOpt.Simulation.Templates
 
         private void InternalFinishedHandler(IEntity sender, TProduct item, TData data)
         {
-            working = false;
+            SetWorking(false);
             nextFinishedSimpleInstance.EventArgs = item;
             activeMaterial.Clear();
 
@@ -805,7 +837,7 @@ namespace SimOpt.Simulation.Templates
 
         private void StartFailing()
         {
-            working = true;
+            SetWorking(true);
 
             if (ContinueProductAfterFailure && continueAfterFail)
             {
@@ -828,7 +860,7 @@ namespace SimOpt.Simulation.Templates
 
         private void StartWorking() 
         {
-            working = true;
+            SetWorking(true);
 
             if (ContinueProductAfterFailure && continueAfterFail)
             {
@@ -981,6 +1013,25 @@ namespace SimOpt.Simulation.Templates
         private Tuple<TProduct, TData> DefaultProductGenerator(List<TMaterial> material) 
         { 
             return new Tuple<TProduct, TData>(new TProduct(), default(TData)); 
+        }
+
+        /// <summary>
+        /// Assigns the working flag and announces the transition on
+        /// <see cref="WorkingChangedEvent"/>, but only when the state actually changes.
+        /// </summary>
+        /// <remarks>
+        /// SIM-63. Routing the four transition sites through one method is what makes an
+        /// event-driven utilisation exact: a busy interval is bounded by a true and a false, and
+        /// no interval can be missed the way a polled sample misses anything shorter than its gap.
+        /// Deliberately NOT used by Reset - a reset is not a transition, and a collector re-reads
+        /// the live value from its probe instead, so emitting one there would inject a spurious
+        /// interval at time zero.
+        /// </remarks>
+        private void SetWorking(bool value)
+        {
+            if (working == value) return;
+            working = value;
+            workingChangedEvent.Raise(this, value);
         }
 
         private Tuple<TProduct, TData> ReturnProduct()

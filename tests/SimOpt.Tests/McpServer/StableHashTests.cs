@@ -1,5 +1,5 @@
 using FluentAssertions;
-using SimOpt.McpServer.Simulation;
+using SimOpt.Basics.Utilities;
 using Xunit;
 
 namespace SimOpt.Tests.McpServer;
