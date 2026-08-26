@@ -5,6 +5,35 @@ NOT a rule sheet (that's CLAUDE.md). NOT session state (that's session-context.m
 
 ---
 
+## Topology schema v1 — shape and deliberate exclusions (2026-08-26, SIM-65)
+
+Full statements and the evidence behind each: `docs/plans/2026-08-26-sim-65-topology-schema-v1.md`
+(D1–D7). The ones that constrain future work:
+
+- **`buffer` and `server` remain accepted aliases for `queue` and `station`.** The v1 names are the
+  only ones advertised by `get_schema` and `list_templates`, but the old ones keep parsing. The
+  reason is not politeness to old files: the pre-SIM-65 tests are the only instrument that can say
+  the schema change broke nothing, and renaming the vocabulary out from under them destroys it.
+- **A multi-capacity `station(servers: c)` is built as a fan-out of c `SimpleServer`s behind a
+  shortest-idle dispatcher, not as a new c-channel `Server`.** The fan-out is the exact construction
+  SIM-64's analytic battery already validates against Erlang-C on both Wq and Lq. A generalised
+  engine class is the better end state and will have to earn the same evidence before it replaces
+  this.
+- **Router weights live on the connection, not the node.** A weight describes an edge, and putting
+  it there keeps the node parameter bag free of nested maps.
+- **The router is a new template rather than an extension of `SimpleRejectServer`,** because that
+  class draws its routing decisions from a `System.Random` outside both the model seed and
+  `Model.Reset` (SIM-99). Inheriting from it would inherit the defect.
+- **Entity classes, `by_attribute` routing and time-varying arrival schedules are out of v1 and
+  filed** (SIM-100, SIM-101) rather than half-built. Nothing in the product's own walkthrough needs
+  them, and arrival schedules additionally invalidate the steady-state warm-up assumption SIM-63's
+  replication runner makes — that is a design question, not a parser.
+- **One catalogue is the source of truth for the vocabulary,** read by the builder, `get_schema` and
+  `list_templates` alike, with a test asserting they agree. A client LLM self-correcting against a
+  schema that has drifted from the parser is worse off than one with no schema at all.
+
+---
+
 ## FSIM-03 — glass code extracted to furkansim (2026-06-18)
 - **simopt is now framework-only.** The Ivoclar glass base-mass digital twin + optimizer was
   moved out of public simopt into the private `IvoclarR-D-AIOrg/furkansim` (commits: simopt
