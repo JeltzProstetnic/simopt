@@ -49,7 +49,13 @@ public class IvotionOptimizationViewModelTests
 
         vm.OperatorWage.Should().Be(32.0);
         vm.SelectedStrategy.Should().Be(IvotionStrategyKind.Evolutionary);
-        vm.SelectedObjective.Should().Be(IvotionObjective.MaximizeThroughput);
+        // docs/decisions.md § "UI default objective" (SIM-37 Phase B, 2026-04-24):
+        // MaximizeThroughput is monotone in operator and Roland count over the 216-combo
+        // space, so the EA converges in generation 1 and draws a flat fitness line.
+        // MinimizeCostPerPiece is the shipped default because it creates a real
+        // throughput-vs-labour tradeoff. This assertion had pinned the pre-decision value
+        // since the file was created, so it never once passed (SIM-55).
+        vm.SelectedObjective.Should().Be(IvotionObjective.MinimizeCostPerPiece);
         vm.Iterations.Should().BePositive();
         vm.PopulationSize.Should().BePositive();
         vm.IsRunning.Should().BeFalse();
