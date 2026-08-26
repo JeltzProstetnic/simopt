@@ -17,27 +17,21 @@ and a *measured* run-length and replication design.
 | 1 | **M/M/1** | source(exp) → buffer → server(exp) → sink | Already wired in `ReplicationRunnerTests.BuildStochastic` — lift that helper. λ=0.8, μ=1.0 ⇒ Wq = 4 exactly. |
 | 2 | **M/D/1 and M/G/1-uniform** | as above, service `ConstantDoubleDistribution` / `UniformDoubleDistribution` | **The only second-moment check in the battery.** Same λ, ρ and E[S]; only Var(S) differs. If the two come out equal, the service sampler is returning its mean and every mean-value test still passes. |
 | 3 | **M/M/c** | one buffer, c servers each `ConnectTo(buffer)` with its own kick handler | λ=2.4, μ=1.0, c=3. Verify the kick handler starts *an* idle server, not always the same one. |
-| 4 | **Jackson tandem** | source → buf1 → srv1 → buf2 → srv2 → sink | **BLOCKED ON SIM-90** — a server feeding a downstream buffer fails today, because the default product generator emits an entity with a null Identifier and `Buffer.Put` keys on it. |
+| 4 | **Jackson tandem** | source → buf1 → srv1 → buf2 → srv2 → sink | **Unblocked** — SIM-90 closed 2026-08-26. A working two-stage MCP topology is already pinned in `ModelRegistrySmokeTests.AMultiStageTopology_FlowsEndToEnd`; lift its shape. λ=1.0, μ₁=2.0, μ₂=1.5. |
 
-## SIM-90 investigation — launched, findings NOT received
+## SIM-90 — CLOSED 2026-08-26, so the Jackson network is unblocked
 
-A Fable investigation into SIM-90 was launched near the end of the 2026-08-26 session and had not
-returned when the session closed, so **none of its findings were captured and nothing from it is
-recorded anywhere**. Re-run it rather than assuming it concluded anything.
+The investigation did return, after this handover was first written saying its findings were lost.
+They were not: `createProduct: m => m[0]` is now in `ModelRegistry`, the batch is snapshotted into
+the closure at scheduling time in `Server`, and a two-stage MCP topology flows end to end
+(`ModelRegistrySmokeTests.AMultiStageTopology_FlowsEndToEnd`). **Build the tandem network directly —
+nothing blocks it.**
 
-What was already established before it was launched, so it need not be re-derived: the obvious fix
-(`createProduct: m => m[0]`) throws `IndexOutOfRange`, because `Server.StartWorking` passes
-`ReturnProduct` as a **deferred delegate** to `GetInstance` while `InternalFinishedHandler` clears
-`activeMaterial` — and with `AutoContinue = true` the repeater event is scheduled at the same time
-as the finish event and added *first*, so it can re-enter `StartWorking` before the finish instance
-materialises its product. The candidate fix is to snapshot the material into the closure at
-scheduling time (`var batch = new List<TMaterial>(activeMaterial)`), leaving the deferral intact but
-immune to the list being cleared or reused. Two things must be checked before adopting it: whether
-the delegate can be invoked **more than once** per scheduled event (if so, the default generator has
-been producing two products per service, which would be far worse than the defect being chased), and
-what it does to `SimOpt.Ivotion` — `RolandPrinter` emits one representative entity per batch and
-`IvotionKpis` multiplies the sink count by the batch size to compensate, so a change to product
-generation could silently double or halve its throughput.
+Worth knowing, because the backlog entry originally said the opposite: the deferred product factory
+is invoked **exactly once, at end of service, before** `InternalFinishedHandler` clears the material,
+and the finish event raises **before** the auto-continue repeater regardless of insertion order
+(priority type is compared ahead of insertion order). The `IndexOutOfRange` that made this look
+impossible was the pre-SIM-91 phantom-finish path, already removed by `3279543`.
 
 ## The three traps that will otherwise cost a day each
 

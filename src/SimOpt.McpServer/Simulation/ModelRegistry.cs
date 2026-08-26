@@ -132,17 +132,16 @@ namespace SimOpt.McpServer.Simulation
                             StableHash.Of(node.Id),   // see the source case above
                             dist,
                             id: node.Id,
-                            name: node.Id);
-                        // SIM-90 (open): this server deliberately keeps the DEFAULT product
-                        // generator, which manufactures a fresh SimpleEntity with a null
-                        // Identifier rather than passing the input entity through. That is wrong
-                        // in two ways — Buffer.Put keys on Identifier, so a server feeding a
-                        // downstream buffer will fail, and entity identity is destroyed, which
-                        // makes an end-to-end cycle time unmeasurable. The obvious fix
-                        // (createProduct: m => m[0]) cannot be applied yet: Server defers the
-                        // product factory to event-firing time while InternalFinishedHandler
-                        // clears activeMaterial, so the delegate is invoked against an empty list.
-                        // Tracked separately rather than bundled into this repair.
+                            name: node.Id,
+                            // SIM-90: pass the input entity through instead of manufacturing a
+                            // fresh SimpleEntity with a null Identifier. `Buffer.Put` keys on
+                            // Identifier, so with the default generator any server feeding a
+                            // downstream buffer threw — every multi-stage topology was unbuildable.
+                            // It also destroys entity identity, which makes an end-to-end cycle
+                            // time unmeasurable: the thing reaching the sink was not the thing that
+                            // left the source. For a flow model the part that leaves a station is
+                            // the part that entered it.
+                            createProduct: m => m[0]);
                         server.AutoContinue = true;
                         servers[node.Id] = server;
                         break;

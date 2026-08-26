@@ -849,7 +849,10 @@ namespace SimOpt.Simulation.Templates
                 activeMaterial.AddRange(currentMaterial);
                 currentMaterial.Clear();
 
-                nextFailureInstance = failureEvent.GetInstance(this, ReturnProduct);
+                // SIM-90: same snapshot as StartWorking — the failure event materialises its
+                // product through the identical deferred path.
+                List<TMaterial> batch = new List<TMaterial>(activeMaterial);
+                nextFailureInstance = failureEvent.GetInstance(this, () => createProduct.Invoke(batch));
             }
 
             Model.AddEvent(nextTimeToFailure, nextFailureInstance);
@@ -871,7 +874,15 @@ namespace SimOpt.Simulation.Templates
                 activeMaterial.Clear();
                 activeMaterial.AddRange(currentMaterial);
                 currentMaterial.Clear();
-                nextFinishedInstance = entityFinishedEvent.GetInstance(this, ReturnProduct);
+                // SIM-90: snapshot the batch into the closure at scheduling time. The factory is
+                // still invoked at raise time (end of service) — measured, once per scheduled
+                // instance, before InternalFinishedHandler clears the list — but it now runs
+                // against a list nothing can mutate in between. ClearActiveMaterial scheduled
+                // mid-service, Stop(cancelScheduledEvents: false) followed by a clear, or a
+                // reset-ordering regression of the SIM-91 kind all reach the pending finish with
+                // an empty activeMaterial otherwise, and a pass-through factory then throws.
+                List<TMaterial> batch = new List<TMaterial>(activeMaterial);
+                nextFinishedInstance = entityFinishedEvent.GetInstance(this, () => createProduct.Invoke(batch));
             }
 
             nextFinishedSimpleInstance = entityFinishedSimpleEvent.GetInstance(this, default(TProduct)); // product will be set later
@@ -1032,11 +1043,6 @@ namespace SimOpt.Simulation.Templates
             if (working == value) return;
             working = value;
             workingChangedEvent.Raise(this, value);
-        }
-
-        private Tuple<TProduct, TData> ReturnProduct()
-        {
-            return createProduct.Invoke(activeMaterial);
         }
 
         #endregion

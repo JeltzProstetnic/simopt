@@ -94,6 +94,52 @@ public class ModelRegistrySmokeTests
         doc.RootElement.GetProperty("events_processed").GetInt64().Should().BeGreaterThan(0);
     }
 
+    /// <summary>A two-stage line: source → buffer → server → buffer → server → sink.</summary>
+    private static TopologyDefinition TwoStage() => new()
+    {
+        Name = "TwoStage",
+        Seed = 42,
+        Nodes =
+        {
+            new NodeDefinition { Id = "arrivals", Type = "source", Params = { ["mean_interval"] = 2.0 } },
+            new NodeDefinition { Id = "q1",     Type = "buffer", Params = { ["capacity"] = 100 } },
+            new NodeDefinition { Id = "s1",     Type = "server", Params = { ["service_time"] = 1.0 } },
+            new NodeDefinition { Id = "q2",     Type = "buffer", Params = { ["capacity"] = 100 } },
+            new NodeDefinition { Id = "s2",     Type = "server", Params = { ["service_time"] = 1.0 } },
+            new NodeDefinition { Id = "done",   Type = "sink" },
+        },
+        Connections =
+        {
+            new ConnectionDefinition { From = "arrivals", To = "q1" },
+            new ConnectionDefinition { From = "q1",       To = "s1" },
+            new ConnectionDefinition { From = "s1",       To = "q2" },
+            new ConnectionDefinition { From = "q2",       To = "s2" },
+            new ConnectionDefinition { From = "s2",       To = "done" },
+        },
+    };
+
+    [Fact]
+    public void AMultiStageTopology_FlowsEndToEnd()
+    {
+        var registry = new ModelRegistry();
+        var tools = new SimulationTools(registry);
+        string modelId = registry.Create(TwoStage());
+
+        string json = tools.RunSimulation(modelId, 1000.0);
+
+        using var doc = JsonDocument.Parse(json);
+        // SIM-90: before the pass-through product factory this threw ArgumentNullException at
+        // simulated time 1.170 — the first server emitted an entity with a null Identifier and the
+        // downstream Buffer.Put keys on exactly that. Every multi-stage topology was unbuildable,
+        // and the tool layer's catch-all turned the crash into a tidy error document. The product's
+        // own flagship examples are all multi-stage.
+        doc.RootElement.TryGetProperty("error", out JsonElement err)
+            .Should().BeFalse($"a two-stage line must run, but reported: {(err.ValueKind == JsonValueKind.Undefined ? "" : err.GetString())}");
+
+        doc.RootElement.GetProperty("stats").GetProperty("sinks").GetProperty("done")
+            .GetInt32().Should().BeGreaterThan(0, "entities must reach the sink through both stations");
+    }
+
     // ── reproducibility (UN-009, UN-033) ──────────────────────────────────────
 
     /// <summary>Runs the SQSS topology once and returns how many entities reached the sink.</summary>
