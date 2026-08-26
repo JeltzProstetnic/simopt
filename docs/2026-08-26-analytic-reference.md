@@ -1,6 +1,14 @@
 <!-- Action: reference -->
-<!-- Tracked-by: SIM-63, SIM-64 -->
+<!-- Tracked-by: SIM-63, SIM-64 (both closed — retained as the standing derivation record) -->
+<!-- consumed-by: docs/plans/2026-08-26-sim-64-analytic-battery.md (implements §3 and §4), tests/SimOpt.Tests/Simulation/Statistics/AnalyticBatteryTests.cs (every pinned constant) -->
 # Analytic reference: CI machinery and closed-form queueing constants
+
+> **SIM-63 and SIM-64 are both closed.** This file is kept because it is the derivation, not the
+> handover: every constant pinned in the battery traces back here. Three places where the build
+> departed from what is written below — the 99.9% containment gate, the ρ = 0.5 thinned
+> distributional check, and the single-fixture structure — are recorded with their reasons in
+> `docs/plans/2026-08-26-sim-64-analytic-battery.md`. Read that alongside §4 before changing a run
+> length.
 
 Derived 2026-08-26 for SIM-63 (replication confidence intervals) and SIM-64 (the analytic
 benchmark battery). Every constant here is destined to be pinned as a literal test value, so each
