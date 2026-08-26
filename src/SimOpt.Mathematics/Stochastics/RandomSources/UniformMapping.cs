@@ -46,13 +46,13 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
             // Masking the sign bit clears it without discarding any other, so the cast is always
             // defined and always non-negative — unlike the Math.Abs form it replaces.
             //
-            // Masking rather than shifting is deliberate. A one-bit right shift is equally
-            // unbiased for a source that is uniform across all 32 bits, but MersenneTwister
-            // pre-seeds its buffer from System.Random.Next(), which returns [0, int.MaxValue) and
-            // therefore never sets the high bit. Under a shift its first 624 draws would be
-            // confined to the lower half of the range and NextDouble() would return values in
-            // [0, 0.5) — a far worse defect than the one being fixed. Masking keeps the low bits,
-            // which carry the entropy in both the seeded and the twisted regime.
+            // Masking rather than shifting is deliberate, though the reason has changed. It was
+            // originally a defence: MersenneTwister pre-seeded its buffer from System.Random.Next()
+            // and so never set the high bit in its first 624 draws, which under a shift would have
+            // confined them to [0, 0.5). SIM-81 fixed that at the source, so a shift would now be
+            // equally unbiased here. Masking is kept because it is unconditionally safe — it makes
+            // no assumption about which bits of an incoming word carry entropy, and this function
+            // serves four generators of varying quality, not one.
             value = (int)(raw & 0x7FFFFFFFu);
             return value != int.MaxValue;
         }

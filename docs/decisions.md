@@ -593,3 +593,31 @@ every stable ρ, so the weaker-looking design gives up nothing.
   number stream provable rather than merely different, and the evidence is freshest immediately
   after it lands. Doing it before more benchmarks are pinned also means fewer numbers to re-baseline.
 - **SIM-95 P2, SIM-92 P1, SIM-94 P3, SIM-96 P2, SIM-97 P3** as proposed.
+
+## 2026-08-26 — SIM-81, and what a conformance fix is allowed to claim
+
+The class named `MersenneTwister` was not one: it seeded its state from `System.Random.Next()` with
+the read index at 0, so its first 624 outputs were System.Random's verbatim and never had bit 31
+set, and it omitted the tempering transform entirely. Both are now the reference algorithm, pinned
+to the published seed-5489 vector.
+
+**The honest scope of the improvement was smaller than the entry filing it expected, and saying so
+mattered more than the fix.** The first-block defect is real and large — KS against uniform on the
+first 624 raw words goes from √n·D = 12.50 to 0.67 against a critical value of 1.63. But at
+n = 1,000,000 *both* generators pass uniformity comfortably, and a low-three-bit chi-square passes
+for both: the defect dilutes to invisibility in a large sample, and tempering buys 623-dimensional
+equidistribution that no one-dimensional frequency test can detect. The whole analytic battery
+passes on four seed sets with **either** generator.
+
+**Adopted:** describe this as a conformance fix, not as the repair of a wrong answer. A product sold
+partly on the defensibility of its numbers cannot ship a class that claims a named, published
+algorithm and implements something else — that is the argument, and it is sufficient on its own. An
+inflated claim of measured improvement would be the more damaging thing to have written down,
+because it is the kind of statement an opposing expert can check.
+
+One result was kept precisely because it is unresolved: the old generator's mean error across the
+battery barely moves between seed sets (0.399–0.453) while the new one's varies as sampling noise
+should (0.139–0.479). A quantity that ought to fluctuate and doesn't suggests a systematic
+component — plausibly cross-stream correlation, since per-node seeds are XOR-derived from a single
+base seed. Four seed sets cannot settle it. It is recorded as an open question against SIM-96
+rather than resolved by assertion in either direction.

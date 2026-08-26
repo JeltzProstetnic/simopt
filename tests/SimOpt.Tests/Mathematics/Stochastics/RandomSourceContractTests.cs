@@ -74,11 +74,14 @@ public class RandomSourceContractTests
     }
 
     /// <summary>
-    /// The mapping must not discard entropy. Masking the sign bit preserves the low 31 bits;
-    /// shifting instead would confine MersenneTwister's first 624 draws — which come straight
-    /// from <c>System.Random.Next()</c> and never set the high bit — to the lower half of the
-    /// range, putting <c>NextDouble()</c> on [0, 0.5).
+    /// The mapping must not discard entropy: masking the sign bit preserves the low 31 bits.
     /// </summary>
+    /// <remarks>
+    /// This was originally a defence against MersenneTwister's first 624 draws coming straight from
+    /// <c>System.Random.Next()</c> and never setting the high bit, which under a shift would have
+    /// put <c>NextDouble()</c> on [0, 0.5). SIM-81 fixed that at the source; the assertion stands
+    /// because the mapping still serves three other generators whose bit quality is unaudited.
+    /// </remarks>
     [Theory]
     [InlineData(0x00000001u, 1)]
     [InlineData(0x12345678u, 0x12345678)]
@@ -90,9 +93,14 @@ public class RandomSourceContractTests
     }
 
     /// <summary>
-    /// The whole documented range must be reachable from a source whose high bit is never set —
-    /// which is precisely MersenneTwister's seeded state.
+    /// The whole documented range must be reachable inside the first 624-draw block.
     /// </summary>
+    /// <remarks>
+    /// Written when that block came from <c>System.Random</c> with the high bit never set, so it
+    /// was a real risk. Since SIM-81 the block is genuine MT19937 output and this passes easily —
+    /// it is kept as the cheap regression against the seeded window ever again being special.
+    /// The conclusive version is <c>MersenneTwisterReferenceTests</c>, which pins the raw words.
+    /// </remarks>
     [Fact]
     public void MersenneTwister_FirstDraws_SpanTheFullUnitInterval()
     {
