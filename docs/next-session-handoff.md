@@ -1,8 +1,10 @@
-Action: act
+<!-- Action: reference -->
+<!-- Tracked-by: SIM-36 -->
+# SIM-36 (Particle Swarm Optimization) — background notes
 
-# Next Session — SIM-36 (Particle Swarm Optimization)
-
-Tracked-by: SIM-36
+> Demoted from `act` to `reference` on 2026-08-26. Written 2026-04-24 as a next-session handoff
+> and never executed; a handoff that survives four months was never a handoff. SIM-36 is tracked in
+> `backlog.md`, which is the sole status authority — this file is kept only for the context below.
 
 ## Starting point
 
