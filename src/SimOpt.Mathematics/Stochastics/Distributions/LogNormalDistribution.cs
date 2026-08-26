@@ -38,11 +38,14 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 
         public bool Configured { get; set; }
 
+        /// <summary>
+        /// The value substituted for a draw in a deterministic run — the mean, shift included.
+        /// </summary>
         public double NonStochasticValue
         {
             get
             {
-                return mean;
+                return Mean;
             }
         }
 
@@ -76,9 +79,18 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         /// </summary>
         public int DrawCount { get; set; }
 
+        /// <summary>
+        /// The expected value of this distribution, <b>including</b> the shift.
+        /// </summary>
+        /// <remarks>
+        /// SIM-102: the shift is read through rather than folded in at configure time, because
+        /// <see cref="Shift"/> is publicly settable and a mean computed once would go stale the
+        /// moment anyone used it. Before this, <c>Next()</c> added the shift and <c>Mean</c> did
+        /// not, so a distribution drawing around 8.0 reported 3.0.
+        /// </remarks>
         public double Mean
         {
-            get { return mean; }
+            get { return mean + shift; }
         }
 		
 		/// <summary>
@@ -110,7 +122,19 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		/// <summary>
 		/// empty constructor
 		/// </summary>
-		public LogNormalDistribution() { }
+		/// <remarks>
+		/// SIM-103: the internal Gaussian is created here rather than left null. Every
+		/// <c>Configure</c> overload dereferences it immediately, so without this the parameterless
+		/// constructor produced an object on which the only useful methods threw
+		/// <c>NullReferenceException</c> — and since <c>LogNormalDistribution(mean, stddev, shift)</c>
+		/// chains to this constructor, that public constructor threw on every call. It also closed
+		/// the configure-then-seed order that <c>Random&lt;T&gt;</c> requires, which is the only way
+		/// a distribution reaches a simulation model.
+		/// </remarks>
+		public LogNormalDistribution()
+		{
+			this.dblGaussian = new GaussianDistribution();
+		}
 		
 		/// <summary>
 		/// Constructor using random generator
@@ -174,14 +198,24 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 		#endregion
         #region init
 
+        /// <summary>
+        /// Seeds this distribution, preserving whatever it was configured with.
+        /// </summary>
+        /// <remarks>
+        /// SIM-103: this used to <em>replace</em> the internal Gaussian, discarding the mu and sigma
+        /// that <c>Configure</c> had just set and silently reverting to the standard lognormal.
+        /// <c>Random&lt;T&gt;</c> configures first and initialises second, so on the engine's own
+        /// path the configuration was always thrown away — and unlike the constructor defect this
+        /// one produced numbers rather than an exception.
+        /// </remarks>
         public void Initialize(int seed, bool antithetic = false)
         {
-            dblGaussian = new GaussianDistribution(seed, antithetic: antithetic);
+            dblGaussian.Initialize(seed, antithetic);
         }
 
         public void Initialize(IRandomSource rnd)
         {
-            dblGaussian = new GaussianDistribution(rnd);
+            dblGaussian.Initialize(rnd);
         }
 
         public void Initialize(int seed, double mu = 0d, double sigma = 1d, bool antithetic = false)

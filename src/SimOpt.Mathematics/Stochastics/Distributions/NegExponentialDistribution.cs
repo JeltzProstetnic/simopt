@@ -72,19 +72,31 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
         /// </summary>
         public int DrawCount { get; set; }
 
+        /// <summary>
+        /// The value substituted for a draw in a deterministic run — the mean, shift included.
+        /// </summary>
         public double NonStochasticValue
         {
             get
             {
-                return mean;
+                return Mean;
             }
         }
 
+        /// <summary>
+        /// The expected value of this distribution, <b>including</b> the shift.
+        /// </summary>
+        /// <remarks>
+        /// SIM-102: read through rather than folded in at configure time, because <see cref="Shift"/>
+        /// is publicly settable. Before this, <c>Next()</c> added the shift and <c>Mean</c> did not,
+        /// so a distribution drawing around 7.0 reported 2.0 — and SIM-66's analytic pre-check reads
+        /// exactly this property to estimate offered load.
+        /// </remarks>
         public double Mean
         {
             get
             {
-                return mean;
+                return mean + shift;
             }
         }
 

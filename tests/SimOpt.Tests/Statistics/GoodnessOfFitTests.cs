@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
 using FluentAssertions;
+using SimOpt.Mathematics;
 using SimOpt.Mathematics.Stochastics.Distributions;
+using SimOpt.Mathematics.Stochastics.Interfaces;
 using SimOpt.Statistics.Analysis;
 using Xunit;
 
@@ -251,5 +253,145 @@ public class GoodnessOfFitTests
 
         act.Should().Throw<ArgumentException>()
             .WithMessage("*support*");
+    }
+
+    // ── SIM-65: the samplers the topology schema newly exposes ───────────────
+    //
+    // Triangular, lognormal and gamma become writable by a user for the first time in schema v1.
+    // None had ever been checked against its own distribution function — only against its mean, and
+    // SIM-64 measured directly what a mean cannot see: switching every queue in the battery from
+    // FIFO to LIFO left all nine mean-based comparisons passing and failed only the distributional
+    // check. A sampler is certified by its CDF or it is not certified.
+    //
+    // Each acceptance is paired with a rejection at a plausible wrong parameter, so the instrument
+    // is shown to have power against the very sampler it is certifying.
+
+    private static double[] SampleOf(IDistribution<double> dist, int seed, int n = SampleSize)
+    {
+        dist.Initialize(seed, false);
+        return Enumerable.Range(0, n).Select(_ => dist.Next()).ToArray();
+    }
+
+    private static void MustFit(double[] sample, Func<double, double> cdf, string what)
+    {
+        double d = GoodnessOfFit.KolmogorovSmirnov(sample, cdf);
+        double a2 = GoodnessOfFit.AndersonDarling(sample, cdf);
+
+        (Math.Sqrt(sample.Length) * d).Should().BeLessThan(GoodnessOfFit.KolmogorovSmirnovCriticalValue(0.01),
+            $"{what}: sqrt(n)*D = {Math.Sqrt(sample.Length) * d:F5}");
+        a2.Should().BeLessThan(GoodnessOfFit.AndersonDarlingCriticalValue(0.01),
+            $"{what}: A2 = {a2:F5}");
+    }
+
+    private static void MustBeRejected(double[] sample, Func<double, double> cdf, string what)
+    {
+        double a2 = GoodnessOfFit.AndersonDarling(sample, cdf);
+
+        a2.Should().BeGreaterThan(GoodnessOfFit.AndersonDarlingCriticalValue(0.01),
+            $"{what}: A2 = {a2:F5} — if this passes the instrument has no power over this family");
+    }
+
+    /// <summary>F(x) for Triangular(a, c, b) with mode c.</summary>
+    private static Func<double, double> TriangularCdf(double a, double c, double b) => x =>
+    {
+        if (x <= a) return 0d;
+        if (x >= b) return 1d;
+        return x <= c
+            ? (x - a) * (x - a) / ((b - a) * (c - a))
+            : 1d - (b - x) * (b - x) / ((b - a) * (b - c));
+    };
+
+    /// <summary>F(x) for Lognormal(mu, sigma).</summary>
+    private static Func<double, double> LognormalCdf(double mu, double sigma) => x =>
+        x <= 0d ? 0d : 0.5d * (1d + MMath.Erf((Math.Log(x) - mu) / (sigma * Math.Sqrt(2d))));
+
+    /// <summary>F(x) for Gamma(k, theta) — the regularised lower incomplete gamma P(k, x/theta).</summary>
+    private static Func<double, double> GammaCdf(double k, double theta) => x =>
+        x <= 0d ? 0d : MMath.Igam(k, x / theta);
+
+    [Fact]
+    public void TheTriangularSampler_IsNotRejectedAgainstItsOwnDistribution()
+    {
+        var d = new TriangularDistribution();
+        d.Configure(20d, 30d, 40d);   // the product's own walkthrough: "exams 20-40 min"
+
+        MustFit(SampleOf(d, 20_260_826), TriangularCdf(20d, 30d, 40d), "Triangular(20, 30, 40)");
+    }
+
+    [Fact]
+    public void ATriangularWithTheWrongMode_IsRejected()
+    {
+        // Mean 30 either way — (20 + 30 + 40)/3 and (20 + 26 + 44)/3 both come to 30. This is the
+        // shape error that no moment check in the codebase can see.
+        var d = new TriangularDistribution();
+        d.Configure(20d, 30d, 40d);
+
+        MustBeRejected(SampleOf(d, 20_260_826), TriangularCdf(20d, 26d, 44d),
+            "a mode error that preserves the mean");
+    }
+
+    [Fact]
+    public void TheLognormalSampler_IsNotRejectedAgainstItsOwnDistribution()
+    {
+        var d = new LogNormalDistribution();
+        d.Configure(mu: 1.0, sigma: 0.5);
+
+        MustFit(SampleOf(d, 20_260_826), LognormalCdf(1.0, 0.5), "Lognormal(mu=1, sigma=0.5)");
+    }
+
+    [Fact]
+    public void ALognormalWithTheWrongSigma_IsRejected()
+    {
+        var d = new LogNormalDistribution();
+        d.Configure(mu: 1.0, sigma: 0.5);
+
+        MustBeRejected(SampleOf(d, 20_260_826), LognormalCdf(1.0, 0.6), "a 20% sigma error");
+    }
+
+    [Fact]
+    public void ALognormalSpecifiedByItsMoments_MatchesTheImpliedLogSpaceDistribution()
+    {
+        // ConfigureMean solves for mu and sigma from the mean and standard deviation of the
+        // distribution itself. If that algebra is wrong the sampler still has roughly the right
+        // scale, so only a fit against the *implied* mu and sigma catches it.
+        // mean 3, stddev 1 ⇒ mu = ln(9/sqrt(10)) = 1.04654, sigma = sqrt(ln(10/9)) = 0.32459.
+        var d = new LogNormalDistribution();
+        d.ConfigureMean(3.0, 1.0);
+
+        double mu = Math.Log(9d / Math.Sqrt(10d));
+        double sigma = Math.Sqrt(Math.Log(10d / 9d));
+
+        MustFit(SampleOf(d, 4_242), LognormalCdf(mu, sigma), "Lognormal from moments (3, 1)");
+    }
+
+    [Fact]
+    public void TheGammaSampler_IsNotRejectedAgainstItsOwnDistribution()
+    {
+        var d = new GammaDistribution();
+        d.ConfigureKTheta(2.0, 3.0);
+
+        MustFit(SampleOf(d, 20_260_826), GammaCdf(2.0, 3.0), "Gamma(k=2, theta=3)");
+    }
+
+    [Fact]
+    public void AGammaWithTheWrongShape_IsRejected()
+    {
+        // k = 2, theta = 3 and k = 3, theta = 2 both have mean 6. Only the shape differs, and the
+        // shape is the whole reason to choose a gamma over an exponential.
+        var d = new GammaDistribution();
+        d.ConfigureKTheta(2.0, 3.0);
+
+        MustBeRejected(SampleOf(d, 20_260_826), GammaCdf(3.0, 2.0), "a shape error that preserves the mean");
+    }
+
+    [Fact]
+    public void AGammaWithShapeOne_IsAnExponential()
+    {
+        // Gamma(1, theta) is Exp(1/theta) exactly. A sampler that fails this is not sampling a
+        // gamma at all, and the check costs nothing.
+        var d = new GammaDistribution();
+        d.ConfigureKTheta(1.0, 2.5);
+
+        MustFit(SampleOf(d, 20_260_826), ExponentialCdf(0.4), "Gamma(1, 2.5) against Exp(0.4)");
     }
 }

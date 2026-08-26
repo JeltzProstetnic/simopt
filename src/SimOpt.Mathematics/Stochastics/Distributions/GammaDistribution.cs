@@ -57,9 +57,12 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 			}
 		}
 
+		/// <summary>
+		/// The value substituted for a draw in a deterministic run — the mean, shift included.
+		/// </summary>
 		public double NonStochasticValue
 		{
-			get { return mean; }
+			get { return Mean; }
 		}
 
 		/// <summary>
@@ -75,7 +78,14 @@ namespace SimOpt.Mathematics.Stochastics.Distributions
 			}
 		}
 
-		public double Mean { get { return mean; } }
+		/// <summary>
+		/// The expected value of this distribution, <b>including</b> the shift.
+		/// </summary>
+		/// <remarks>
+		/// SIM-102: read through rather than folded in at configure time, because <see cref="Shift"/>
+		/// is publicly settable. Before this, <c>Next()</c> added the shift and <c>Mean</c> did not.
+		/// </remarks>
+		public double Mean { get { return mean + shift; } }
 
 		/// <summary>
 		/// Get scale parameter theta
