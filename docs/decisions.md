@@ -621,3 +621,8 @@ should (0.139–0.479). A quantity that ought to fluctuate and doesn't suggests 
 component — plausibly cross-stream correlation, since per-node seeds are XOR-derived from a single
 base seed. Four seed sets cannot settle it. It is recorded as an open question against SIM-96
 rather than resolved by assertion in either direction.
+
+**Ruling addendum, same day:** **SIM-98 raised to P2** (proposed P3). The other three random sources
+carry no reference vector and no audit of any kind; SIM-81 established that "passes the contract
+tests" is compatible with not being the algorithm on the label, and that argument applies to them
+unchanged. Not P1 only because none of them is the default.
