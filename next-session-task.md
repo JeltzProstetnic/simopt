@@ -1,5 +1,4 @@
-<!-- task handoff -->
 task: true
-file: docs/pending-beachhead-decision.md
-backlog: SIM-63
-description: FIRST — present the beachhead decision in docs/pending-beachhead-decision.md (SIM-87): three options with a recommendation, arising from D-05's disclosure that the product's origin use case is forensic expert evidence. It is an owner call, must not be decided by an agent, and blocks nothing. THEN continue the work queue in docs/pending-commercial-track.md. Slice 0 is closed (SIM-56/57/58/62 done, 809 tests passing). Begin Slice 1 — SIM-63, the engine output-statistics subsystem: event-driven tallies (wait/cycle time), time-weighted collectors (queue length, utilisation), warm-up truncation, replication runner with confidence intervals. It must live in the engine, not the UI. Then SIM-64, the M/M/1 + M/M/c + M/G/1 analytic battery as a CI gate. Both owner decisions are settled (D-01 licensing, D-02 local-first); two owner ACTIONS remain outstanding and block first revenue only — SIM-85 dissertation provenance and SIM-79 Nebentaetigkeit acknowledgment.
+file: docs/pending-sim64-analytic-battery.md
+backlog: SIM-64
+description: Finish SIM-64 — the simulated half of the analytic battery. The closed-form formulas are pinned; what remains is running each system in the simulator and asserting the analytic answer falls inside the reported confidence interval. Every constant, critical value and run-length design is already derived in docs/2026-08-26-analytic-reference.md. The Jackson-network case is blocked on SIM-90.

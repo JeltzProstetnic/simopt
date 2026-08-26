@@ -19,6 +19,26 @@ and a *measured* run-length and replication design.
 | 3 | **M/M/c** | one buffer, c servers each `ConnectTo(buffer)` with its own kick handler | λ=2.4, μ=1.0, c=3. Verify the kick handler starts *an* idle server, not always the same one. |
 | 4 | **Jackson tandem** | source → buf1 → srv1 → buf2 → srv2 → sink | **BLOCKED ON SIM-90** — a server feeding a downstream buffer fails today, because the default product generator emits an entity with a null Identifier and `Buffer.Put` keys on it. |
 
+## SIM-90 investigation — launched, findings NOT received
+
+A Fable investigation into SIM-90 was launched near the end of the 2026-08-26 session and had not
+returned when the session closed, so **none of its findings were captured and nothing from it is
+recorded anywhere**. Re-run it rather than assuming it concluded anything.
+
+What was already established before it was launched, so it need not be re-derived: the obvious fix
+(`createProduct: m => m[0]`) throws `IndexOutOfRange`, because `Server.StartWorking` passes
+`ReturnProduct` as a **deferred delegate** to `GetInstance` while `InternalFinishedHandler` clears
+`activeMaterial` — and with `AutoContinue = true` the repeater event is scheduled at the same time
+as the finish event and added *first*, so it can re-enter `StartWorking` before the finish instance
+materialises its product. The candidate fix is to snapshot the material into the closure at
+scheduling time (`var batch = new List<TMaterial>(activeMaterial)`), leaving the deferral intact but
+immune to the list being cleared or reused. Two things must be checked before adopting it: whether
+the delegate can be invoked **more than once** per scheduled event (if so, the default generator has
+been producing two products per service, which would be far worse than the defect being chased), and
+what it does to `SimOpt.Ivotion` — `RolandPrinter` emits one representative entity per batch and
+`IvotionKpis` multiplies the sink count by the batch size to compensate, so a change to product
+generation could silently double or halve its throughput.
+
 ## The three traps that will otherwise cost a day each
 
 1. **`Configure` takes a RATE, `ConfigureMean` takes a MEAN.** Passing λ=0.8 to `ConfigureMean`
