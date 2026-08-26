@@ -484,3 +484,66 @@ is evidence to justify it, and no evidentiary claim is made before its basis exi
    becomes urgent the moment marketing wants to say the word "evidence".
 
 Closes SIM-87. Supersedes the "Open strategic question" section of D-05.
+
+---
+
+## 2026-08-26 — Slice 1 engineering findings (SIM-63, SIM-89, SIM-91)
+
+Recorded as rationale rather than as rules. The mechanical detail lives in `backlog.md` and the
+commit messages; what follows is the reasoning a future session would otherwise have to rediscover.
+
+### A catch-all that turns exceptions into data hides total breakage
+
+The MCP head — the surface v0.9 was to ship on, and the one an agent drives — **had never been able
+to build or run a single model**. Three independent defects, all shipped. The reason nobody knew
+matters more than the defects: `SimulationTools` wraps every call in
+`catch (Exception ex) { return Serialize(new { error = ex.Message }); }`, so a completely broken
+build path returns well-formed JSON that reads, to a caller, exactly like a working tool rejecting
+a bad model.
+
+**Consequence adopted as practice:** any test against a surface that converts exceptions into data
+must assert on the **absence** of the error field and on a real post-condition — a non-zero count, a
+changed state — never on the call completing or the payload parsing. And the absence of any test
+against a surface is itself the finding: the first test ever written here found all three defects
+within an hour.
+
+### Two wrong answers that disagreed, not one wrong answer
+
+SIM-91 surfaced as "the first run of a model differs from every later run". The temptation was to
+decide which figure was right. Neither was. A source raising its t=0 arrival synchronously from
+inside `Model.Reset` met downstream entities that had not been reset yet, so the arrival's fate
+depended on how the *previous* run had left them — an idle server manufactured a phantom product, a
+busy one meant `Buffer.Reset` destroyed the arrival moments later.
+
+**The generalisable point:** the disagreement was the only reason either bug was visible. Each
+behaviour alone would have been a plausible-looking number that survived review indefinitely. When
+two runs of the same thing disagree, the correct answer is often a third one.
+
+### Statistics belong to the engine, and there were three of them
+
+The codebase carried three disjoint statistics implementations — polled per render tick in the
+visualization, terminal-count arithmetic in Ivotion, raw counts in the MCP payload. None was
+time-weighted, warm-up-truncated or replicated, and several were wrong rather than merely imprecise
+(a bottleneck ranking keyed on a display name truncated to 12 characters; a WIP figure with an
+invented denominator of 100 for unbounded buffers; a headcount stored in a field named
+`LaborHoursPerSimHour` and displayed as "Labor hrs/hr"). Full inventory:
+`docs/2026-08-26-statistics-inventory.md`.
+
+**Adopted:** the engine owns every reported measure; the UI displays them and computes none
+(the UN-018 presentation boundary). Utilisation sampled once per render tick is not a precision
+compromise — its answer moves with the frame rate and it is unreachable from a headless run.
+
+### Where "defensible" actually bites
+
+Three decisions in the statistics subsystem were taken specifically because the product is used as
+expert evidence, and each cost more than the obvious alternative:
+
+- **A t-quantile by root-finding rather than a lookup table.** A table is silently wrong at every
+  degree of freedom it does not contain. The table is kept as a regression test *against* the
+  root-finder, since a root-finder with no pinned values is merely untested.
+- **Fixed warm-up truncation over MSER-5 or Welch.** Both alternatives are better statistics. Both
+  make the truncation point either a data-dependent random variable or a human judgement on a plot,
+  and "W was declared in advance and is printed in the provenance record" is stronger testimony than
+  either.
+- **A null half-width at one replication, never zero.** Zero reads as infinite precision. It is the
+  single most dangerous number the subsystem could emit.
