@@ -234,3 +234,5 @@ Source: `docs/2026-07-05-critical-code-review.md` (3 parallel Opus 4.8 review ag
 ### Project configuration
 
 - [ ] **SIM-104** `.claude/CLAUDE.md` is 6 lines and the SessionStart hook flags the project as incomplete on every startup (P3): missing the Roster, Reference and Project Structure sections the fleet's `code` project type expects. The root `CLAUDE.md` carries the structure and build commands, so nothing is *lost* — but the warning fires every session and a warning nobody can act on trains sessions to skip warnings. Fix is one pass against `~/.claude/foundation/project-setup.md`, and the Roster section is the useful part: this project has a clear preferred-agent story (Explore for the engine, Plan for slice design) that is currently written down nowhere. Raised by the startup hook 2026-08-26. (size: S)
+
+- [ ] [P1] **Complete project setup**: the project CLAUDE.md is incomplete (missing Roster, missing Reference, missing Project Structure, only 6 lines (expect 40+)). Load `foundation/project-setup.md` and finish setup — an incomplete manifest re-triggers setup regardless of project age. Filed by `10-project-setup-check.sh` (CFG-574).

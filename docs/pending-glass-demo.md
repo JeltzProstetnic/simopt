@@ -4,7 +4,17 @@
 
 Built 2026-06-18 (commit 8a6ea35). A live Avalonia **digital twin** of a 5-step glass base-mass line plus an **evolutionary optimizer** (live best-so-far fitness chart) that applies the optimized configuration back to the twin. Run guide: `docs/glass-demo.md`.
 
-## Run the demo (e.g. office Fedora)
+> ⚠ **SUPERSEDED the same day — the glass demo is no longer in this repo (measured 2026-10-28).**
+> `b1c2fc8` (FSIM-03, 2026-06-18) extracted the whole glass twin + optimizer to the private Ivoclar
+> repo `furkansim` (`~/furkansim`, app `src/Furkansim.App`), and `a5a5f0c` had already unbound the
+> Ivotion optimization tab. **simopt's visualization therefore has no optimization tab at all** — only
+> "Simulation". The run guide and "What's where" below describe the pre-extraction state; a session
+> that followed them on 2026-10-28 sent MG to a tab that does not exist, mid-demo. To demo glass, run
+> furkansim (its Release binary runs directly: `DOTNET_ROOT=~/.dotnet ~/furkansim/src/Furkansim.App/bin/Release/net9.0/Furkansim.App`,
+> cwd `~/furkansim`). The Ivotion tab can be restored in simopt by re-adding its `TabItem` to
+> `MainWindow.axaml` — `MainWindowViewModel.Optimization` still constructs the view-model.
+
+## Run the demo (e.g. office Fedora) — STALE, see note above
 ```bash
 git pull
 export PATH="$HOME/.dotnet:$PATH"   # if dotnet not already on PATH
@@ -12,7 +22,7 @@ dotnet run --project src/SimOpt.Visualization/SimOpt.Visualization.csproj
 ```
 Topology dropdown defaults to "Glass Production Line (Base Mass)"; **Space** to run; the **"Optimization (Glass)"** tab → set objective/strategy → **Run** → **Apply to Viz**.
 
-## What's where
+## What's where (pre-extraction — these files were removed by `b1c2fc8`)
 - Twin topology: `VizTopology.GlassLine()` / `GlassLine(GlassSolution)` in `src/SimOpt.Visualization/Models/VizTopology.cs`
 - Optimization domain: `src/SimOpt.Ivotion/Glass*.cs` (namespace `SimOpt.Glass`)
 - UI: `ViewModels/GlassOptimizationViewModel.cs`, `Views/GlassOptimizationView.axaml`; tab in `Views/MainWindow.axaml`
