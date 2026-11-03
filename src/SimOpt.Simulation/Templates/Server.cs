@@ -163,7 +163,9 @@ namespace SimOpt.Simulation.Templates
             working = false;
             damaged = false;
             recovering = false;
-            
+            interrupted = false;
+            interruptedProduct = null;
+
             if (IsMachiningTimeStochastic)
                 nextTimeToFinished = rndMachiningTime.Next();
             else
@@ -203,6 +205,16 @@ namespace SimOpt.Simulation.Templates
         private bool hasFailure;
         private bool hasRecover;
         private bool continueAfterFail;
+
+        // SIM-106: the batch a failure interrupted, made once. The failure event and the finish
+        // after the repair (ContinueProductAfterFailure) hand on this same product. A deferred
+        // event instance does not keep what its factory made, so reading the failure instance's
+        // EventArgs gave the resumed finish a null product.
+        private Func<Tuple<TProduct, TData>> interruptedProduct;
+
+        // SIM-106: true while a failure has interrupted a batch. A failure between batches (one
+        // that fell due as a batch finished) leaves nothing to continue after the repair.
+        private bool interrupted;
 
         private IDistribution<double> machiningTime;
         private IDistribution<double> timeToFailure;
@@ -666,9 +678,10 @@ namespace SimOpt.Simulation.Templates
         {
             damaged = false;
             recovering = false;
-            continueAfterFail = true;
+            continueAfterFail = interrupted;
+            interrupted = false;
             if (!AutoRestart) return;
-            if (ContinueProductAfterFailure) StartWhatever();
+            if (ContinueProductAfterFailure && continueAfterFail) StartWhatever();
             else if (CheckMaterial()) StartWhatever();
         }
 
@@ -815,7 +828,11 @@ namespace SimOpt.Simulation.Templates
             {
                 StartWorking();
             }
-            else if (nextTimeToFinished < nextTimeToFailure)
+            else if (nextTimeToFailure <= 0)
+            {
+                FailBetweenBatches();
+            }
+            else if (nextTimeToFinished <= nextTimeToFailure) // SIM-106: a tie finishes the batch
             {
                 nextTimeToFailure -= nextTimeToFinished;
                 StartWorking();
@@ -827,7 +844,19 @@ namespace SimOpt.Simulation.Templates
             continueAfterFail = false;
         }
 
-        private void StartRecovering() 
+        /// <summary>
+        /// SIM-106: the time to failure ran out exactly as the previous batch finished (a tie,
+        /// which finishes the batch). The machine fails now, before it takes up new material, and
+        /// nothing is left to continue after the repair. Scheduling the failure would add an
+        /// event at the present time, which Model.AddEventAt refuses.
+        /// </summary>
+        private void FailBetweenBatches()
+        {
+            interrupted = false;
+            failureEvent.GetInstance(this, default(TProduct), default(TData)).Raise();
+        }
+
+        private void StartRecovering()
         {
             recovering = true;
 
@@ -841,7 +870,7 @@ namespace SimOpt.Simulation.Templates
 
             if (ContinueProductAfterFailure && continueAfterFail)
             {
-                nextFailureInstance = failureEvent.GetInstance(this, nextFailureInstance.EventArgs, nextFailureInstance.Data);
+                nextFailureInstance = failureEvent.GetInstance(this, interruptedProduct);
             }
             else
             {
@@ -850,10 +879,14 @@ namespace SimOpt.Simulation.Templates
                 currentMaterial.Clear();
 
                 // SIM-90: same snapshot as StartWorking — the failure event materialises its
-                // product through the identical deferred path.
+                // product through the identical deferred path. SIM-106: made once, so the finish
+                // after the repair hands on the same product.
                 List<TMaterial> batch = new List<TMaterial>(activeMaterial);
-                nextFailureInstance = failureEvent.GetInstance(this, () => createProduct.Invoke(batch));
+                Tuple<TProduct, TData> made = null;
+                interruptedProduct = () => made ??= createProduct.Invoke(batch);
+                nextFailureInstance = failureEvent.GetInstance(this, interruptedProduct);
             }
+            interrupted = true;
 
             Model.AddEvent(nextTimeToFailure, nextFailureInstance);
             
@@ -867,7 +900,7 @@ namespace SimOpt.Simulation.Templates
 
             if (ContinueProductAfterFailure && continueAfterFail)
             {
-                nextFinishedInstance = entityFinishedEvent.GetInstance(this, nextFailureInstance.EventArgs, nextFailureInstance.Data);
+                nextFinishedInstance = entityFinishedEvent.GetInstance(this, interruptedProduct);
             }
             else
             {
