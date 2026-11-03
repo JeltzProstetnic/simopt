@@ -35,9 +35,13 @@
 | `src/SimOpt.Optimization` | Strategy interfaces + EA, SA, PSO, random search implementations |
 | `src/SimOpt.Visualization` | Avalonia 2D live rendering (schematic + realistic modes) |
 | `src/SimOpt.Learning` | Machine learning utilities |
+| `src/SimOpt.McpServer` | MCP server: model registry, topology builder, experiment tools |
+| `src/SimOpt.GridWorld` | Grid agent world (ported to Python by crucible) |
+| `src/SimOpt.Ivotion` | Ivotion showcase model |
+| `src/SimOpt.FMT` | Empty scaffold (FMT logic lives in crucible) |
 | `src/SimOpt.Logging` | Cross-platform simulation logging |
 | `src/SimOpt.Logging.Desktop` | Desktop logging sink |
-| `tests/SimOpt.Tests` | xUnit test project (551 tests) |
+| `tests/SimOpt.Tests` | xUnit test project (974 passing, 1 skipped, 2026-11-03) |
 | `examples/` | Complete runnable models (SQSS, ED, SupplyChain, Warehouse, etc.) |
 | `docs/plans/` | Implementation plans for major features |
 | `design/` | UML class diagrams |
