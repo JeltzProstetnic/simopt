@@ -1,36 +1,12 @@
-<!-- Action: await-user-decision -->
-<!-- Tracked-by: SIM-65, SIM-66, SIM-104 -->
+<!-- Action: reference -->
+<!-- Tracked-by: SIM-65, SIM-66 -->
 # SIM-65 is half built. The distribution layer is in; the node vocabulary is not.
 
-## Session 2026-10-28 (WSL) — no SIM-65 progress, two decisions open
+## Status 2026-11-03
 
-Startup ran, baseline re-measured **974 passed / 1 skipped / 34 s** (unchanged), then MG interrupted
-for a live demo. Nothing of SIM-65 was touched — **resume at step 1 (`ParamValue`) below, exactly as
-written.** Every order MG gave this session was delivered (startup, demo, furkansim launch); nothing
-ordered is outstanding.
-
-Found during the demo: simopt's visualization has **no optimization tab** — glass went to
-`furkansim` in `b1c2fc8`, the Ivotion tab was unbound in `a5a5f0c`. `docs/pending-glass-demo.md` now
-carries a superseded note saying so.
-
-**Ask these two at startup with AskUserQuestion, after re-verifying each premise:**
-
-1. **The hook-filed duplicate of SIM-104.** Premise: the last line of `backlog.md` — an unnumbered
-   `[P1] **Complete project setup**` written by `10-project-setup-check.sh` (CFG-574) — is the same
-   work as **SIM-104** (`backlog.md`, "Project configuration": fill `.claude/CLAUDE.md` with Roster,
-   Reference and Project Structure; currently P3). The hook re-files the line every session while
-   `.claude/CLAUDE.md` stays at 6 lines, so deleting it alone does not stick. Options:
-   - **Do SIM-104 first, delete the duplicate (Recommended)** — ~15 min against
-     `~/.claude/foundation/project-setup.md`; the warning stops for good.
-   - **Merge into SIM-104 at P1** — delete the duplicate line, raise SIM-104 to P1, do it later.
-   - **Leave both** — no change.
-2. **When to do the `docs/decisions.md` monthly review.** Premise: the file has no
-   `Last reviewed:` line (657 lines, 57 headings measured 2026-10-28) and `docs/decisions-archive.md`
-   does not exist; the SessionStart hook raises `DECISIONS_REVIEW_DUE` every session until it is done.
-   Options:
-   - **After SIM-65 step 1 lands (Recommended)** — keep the handoff context fresh first.
-   - **First thing, before SIM-65.**
-   - **At that session's shutdown.**
+The two startup decisions this file carried are resolved: SIM-104 is done and the
+`docs/decisions.md` review is done. Nothing of SIM-65 changed: **resume at step 1 (`ParamValue`)
+below, exactly as written.** The live handover is `docs/pending-sim-105-continuation.md`.
 
 Slice 2 started 2026-08-26. `SIM-65` is marked `[>]` in the backlog. The suite is **974 passing,
 1 skipped, 33 s**, and everything below is already committed.

@@ -708,7 +708,10 @@ namespace SimOpt.Simulation.Templates
 
         private void RepeaterHandler(IEntity sender) 
         {
-            if (stop || damaged || recovering) return;
+            // SIM-116: another start may have begun the next batch at this same instant (an arrival
+            // handled between the finish and this repeater), and AutoContinue may have been
+            // switched off since the repeater was scheduled. Either way, do not start a batch.
+            if (stop || damaged || recovering || working || !autoContinue) return;
             if (CheckMaterial()) StartWhatever();
         }
 
@@ -863,6 +866,10 @@ namespace SimOpt.Simulation.Templates
 
             nextRecoverInstance = recoverEvent.GetInstance(this);
             Model.AddEvent(nextTimeToRecover, nextRecoverInstance);
+
+            // SIM-115: every repair draws its own duration, as every failure draws its own time
+            // to failure. Before, the draw made at reset was reused for each failure of the run.
+            if (hasRecover) nextTimeToRecover = rndRecoverTime.Next();
         }
 
         private void StartFailing()
