@@ -101,6 +101,52 @@ public class ServerFailureContinuationTests
     }
 
     [Fact]
+    public void AResetAfterARepairWithoutRestart_LeavesNothingToContinueInTheNextReplication()
+    {
+        // Replication 1 ends after the repair (t = 35) with AutoRestart off, so the interrupted
+        // batch is still "to be continued" when the model is reset. Replication 2 must start a
+        // fresh batch from its own material, neither crashing nor handing on replication 1's item.
+        var model = new Model("m", 1, 0d);
+        var buffer = new SimpleBuffer(model, QueueRule.FIFO, id: "buf", name: "buf", maxCapacity: 100);
+        var server = new SimpleServer(model, Constant(50), id: "srv", name: "srv",
+            createProduct: m => m[0],
+            timeToFailure: Constant(30), timeToRecover: Constant(5))
+        {
+            AutoContinue = true,
+            AutoRecover = true,
+            AutoRestart = false,
+            ContinueProductAfterFailure = true,
+        };
+        var sink = new SimpleSink(model, id: "snk", name: "snk");
+        server.ConnectTo(buffer);
+        sink.ConnectTo(server);
+        var finished = new List<(double Time, SimpleEntity? Product)>();
+        server.EntityFinishedEvent.AddHandler((_, product) => finished.Add((model.CurrentTime, product)));
+
+        model.Reset(1);
+        buffer.Put(new SimpleEntity(model, "R1", "R1"));
+        server.Start();
+        model.Run(40);
+        finished.Should().BeEmpty("the batch failed at 30 and was not restarted after the repair");
+
+        // Replication 2 restarts after its own repair: it fails at 30 again, is repaired by 35 and
+        // must resume its OWN batch, finishing at 55 as R2. Before the fix, the stale
+        // "continue" flag sent the failure down the continuation path with no product, and the
+        // run died with a NullReferenceException at t = 30.
+        model.Reset(1);
+        server.AutoRestart = true;
+        var fresh = new SimpleEntity(model, "R2", "R2");
+        buffer.Put(fresh);
+        server.Start();
+        var act = () => model.Run(100);
+
+        act.Should().NotThrow();
+        finished.Should().ContainSingle();
+        finished[0].Time.Should().Be(55);
+        finished[0].Product.Should().BeSameAs(fresh);
+    }
+
+    [Fact]
     public void RepeatedMidBatchFailures_ReachingATie_KeepEveryProductAndDoNotStopTheRun()
     {
         // The tie arrives on the third batch: remaining 30 = time to failure 30 at t = 140.

@@ -165,6 +165,7 @@ namespace SimOpt.Simulation.Templates
             recovering = false;
             interrupted = false;
             interruptedProduct = null;
+            continueAfterFail = false; // a reset leaves nothing to continue
 
             if (IsMachiningTimeStochastic)
                 nextTimeToFinished = rndMachiningTime.Next();
