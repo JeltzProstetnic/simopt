@@ -1,4 +1,4 @@
 task: true
-file: docs/pending-sim-65-continuation.md
+file: docs/pending-sim-105-continuation.md
 backlog: SIM-65
-description: Ask the two open decisions in the handover (SIM-104 duplicate, decisions.md review timing), then continue SIM-65 at step 1 — `ParamValue` so `params` can hold a distribution. Nothing of SIM-65 changed on 2026-10-28; baseline 974/1 skip.
+description: Ask the four open decisions in the handover (SFM §9 public/private, cfg vs ivoclar for private material, FMT Gridworld entry, validation-in-tests vs SIM-65), then SIM-65 step 1 (ParamValue), then SIM-110 (visualization V1).
