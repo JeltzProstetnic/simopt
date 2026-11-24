@@ -98,6 +98,8 @@ namespace SimOpt.Simulation.Processes
             Action[] waiting = joiners.ToArray();
             joiners.Clear();
             foreach (Action resume in waiting) Model.Schedule(0d, resume);
+            // a finished process started during a run is done for good (SIM-124)
+            if (!restartOnReset) Model.ReleaseTransient(this);
         }
 
         /// <summary>Resumes <paramref name="resume"/> when this process has finished, or now if it has.</summary>

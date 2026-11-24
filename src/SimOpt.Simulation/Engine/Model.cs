@@ -17,6 +17,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using SimOpt.Basics.Interfaces;
 using SimOpt.Basics.Datastructures.Collections;
+using SimOpt.Basics.Utilities;
 
 namespace SimOpt.Simulation.Engine
 {
@@ -1125,6 +1126,18 @@ namespace SimOpt.Simulation.Engine
         public void AddRandomGenerator(IRandom generator)
         {
             randomGenerators.Add(generator);
+            // SIM-131: seed it as Reset will, so building and running equals building, resetting
+            // with the same seed and running.
+            generator.Reset(SeedForRandom(randomGenerators.Count - 1), antithetic, nonStochasticMode);
+        }
+
+        /// <summary>
+        /// SIM-131: the seed of the model-level random stream registered as number
+        /// <paramref name="index"/>, from the model seed and that index.
+        /// </summary>
+        private int SeedForRandom(int index)
+        {
+            return GetRandomSeedFor(StableHash.Of("model-random:" + index));
         }
 
         #endregion
@@ -1213,8 +1226,10 @@ namespace SimOpt.Simulation.Engine
             // DefaultResourceManager.Reset();
 
             // reset random generators
-            foreach (IRandom rnd in randomGenerators)
-                rnd.Reset(seed, antithetic, nonStochasticMode);
+            // SIM-131: each with its own seed. All of them used to get the model seed, so after any
+            // reset every model-level stream drew the same numbers as every other.
+            for (int i = 0; i < randomGenerators.Count; i++)
+                randomGenerators[i].Reset(SeedForRandom(i), antithetic, nonStochasticMode);
 
             // reset objects
             //

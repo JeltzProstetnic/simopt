@@ -55,6 +55,21 @@ namespace SimOpt.Simulation.Statistics
         }
 
         /// <summary>
+        /// Records the share of a process resource's units in use, time-weighted (SIM-126).
+        /// </summary>
+        public static TimeWeightedCollector ObserveResourceUtilization(SimOpt.Simulation.Processes.Resource resource, double warmup = 0d)
+        {
+            var collector = new TimeWeightedCollector(
+                resource.Model, Utilization, () => (double)resource.InUse / resource.Capacity,
+                id: resource.Identifier + ".stat." + Utilization,
+                name: resource.EntityName + " utilization")
+            { WarmupTime = warmup };
+
+            resource.InUseChangedEvent.AddHandler((_, inUse) => collector.Record((double)inUse / resource.Capacity));
+            return collector;
+        }
+
+        /// <summary>
         /// Records whether a stock is empty (1) or not (0), so the time average is the share of time
         /// it stood empty (SIM-127).
         /// </summary>
