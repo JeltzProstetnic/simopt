@@ -7,6 +7,7 @@ using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Interfaces;
 using SimOpt.Simulation.Tools;
 using SimOpt.Basics.Interfaces;
+using SimOpt.Basics.Utilities;
 
 namespace SimOpt.Simulation.Entities
 {
@@ -300,9 +301,18 @@ namespace SimOpt.Simulation.Entities
 
         private void InitializeSeed()
         {
-            if (seedInitialized) 
+            if (seedInitialized)
                 throw new InitializationException("The seed for this instance has already been initialized!");
-            
+
+            // SIM-125: an entity with a given id and no seed ID gets the stable hash of its id, so
+            // its stream does not depend on how many entities were built before it. A generated id
+            // is itself a creation counter, so those entities keep creation-order seeds.
+            if (!seedIDSet && IdGiven)
+            {
+                seedID = StableHash.Of(Identifier);
+                seedIDSet = true;
+            }
+
             if (!seedIDSet)
                 this.seed = Model.SeedGenerator.Next();
             else

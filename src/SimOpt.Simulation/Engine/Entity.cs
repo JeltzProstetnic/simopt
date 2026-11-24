@@ -47,6 +47,7 @@ namespace SimOpt.Simulation.Engine
         
         private string id;
         private bool idSet = false;
+        private bool idGiven = false; // SIM-125: the id came from the caller, not the instance counter
 
         private IModel model;
         private bool modelSet = false;
@@ -59,6 +60,12 @@ namespace SimOpt.Simulation.Engine
         /// <summary>
         /// The unique id of this instance.
         /// </summary>
+        /// <summary>
+        /// SIM-125: true if the id was given by the caller rather than generated from the
+        /// instance counter. Stochastic entities derive their default seed ID from a given id.
+        /// </summary>
+        internal bool IdGiven { get { return idGiven; } }
+
         public string Identifier
         {
             get { return id; }
@@ -69,6 +76,7 @@ namespace SimOpt.Simulation.Engine
                 {
                     id = value;
                     idSet = true;
+                    idGiven = true;
                 }
                 else
                 {
@@ -156,6 +164,7 @@ namespace SimOpt.Simulation.Engine
             if (noID) this.id = "Entity " + instanceCounter.ToString();
             else this.id = id;
             idSet = true;
+            idGiven = !noID;
             
             model.AddEntity(this);
 
@@ -183,6 +192,7 @@ namespace SimOpt.Simulation.Engine
             {
                 this.id = parameters.ID;
                 idSet = true;
+                idGiven = true;
             }
 
             if (!String.IsNullOrEmpty(parameters.EntityName)) this.EntityName = parameters.EntityName;
