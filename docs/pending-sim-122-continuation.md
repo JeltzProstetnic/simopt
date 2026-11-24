@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=SIM-126 slice 2 (top section); MG still owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=blocked; next=SIM-129 speed (top section), then SIM-126 slices 4+; MG still owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SIM-122 answered; SIM-124, SIM-125, SIM-127, SIM-128 done, SIM-126 slice 1 done; next SIM-126 slice 2
+# SimPy-gap section: SIM-124, 125, 127, 128, 131 done, SIM-126 slices 1-3 done; next SIM-129
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -70,12 +70,17 @@ the private hand-off (see *Private material*).
 3. ~~SIM-124~~ **done 2026-11-24 on MG's order** ("fix that"): heap flat over replications, suite 987
    passed, 1 skipped.
 4. **Top backlog section (MG 2026-11-25, "these are top priority").** Done unattended on 2026-11-25:
-   SIM-125 (`59f8121`), SIM-128 (`7096bf5`), SIM-127 (`d91b2c3`), SIM-126 slice 1 (`a115f22`). Next:
-   SIM-126's further slices (see its backlog entry), then SIM-129, then SIM-130 after SIM-65/66.
-   SIM-65 step 1 (`ParamValue`) and SIM-110 follow, unless MG orders otherwise. **Q-ASYNC** (new): the
-   process layer uses C# iterators; an `async` front end over the same waits stays possible later.
-   **Recommended: iterators only for now**; the alternative is to add `async` as well. The comparison is in
-   `docs/plans/2026-11-25-sim-126-process-modelling.md`.
+   SIM-125 (`59f8121`), SIM-128 (`7096bf5`), SIM-127 (`d91b2c3`), SIM-126 slices 1-3 (`a115f22`, `5810ae5`,
+   `0a621f3`: processes, `Resource`, any-of/all-of, interrupts, withdrawal) and SIM-131, found on the way
+   (model-level random streams shared one seed after `Reset`; `5810ae5`). Suite 1025 passed, 1 skipped.
+   Comments on his issue #30 cover SIM-124, SIM-125 and SIM-126..131.
+   **Next, in order:** SIM-129 (speed per event: benchmark harness over the battery models, profile, keep results
+   byte-identical), then SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
+   process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
+   follow, unless MG orders otherwise.
+   **Q-ASYNC** (new): the process layer uses C# iterators; an `async` front end over the same waits stays
+   possible. **Recommended: iterators only for now**; the alternative is to add `async` as well
+   (`docs/plans/2026-11-25-sim-126-process-modelling.md`).
 5. When his comparison results arrive, check them against the prediction in the private hand-off.
    SIM-122 closes when his failure-bearing cases show the wider spread at `b171eb8`, or when a rerun at
    `96f979c` or later shows the spreads match.
