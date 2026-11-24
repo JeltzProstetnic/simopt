@@ -148,6 +148,8 @@ Full evidence with file:line: `docs/2026-08-26-statistics-inventory.md`. These a
 
 ## P2 — Medium Priority
 
+- [>] **SIM-122** Evaluate SimPy against SimOpt, and check a downstream integrator's claim that his SimPy-based simulator gives "way higher" confidence than his SimOpt path (**P2 proposed**, MG via Telegram 2026-11-19 11:57 and 12:02; priority for MG to set). What SimPy offers that SimOpt lacks or does better, and whether to adopt ideas, interoperate or ignore. The integrator's comparison results have not arrived; his code is re-read to find where the difference comes from before they do. Nothing from his code goes into this public repo (SIM-105 rule). (size: M)
+- [ ] **SIM-123** Private-material home and the tmp sweep (**P1 proposed**, cfg inbox 2026-11-04 [rule] + found 2026-11-24): this project's CLAUDE.md stages private material to `tmp/staged-*.md`, the global rule says a cross-project delivery targets a tracked directory, and the fleet's 14-day `tmp-sweep.sh` (CFG-851) deleted everything in `tmp/` on 2026-11-19 at 00:12 (the directory's mtime), including SIM-105's private index, intake note and host review with its answer drafts, which existed nowhere else. Needs MG's consent for the rule text (Meta-Rules) and a check of whether a backup still holds the lost files. (size: S)
 - [x] **SIM-06** Expand test coverage: Buffer template (size: M) — Phase 4
 - [x] **SIM-07** Expand test coverage: Server template (size: L) — Phase 4 (integration tests deferred: ConnectTo type constraints)
 - [x] **SIM-08** Expand test coverage: Conveyor template (size: M) — Phase 4
