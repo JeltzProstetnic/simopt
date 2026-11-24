@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- SIM-122 harness. Builds against this checkout by default; pass
+       -p:SimOptRoot=/path/to/other/checkout/ to measure another commit (e.g. a worktree at b171eb8). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <SimOptRoot Condition="'$(SimOptRoot)' == ''">$(MSBuildThisFileDirectory)../../../</SimOptRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(SimOptRoot)src/SimOpt.Simulation/SimOpt.Simulation.csproj" />
+    <ProjectReference Include="$(SimOptRoot)src/SimOpt.Mathematics/SimOpt.Mathematics.csproj" />
+    <ProjectReference Include="$(SimOptRoot)src/SimOpt.Basics/SimOpt.Basics.csproj" />
+  </ItemGroup>
+</Project>

@@ -35,7 +35,7 @@ specific to him lives in the gitignored `tmp/` on WSL only (see *Private materia
 
 ## Next concrete actions, in order
 
-1. Ask the four decisions below with AskUserQuestion, after re-verifying each premise.
+1. Present the four decisions below (Q-SFM9, Q-PRIVHOME, Q-FMT, Q-VALID), after re-verifying each premise; first those in `docs/pending-sim-122-continuation.md`.
 2. SIM-65 step 1, `ParamValue`, exactly as in `docs/pending-sim-65-continuation.md`.
 3. SIM-110 (visualization V1). Its first engine seam is `Instrumentation.ObserveThroughput` /
    `ObserveTimeInSystem`.
@@ -46,29 +46,32 @@ specific to him lives in the gitignored `tmp/` on WSL only (see *Private materia
 
 ## Private material (WSL only, gitignored, never commit, never copy into this repo)
 
-Every path is listed in `tmp/PRIVATE-INDEX.md`. That covers MG's verbatim order and the list of every
-issue posted, the clone of his repo, the visualization and host reviews (with the §8 answer drafts),
-the two private knowledge files and the demo crawl.
+**Swept on 2026-11-19 (SIM-123).** The fleet's 14-day `tmp-sweep.sh` deleted all of `tmp/`, including
+`tmp/PRIVATE-INDEX.md`, the intake note and the host review with the §8 answer drafts. cfg CFG-1112
+tracks a restore from backup. Surviving copies of the private knowledge files, the visualization gap
+analysis, the demo crawl and the SIM-122 hand-off are in `~/cfg-agent-fleet/cross-project/simopt-private/`.
+His repo was re-cloned under `tmp/` on 2026-11-24 (the path is in the private SIM-122 file). The issues
+we posted are on his repo, #1-#31.
 
 ## Open decisions (ask each with AskUserQuestion; recommended option first)
 
-1. **Section 9 of the generic shopfloor-management file.** Premise: the home queue (sign-offs,
+1. **Q-SFM9: Section 9 of the generic shopfloor-management file.** Premise: the home queue (sign-offs,
    decisions, escalations, overdue, due today) and the team-health columns in
    `docs/staged/shopfloor-management-and-governance.md` §9 closely mirror the demo's own design
    (the writer agent's note).
    - **Keep it public (Recommended):** it is ordinary dashboard practice, phrased generically.
    - **Move it to the private file** before cfg publishes.
-2. **Home of the private colleague material.** Premise: his fictional example company is a
+2. **Q-PRIVHOME: Home of the private colleague material.** Premise: his fictional example company is a
    dental-paste maker (private knowledge file, see `tmp/PRIVATE-INDEX.md`); MG ruled cfg on 2026-11-03
    (`docs/decisions.md`).
    - **Keep cfg (Recommended):** it is his private work with synthetic data, not employer content.
    - **Route through the ivoclar project** instead.
-3. **The FMT Gridworld decision entry.** Premise: the decisions review kept it live although SIM-61
+3. **Q-FMT: The FMT Gridworld decision entry.** Premise: the decisions review kept it live although SIM-61
    says crucible forked the FMT logic to Python, while SIM-47..54 are still open and
    `src/SimOpt.GridWorld` exists.
    - **Keep it live until SIM-47..54 are triaged (Recommended).**
    - **Archive its ".NET over Python" and placement parts now.**
-4. **"Validation lives in tests, cheaper than schema validation"** (`docs/decisions.md`,
+4. **Q-VALID: "Validation lives in tests, cheaper than schema validation"** (`docs/decisions.md`,
    Agent-Driven Positioning) against D-02's load-bearing validation layer (UN-008) and SIM-65/66's
    published schema with three-layer validation.
    - **Supersede it with the SIM-65 validation design (Recommended).**
