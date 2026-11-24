@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using SimOpt.Simulation.Interfaces;
+using SimOpt.Basics.Interfaces;
 using System.IO;
 using SimOpt.Simulation.Enum;
 using SimOpt.Simulation.Tools;
@@ -153,6 +154,14 @@ namespace SimOpt.Simulation.Engine
         /// <param name="id"></param>
         /// <returns></returns>
         bool HasEntity(string id);
+
+        /// <summary>
+        /// SIM-124: unregister an item the simulation made (registered while the model was running
+        /// or resetting). Structure is never released. Returns true if the item was released.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        bool ReleaseTransient(IIdentifiable item);
 
         /// <summary>
         /// retrieve a simulation object.

@@ -85,7 +85,7 @@ environment. That is the whole library.
 | Stock and levels | `Container`, `Store` with blocking get/put | None; integrators build stock blocks themselves |
 | Zero-delay events | Normal (`timeout(0)`) | `Model.AddEvent` refuses to schedule into the present (SIM-117) |
 | Visualisation, agent access | None | Avalonia viewer, MCP server |
-| Footprint on this case | 2.73 s, 25 MB for 100 replications | 6.87 s, 372 MB for 100 replications |
+| Footprint on this case | 2.73 s, 25 MB for 100 replications | 6.87 s, 372 MB for 100 replications; 5.34 s, 66 MB after the SIM-124 fix |
 
 The footprint row is not a like-for-like comparison. The SimPy model is a few dozen lines of bespoke logic,
 while SimOpt runs generic templates with state machines and event handlers. Still, SimOpt is not
@@ -121,6 +121,12 @@ rebuilds entity-keyed random streams, replication statistics and an optimiser, o
   analytic battery, for networks without a closed form. P3.
 
 ## 4. New engine finding: every entity stays registered for good (SIM-124)
+
+**Fixed the same day, test-first** (see SIM-124 in the backlog). Items the simulation makes are now
+unregistered when a sink absorbs them and at the next `Reset`. A second leak turned up on the way:
+the static logger's queue never drained in a headless run. After both fixes the live heap stays flat
+at 0.15 MB over 30 replications, peak RSS for 100 replications fell from 372 MB to 66 MB, and the
+simulation results are byte-identical. The measurement below is the state before the fix.
 
 `new SimpleEntity(model, ...)` registers the entity in `Model.Items` through `Model.AddEntity`, and its
 summary says *"to permanently associate with this model"*. Neither `Sink` nor `Model.Reset` removes

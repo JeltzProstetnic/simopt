@@ -212,8 +212,11 @@ namespace SimOpt.Logging
             while (dispatcherEnabled)
             {
                 dataAvailable = messageQueue.TryDequeue(out data);
-                
-                if (dataAvailable && loggers.Count > 0)
+
+                // SIM-124: with no logger registered a dequeued message is dropped, and the loop
+                // keeps draining. It used to wait after each drop, and since wake-ups coalesce in
+                // the AutoResetEvent, a headless run's queue only grew.
+                if (dataAvailable)
                 {
                     foreach (ILogger logger in loggers.Keys)
                     {

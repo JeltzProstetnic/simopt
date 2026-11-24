@@ -55,6 +55,10 @@ namespace SimOpt.Simulation.Engine
 
         // main data
         private Dictionary<string, IIdentifiable> items;
+        // SIM-124: ids registered while running or resetting, i.e. items the simulation made.
+        // A sink unregisters them on absorption, Reset unregisters the rest.
+        private readonly HashSet<string> transientIds = new HashSet<string>();
+        private bool resetting;
         //private Dictionary<string, IEntity> simulationObjects;      // contained objects
         
         private List<IRandom> randomGenerators;                     // associated random distributions
@@ -1060,7 +1064,21 @@ namespace SimOpt.Simulation.Engine
         /// <returns>false if the object was not contained in this model</returns>
         public bool RemoveEntity(IEntity obj)
         {
+            transientIds.Remove(obj.Identifier);
             return items.Remove(obj.Identifier);
+        }
+
+        /// <summary>
+        /// SIM-124: unregisters the given item if the simulation made it, i.e. it was registered
+        /// while the model was running or resetting. Structure, registered while the model was
+        /// stopped, is never released. Sinks call this for every item they absorb.
+        /// </summary>
+        /// <param name="item">the item to release</param>
+        /// <returns>true if the item was transient and is now unregistered</returns>
+        public bool ReleaseTransient(IIdentifiable item)
+        {
+            if (item?.Identifier == null || !transientIds.Remove(item.Identifier)) return false;
+            return items.Remove(item.Identifier);
         }
 
         /// <summary>
@@ -1131,6 +1149,7 @@ namespace SimOpt.Simulation.Engine
                 this.Log<SIM_WARNING>(warning, this);
             }
             items.Add(item.Identifier, item);
+            if (resetting || CurrentState == ExecutionState.Running) transientIds.Add(item.Identifier);
         }
 
         public IEntity GetEntity(string id)
@@ -1215,12 +1234,26 @@ namespace SimOpt.Simulation.Engine
             //
             // Entities created during the reset are newly constructed and already in their initial
             // state, so omitting them from this pass is correct, not merely tolerable.
-            foreach (IIdentifiable obj in new List<IIdentifiable>(items.Values))
-                if(obj is IEntity) (obj as IEntity).Reset();
+            //
+            // SIM-124: first drop the items the previous run made. Without this every item of
+            // every earlier run stayed registered, so memory and this pass grew with each reset.
+            foreach (string id in transientIds) items.Remove(id);
+            transientIds.Clear();
 
-            // reset other resettable objects (snapshot for the same reason)
-            foreach (IResettable obj in new List<IResettable>(resettables))
-                obj.Reset();
+            resetting = true;
+            try
+            {
+                foreach (IIdentifiable obj in new List<IIdentifiable>(items.Values))
+                    if(obj is IEntity) (obj as IEntity).Reset();
+
+                // reset other resettable objects (snapshot for the same reason)
+                foreach (IResettable obj in new List<IResettable>(resettables))
+                    obj.Reset();
+            }
+            finally
+            {
+                resetting = false;
+            }
 
             seedChange = false;
             IsReset = true;

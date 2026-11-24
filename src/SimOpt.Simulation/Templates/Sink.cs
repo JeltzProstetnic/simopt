@@ -7,6 +7,7 @@ using SimOpt.Simulation.Interfaces;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
 using SimOpt.Basics.Datastructures.Geometry;
+using SimOpt.Basics.Interfaces;
 using SimOpt.Simulation.Enum;
 using SimOpt.Simulation.Events;
 
@@ -97,6 +98,7 @@ namespace SimOpt.Simulation.Templates
 #else
             itemReceivedEvent.Raise(this, item);
 #endif
+            Release(item);
             return true;
         }
 
@@ -116,7 +118,17 @@ namespace SimOpt.Simulation.Templates
 #else
             itemReceivedEvent.Raise(this, item);
 #endif
+            Release(item);
             return true;
+        }
+
+        /// <summary>
+        /// SIM-124: an absorbed item is finished, so unregister it from the model if the
+        /// simulation made it. Handlers still receive the item itself.
+        /// </summary>
+        private void Release(T item)
+        {
+            if (item is IIdentifiable identifiable) Model?.ReleaseTransient(identifiable);
         }
 
         #region connections

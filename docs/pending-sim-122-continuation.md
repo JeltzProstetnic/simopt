@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=MG answers Q-PRIV-RULE and Q-PRIO, then SIM-124 test-first; approved=2026-11-24 MG (Q-PIN-COMMENT only) -->
+<!-- Work: stage=findings-written; status=blocked; next=MG answers Q-PRIV-RULE and Q-PRIO; then SIM-65 step 1; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SIM-122 is answered; MG's decisions come next, then SIM-124
+# SIM-122 is answered and SIM-124 is fixed; MG's decisions come next, then SIM-65 step 1
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -25,7 +25,7 @@ the private hand-off (see *Private material*).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
-- **Q-PRIO**: priorities of the new items. **Recommended: accept as proposed**: SIM-122 P2,
+- **Q-PRIO**: priorities of the new items (SIM-124 is already done). **Recommended: accept as proposed**: SIM-122 P2,
   SIM-123 P1 (private material was lost), SIM-124 P2, SIM-125 P2. The alternative is to set them
   yourself.
 - **Q-PIN-COMMENT: DECIDED and DONE.** MG via Telegram 2026-11-24 (#1660, replying to #1659):
@@ -70,8 +70,8 @@ the private hand-off (see *Private material*).
 
 1. Present the decisions above, then those in `docs/pending-sim-105-continuation.md`.
 2. Check his issue #30 for a reply to the 2026-11-24 comment and whether his SimOpt pin moved.
-3. SIM-124 test-first, once game mode is over: write a heap-growth test over N replications first,
-   which needs a full-suite baseline run.
+3. ~~SIM-124~~ **done 2026-11-24 on MG's order** ("fix that"): heap flat over replications, suite 987
+   passed, 1 skipped.
 4. Then the SIM-105 order: SIM-65 step 1 (`ParamValue`), then SIM-110.
 5. When his comparison results arrive, check them against the prediction in the private hand-off.
    SIM-122 closes when his failure-bearing cases show the wider spread at `b171eb8`, or when a rerun at
