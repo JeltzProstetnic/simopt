@@ -19,7 +19,7 @@ namespace SimOpt.Simulation.Processes
 
         private readonly int capacity;
         private int inUse;
-        private readonly Queue<Action> waiting = new Queue<Action>();
+        private readonly LinkedList<RequestWait> waiting = new LinkedList<RequestWait>();
         private readonly BinaryEvent<Resource, int> inUseChangedEvent;
 
         #endregion
@@ -50,14 +50,12 @@ namespace SimOpt.Simulation.Processes
         #endregion
         #region impl
 
-        /// <summary>A wait that completes when a unit has been granted to the waiting process.</summary>
-        public Wait Request() => Wait.From(Acquire);
-
-        private void Acquire(Action granted)
-        {
-            if (inUse < capacity && waiting.Count == 0) Grant(granted);
-            else waiting.Enqueue(granted);
-        }
+        /// <summary>
+        /// A wait that completes when a unit has been granted to the waiting process. Withdrawn by an
+        /// interrupt or a lost <see cref="Wait.AnyOf"/>: a queued request leaves the queue, and a unit
+        /// granted but not yet delivered goes back.
+        /// </summary>
+        public Wait Request() => new RequestWait(this);
 
         /// <summary>Returns one unit; the next waiting request, if any, gets it at once.</summary>
         public void Release()
@@ -65,20 +63,77 @@ namespace SimOpt.Simulation.Processes
             if (inUse == 0) throw new InvalidOperationException("Resource '" + EntityName + "' has no unit in use to release.");
             inUse--;
             inUseChangedEvent.Raise(this, inUse);
-            if (waiting.Count > 0) Grant(waiting.Dequeue());
+            if (waiting.Count > 0)
+            {
+                RequestWait next = waiting.First.Value;
+                waiting.RemoveFirst();
+                next.Node = null;
+                Grant(next);
+            }
         }
 
-        private void Grant(Action granted)
+        private void Acquire(RequestWait request)
+        {
+            if (inUse < capacity && waiting.Count == 0) Grant(request);
+            else request.Node = waiting.AddLast(request);
+        }
+
+        private void Grant(RequestWait request)
         {
             inUse++;
             inUseChangedEvent.Raise(this, inUse);
-            Model.Schedule(0d, granted);
+            request.State = RequestState.Granted;
+            Model.Schedule(0d, request.Deliver);
+        }
+
+        private enum RequestState { New, Queued, Granted, Delivered, Withdrawn }
+
+        private sealed class RequestWait : Wait
+        {
+            private readonly Resource resource;
+            private Action resume;
+
+            public RequestWait(Resource resource) { this.resource = resource; }
+
+            public RequestState State { get; set; }
+            public LinkedListNode<RequestWait> Node { get; set; }
+
+            internal override void Subscribe(Process process, Action resume)
+            {
+                this.resume = resume;
+                State = RequestState.Queued;
+                resource.Acquire(this);
+            }
+
+            public void Deliver()
+            {
+                if (State != RequestState.Granted) return;
+                State = RequestState.Delivered;
+                resume();
+            }
+
+            internal override void Cancel()
+            {
+                if (State == RequestState.Queued && Node != null)
+                {
+                    resource.waiting.Remove(Node);
+                    Node = null;
+                }
+                else if (State == RequestState.Granted)
+                {
+                    State = RequestState.Withdrawn;
+                    resource.Release();
+                    return;
+                }
+                if (State != RequestState.Delivered) State = RequestState.Withdrawn;
+            }
         }
 
         public override void Reset()
         {
             base.Reset();
             inUse = 0;
+            foreach (RequestWait request in waiting) { request.Node = null; request.State = RequestState.Withdrawn; }
             waiting.Clear();
         }
 

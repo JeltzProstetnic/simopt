@@ -26,6 +26,10 @@ namespace SimOpt.Simulation.Processes
         private IEnumerator<Wait> steps;
         private int generation;
         private bool alive;
+        private Wait current;          // what the process is waiting for, or null
+        private int token;             // identifies the current wait; a resume carrying an older one is stale
+        private bool interruptPending;
+        private bool interrupted;
 
         #endregion
         #region ctor
@@ -46,6 +50,12 @@ namespace SimOpt.Simulation.Processes
 
         /// <summary>The current simulation time.</summary>
         public double Now { get { return Model.CurrentTime; } }
+
+        /// <summary>
+        /// True in the step that follows an <see cref="Interrupt"/>, false otherwise. Read it after the
+        /// yield to tell an interrupt from a completed wait.
+        /// </summary>
+        public bool Interrupted { get { return interrupted; } }
 
         /// <summary>A wait that completes when this process has finished.</summary>
         public Wait Finished { get { return new JoinWait(this); } }
@@ -68,6 +78,8 @@ namespace SimOpt.Simulation.Processes
             generation++;
             DisposeSteps();
             joiners.Clear();
+            current = null;
+            interruptPending = interrupted = false;
             alive = true;
             int g = generation;
             Model.Schedule(0d, () =>
@@ -81,19 +93,44 @@ namespace SimOpt.Simulation.Processes
         private void Step(int g)
         {
             if (g != generation || !alive) return;
+            interrupted = interruptPending;
+            interruptPending = false;
             if (!steps.MoveNext())
             {
                 Finish();
                 return;
             }
-            Wait wait = steps.Current ?? throw new InvalidOperationException(
+            current = steps.Current ?? throw new InvalidOperationException(
                 "Process '" + EntityName + "' yielded null; yield a Wait such as Timeout(...).");
-            wait.Subscribe(this, () => Step(g));
+            int t = ++token;
+            current.Subscribe(this, () => Resume(g, t));
+        }
+
+        private void Resume(int g, int t)
+        {
+            if (g != generation || t != token) return;
+            current = null;
+            Step(g);
+        }
+
+        /// <summary>
+        /// Stops the process waiting: its current wait is withdrawn, and it resumes at once (from a
+        /// zero-delay event) with <see cref="Interrupted"/> set. Ignored if the process is not waiting.
+        /// </summary>
+        public void Interrupt()
+        {
+            if (!alive || current == null) return;
+            current.Cancel();
+            current = null;
+            interruptPending = true;
+            int g = generation, t = ++token;
+            Model.Schedule(0d, () => Resume(g, t));
         }
 
         private void Finish()
         {
             alive = false;
+            current = null;
             DisposeSteps();
             Action[] waiting = joiners.ToArray();
             joiners.Clear();
@@ -127,6 +164,7 @@ namespace SimOpt.Simulation.Processes
                 generation++;
                 DisposeSteps();
                 joiners.Clear();
+                current = null;
                 alive = false;
             }
         }

@@ -33,11 +33,12 @@ namespace SimOpt.Simulation.Templates
         private readonly LinkedList<Request> putters = new LinkedList<Request>();
         private readonly BinaryEvent<Stock, double> levelChangedEvent;
 
-        private readonly struct Request
+        private sealed class Request
         {
             public Request(double amount, Action done) { Amount = amount; Done = done; }
             public double Amount { get; }
-            public Action Done { get; }
+            public Action Done { get; set; }
+            public bool Served { get; set; }
         }
 
         #endregion
@@ -109,21 +110,63 @@ namespace SimOpt.Simulation.Templates
         }
 
         /// <summary>
-        /// SIM-126: for a process, a wait that completes once the whole amount has been taken.
+        /// SIM-126: for a process, a wait that completes once the whole amount has been taken. If it is
+        /// withdrawn (interrupt, lost AnyOf) it leaves the queue, or, if already served, puts the amount back.
         /// </summary>
         public Wait TakeWait(double amount)
         {
             CheckAmount(amount);
-            return Wait.From(done => Take(amount, done));
+            return new StockWait(this, amount, take: true);
         }
 
         /// <summary>
-        /// SIM-126: for a process, a wait that completes once the amount has gone in.
+        /// SIM-126: for a process, a wait that completes once the amount has gone in. If it is withdrawn
+        /// it leaves the queue, or, if already served, takes the amount out again when it is still there.
         /// </summary>
         public Wait PutWait(double amount)
         {
             CheckAmount(amount);
-            return Wait.From(done => Put(amount, done));
+            return new StockWait(this, amount, take: false);
+        }
+
+        private sealed class StockWait : Wait
+        {
+            private readonly Stock stock;
+            private readonly double amount;
+            private readonly bool take;
+            private Request request;
+            private LinkedListNode<Request> node;
+            private bool withdrawn, delivered;
+
+            public StockWait(Stock stock, double amount, bool take) { this.stock = stock; this.amount = amount; this.take = take; }
+
+            internal override void Subscribe(Processes.Process process, Action resume)
+            {
+                request = new Request(amount, () => { if (withdrawn) return; delivered = true; resume(); });
+                node = (take ? stock.takers : stock.putters).AddLast(request);
+                stock.Settle();
+            }
+
+            internal override void Cancel()
+            {
+                if (withdrawn || delivered || request == null) return;
+                withdrawn = true;
+                if (!request.Served)
+                {
+                    if (node.List != null) node.List.Remove(node);
+                    stock.Settle();
+                }
+                else if (take)
+                {
+                    stock.Change(amount);
+                    stock.Settle();
+                }
+                else if (stock.level >= amount)
+                {
+                    stock.Change(-amount);
+                    stock.Settle();
+                }
+            }
         }
 
         private void CheckAmount(double amount)
@@ -147,6 +190,7 @@ namespace SimOpt.Simulation.Templates
                 {
                     Request put = putters.First.Value;
                     putters.RemoveFirst();
+                    put.Served = true;
                     Change(put.Amount);
                     Resume(put.Done);
                     served = true;
@@ -155,6 +199,7 @@ namespace SimOpt.Simulation.Templates
                 {
                     Request take = takers.First.Value;
                     takers.RemoveFirst();
+                    take.Served = true;
                     Change(-take.Amount);
                     Resume(take.Done);
                     served = true;
