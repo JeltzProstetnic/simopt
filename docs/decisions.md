@@ -529,3 +529,19 @@ UN-018's rule that the viewer presents and never computes a reported measure.
 
 **Later, not here:** a joint solution with him for Ivoclar's use cases belongs to the ivoclar
 project, not to this public repository.
+
+## 2026-11-25 — compete as simulation-optimisation, close the SimPy gap first (SIM-122)
+
+**Positioning.** SIM-122 measured SimOpt against SimPy 4.1.2. As a modelling library for Python
+programmers SimOpt does not win: SimPy is MIT, widely used, faster on a small hand-written model,
+and any behaviour is a short process function. As simulation-optimisation with sound statistics that
+agents can drive, SimPy is not in the race: it has no random-number management, no intervals and no
+optimiser, and a downstream integrator rebuilt all three by hand on top of it. Precision is equal
+once the engine is correct (±1.9 % vs ±2.0 % on the same model). So SimOpt competes on that layer.
+
+**Owner ruling (MG, 2026-11-25):** *"these are top priority"*, for the six gaps named in the SIM-122
+brief: process-style modelling (SIM-126, which resolves Q-PROC as "plan it now"), a stock block
+(SIM-127), events at the current instant (SIM-128), seed IDs by default (SIM-125), speed per event
+(SIM-129) and a clean way in from Python over the SIM-65 schema and MCP (SIM-130). They head the
+backlog above the commercial track. Build order by dependency: SIM-125, SIM-128, SIM-127, SIM-126,
+SIM-129, with SIM-130 following SIM-65/66.

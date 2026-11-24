@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=MG answers Q-PRIV-RULE and Q-PRIO; then SIM-65 step 1; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=blocked; next=SIM-125 test-first (top section); MG still owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SIM-122 is answered and SIM-124 is fixed; MG's decisions come next, then SIM-65 step 1
+# SIM-122 answered, SIM-124 fixed; next is the top backlog section, starting with SIM-125
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -25,9 +25,9 @@ the private hand-off (see *Private material*).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
-- **Q-PRIO**: priorities of the new items (SIM-124 is already done). **Recommended: accept as proposed**: SIM-122 P2,
-  SIM-123 P1 (private material was lost), SIM-124 P2, SIM-125 P2. The alternative is to set them
-  yourself.
+- **Q-PRIO**: priorities of the two items still unset (SIM-124 is done, SIM-125 is P0 since 2026-11-25).
+  **Recommended: accept as proposed**: SIM-122 P2, SIM-123 P1 (private material was lost). The
+  alternative is to set them yourself.
 - **Q-PIN-COMMENT: DECIDED and DONE.** MG via Telegram 2026-11-24 (#1660, replying to #1659):
   *"inform him."* The drafted comment was posted unchanged on his issue #30 at 22:14:59 UTC
   (comment id 7145993700). Next: watch #30 for his reply or a pin move.
@@ -52,11 +52,8 @@ the private hand-off (see *Private material*).
   - **Delete the simopt copies (Recommended):** the fleet copy is canonical and two public copies will
     drift apart.
   - **Keep them** as the record of what simopt staged.
-- **Q-PROC**: a process-style authoring layer (C# iterators or `async` processes over the event engine,
-  as SimPy models are written).
-  - **Defer until SIM-65 ships (Recommended).**
-  - **Plan it now** as its own item.
-  - **Never.**
+- **Q-PROC: DECIDED 2026-11-25.** MG made the SimPy gap top priority: process-style modelling is
+  SIM-126 (P0) in the new top backlog section, with SIM-125, SIM-127..130 (`docs/decisions.md`, 2026-11-25).
 - **Q-CIW**: use Ciw (MIT) as an independent cross-check in the analytic battery for networks without
   a closed form.
   - **File it at P3 (Recommended).**
@@ -72,7 +69,9 @@ the private hand-off (see *Private material*).
 2. Check his issue #30 for a reply to the 2026-11-24 comment and whether his SimOpt pin moved.
 3. ~~SIM-124~~ **done 2026-11-24 on MG's order** ("fix that"): heap flat over replications, suite 987
    passed, 1 skipped.
-4. Then the SIM-105 order: SIM-65 step 1 (`ParamValue`), then SIM-110.
+4. **Then the top backlog section (MG 2026-11-25, "these are top priority"):** SIM-125, SIM-128,
+   SIM-127, SIM-126, SIM-129, with SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
+   follow, unless MG orders otherwise.
 5. When his comparison results arrive, check them against the prediction in the private hand-off.
    SIM-122 closes when his failure-bearing cases show the wider spread at `b171eb8`, or when a rerun at
    `96f979c` or later shows the spreads match.
