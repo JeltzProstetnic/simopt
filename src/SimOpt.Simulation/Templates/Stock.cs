@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
 using SimOpt.Simulation.Events;
+using SimOpt.Simulation.Processes;
 
 namespace SimOpt.Simulation.Templates
 {
@@ -105,6 +106,24 @@ namespace SimOpt.Simulation.Templates
             CheckAmount(amount);
             takers.AddLast(new Request(amount, onTaken));
             Settle();
+        }
+
+        /// <summary>
+        /// SIM-126: for a process, a wait that completes once the whole amount has been taken.
+        /// </summary>
+        public Wait TakeWait(double amount)
+        {
+            CheckAmount(amount);
+            return Wait.From(done => Take(amount, done));
+        }
+
+        /// <summary>
+        /// SIM-126: for a process, a wait that completes once the amount has gone in.
+        /// </summary>
+        public Wait PutWait(double amount)
+        {
+            CheckAmount(amount);
+            return Wait.From(done => Put(amount, done));
         }
 
         private void CheckAmount(double amount)
