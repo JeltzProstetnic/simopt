@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=MG answers Q-PIN-COMMENT and Q-PRIV-RULE, then SIM-124 test-first; approved=none -->
+<!-- Work: stage=findings-written; status=blocked; next=MG answers Q-PRIV-RULE and Q-PRIO, then SIM-124 test-first; approved=2026-11-24 MG (Q-PIN-COMMENT only) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
 # SIM-122 is answered; MG's decisions come next, then SIM-124
 
@@ -28,13 +28,9 @@ the private hand-off (see *Private material*).
 - **Q-PRIO**: priorities of the new items. **Recommended: accept as proposed**: SIM-122 P2,
   SIM-123 P1 (private material was lost), SIM-124 P2, SIM-125 P2. The alternative is to set them
   yourself.
-- **Q-PIN-COMMENT**: tell the colleague why his SimOpt intervals are wide. A ready comment for his open
-  issue #30 is in the private hand-off. It contains the table, the cause, "move `SIMOPT_VERSION` to
-  `96f979c`", the `SeedID` answer to his question 4, and the SIM-124 warning.
-  - **Post it on #30 now (Recommended):** he plans with these numbers, and your standing order from
-    2026-11-03 says "post issues to his repo where you found or will find any".
-  - **You tell him yourself:** you are already in touch about his comparison results.
-  - **Wait for his results first**, then compare against the prediction.
+- **Q-PIN-COMMENT: DECIDED and DONE.** MG via Telegram 2026-11-24 (#1660, replying to #1659):
+  *"inform him."* The drafted comment was posted unchanged on his issue #30 at 22:14:59 UTC
+  (comment id 7145993700). Next: watch #30 for his reply or a pin move.
 - **Q-PRIV-RULE** (SIM-123, Meta-Rules step 2; the analysis subagent ran 2026-11-24). Do not adopt the
   cfg candidate as written: it keeps `tmp/` as the staging place, and the sweep proved that a race.
   - **Recommended:** cfg adds `inbox-file.sh --attach <file>`, which copies into
@@ -73,7 +69,7 @@ the private hand-off (see *Private material*).
 ## Next concrete actions, in order
 
 1. Present the decisions above, then those in `docs/pending-sim-105-continuation.md`.
-2. If Q-PIN-COMMENT is "post": post the draft from the private hand-off on his issue #30 as written.
+2. Check his issue #30 for a reply to the 2026-11-24 comment and whether his SimOpt pin moved.
 3. SIM-124 test-first, once game mode is over: write a heap-growth test over N replications first,
    which needs a full-suite baseline run.
 4. Then the SIM-105 order: SIM-65 step 1 (`ParamValue`), then SIM-110.
