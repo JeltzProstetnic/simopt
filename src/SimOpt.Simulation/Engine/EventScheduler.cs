@@ -32,8 +32,8 @@ namespace SimOpt.Simulation.Engine
     /// which synchronizes the different model parts. In this case the model reference will have to be the reference to the common model 
     /// which manages the distributed sub-models.
     /// 
-    /// The event scheduler allows to add events to the schedule using the Add or the AddImmediate method. Add does allow to add events 
-    /// to the current point in simulation time but this is not according to intended use and the behaviour is undefined. Adding events
+    /// The event scheduler allows to add events to the schedule using the Add or the AddImmediate method. An event added at the 
+    /// current point in simulation time runs in that instant, among the pending events by priority (SIM-128). Adding events
     /// to a past point in time may even result in an infinite loop and subsequently a deadlock of the engine. Adding events through the
     /// model class prevents such errors. The remove method allows removal of event instances from the timeline. Events that have already 
     /// been processed are removed automatically.
@@ -81,8 +81,10 @@ namespace SimOpt.Simulation.Engine
         private SortedDictionary<Priority, IEventInstance> tmpEventsAtTheTime;
         private SortedDictionary<Priority, IEventInstance> tmpEventsAtTheTimeAdd;
         private SortedDictionary<Priority, IEventInstance> tmpEventsAtTheTimeRemove;
-        private List<IEventInstance> tmpHandledEvents;
         private Dictionary<IEventInstance, Priority> eventKeyMap;
+        // SIM-128: events scheduled at the instant being processed, and the keys handled so far
+        private readonly SortedDictionary<Priority, IEventInstance> addedNow = new SortedDictionary<Priority, IEventInstance>();
+        private readonly List<Priority> handledKeys = new List<Priority>();
         private KeyValuePair<double, SortedDictionary<Priority, IEventInstance>> tmpPointInTime;
         // SIM-58 (DES-3): the class used two different "no next event" sentinels — double.MaxValue
         // here and at the NextScheduledEvent guard, double.PositiveInfinity after processing.
@@ -192,7 +194,6 @@ namespace SimOpt.Simulation.Engine
 #if ImmediateEvents
             immediateList = new SortedDictionary<Priority, IEventInstance>();
 #endif
-            tmpHandledEvents = new List<IEventInstance>();
             eventKeyMap = new Dictionary<IEventInstance, Priority>();
         }
 
@@ -203,8 +204,8 @@ namespace SimOpt.Simulation.Engine
 
         /// <summary>
         /// Adds an event to the internal event list at the given time.
-        /// CAUTION: You must not provide events for a current or past
-        /// simulation time. This will result in undefined behaviour.
+        /// CAUTION: You must not provide events for a past simulation time.
+        /// An event at the current time joins the pending events of this instant (SIM-128).
         /// </summary>
         /// <param name="time">point in time of occurence (absolute)</param>
         /// <param name="evnt">the event to be scheduled</param>
@@ -212,8 +213,11 @@ namespace SimOpt.Simulation.Engine
         {
             evnt.Time = time;
 
+            // SIM-128: this instant is being enumerated, so hold the event until the current one is done
+            if (processing && time == now && eventList.TryGetValue(time, out var current) && ReferenceEquals(current, tmpEventsAtTheTime))
+                tmpEventsAtTheTimeAdd = addedNow;
             // create entry if first event at that time
-            if (!eventList.TryGetValue(time, out tmpEventsAtTheTimeAdd))
+            else if (!eventList.TryGetValue(time, out tmpEventsAtTheTimeAdd))
             {
                 tmpEventsAtTheTimeAdd = new SortedDictionary<Priority, IEventInstance>();
                 eventList.Add(time, tmpEventsAtTheTimeAdd);
@@ -261,6 +265,7 @@ namespace SimOpt.Simulation.Engine
         {
             // use reverse index for identity-based removal (SIM-05)
             if (!eventKeyMap.TryGetValue(evnt, out var storedKey)) return;
+            if (addedNow.Remove(storedKey)) { eventKeyMap.Remove(evnt); return; } // SIM-128: not merged yet
             if (!eventList.TryGetValue(evnt.Time, out tmpEventsAtTheTimeRemove)) return;
             tmpEventsAtTheTimeRemove.Remove(storedKey);
             eventKeyMap.Remove(evnt);
@@ -288,36 +293,45 @@ namespace SimOpt.Simulation.Engine
             now = tmpPointInTime.Key;
             tmpEventsAtTheTime = tmpPointInTime.Value;
             processing = true;
-            foreach (IEventInstance evnt in tmpEventsAtTheTime.Values)
+            // SIM-128: an event a handler schedules at the current time goes to addedNow (see Add),
+            // because this instant's collection is being enumerated. When one arrives, the handled
+            // events are taken out, the new ones merged in, and enumeration starts again, so they run
+            // in this instant in priority order among the events still pending (ties in the order
+            // added) and never before the event that scheduled them. Without such adds this is the
+            // single enumeration it always was.
+            bool interrupted = false;
+            while (true)
             {
-                if (logging && evnt.Log) this.Log<EVENT>("Priority = " + evnt.Priority.ToString() + " Event = " + evnt.Name, model);
-                CurrentEvent = evnt;
-                evnt.Raise();
-                CurrentEvent = null;
-                LastProcessedEvent = evnt;
-                eventCounter += 1;
-                handlerCounter += evnt.HandlerCount;
-                tmpHandledEvents.Add(evnt);
-                if (model.IsInterruptRequested) break;
+                handledKeys.Clear();
+                foreach (var kv in tmpEventsAtTheTime)
+                {
+                    IEventInstance evnt = kv.Value;
+                    if (logging && evnt.Log) this.Log<EVENT>("Priority = " + evnt.Priority.ToString() + " Event = " + evnt.Name, model);
+                    CurrentEvent = evnt;
+                    evnt.Raise();
+                    CurrentEvent = null;
+                    LastProcessedEvent = evnt;
+                    eventCounter += 1;
+                    handlerCounter += evnt.HandlerCount;
+                    handledKeys.Add(kv.Key);
+                    eventKeyMap.Remove(evnt);
+                    if (model.IsInterruptRequested) { interrupted = true; break; }
+                    if (addedNow.Count > 0) break;
+                }
+
+                if (handledKeys.Count == tmpEventsAtTheTime.Count) tmpEventsAtTheTime.Clear();
+                else foreach (Priority key in handledKeys) tmpEventsAtTheTime.Remove(key);
+
+                if (addedNow.Count > 0)
+                {
+                    foreach (var kv in addedNow) tmpEventsAtTheTime.Add(kv.Key, kv.Value);
+                    addedNow.Clear();
+                }
+                if (interrupted || tmpEventsAtTheTime.Count == 0) break;
             }
             processing = false;
-            if (model.IsInterruptRequested)
-            {
-                // remove only handled events from inner dict and reverse index
-                foreach (IEventInstance ei in tmpHandledEvents)
-                {
-                    if (eventKeyMap.TryGetValue(ei, out var key))
-                        tmpEventsAtTheTime.Remove(key);
-                    eventKeyMap.Remove(ei);
-                }
-                if (tmpEventsAtTheTime.Count == 0) eventList.Remove(now);
-            }
-            else
-            {
-                // all events at this time were processed — clean up reverse index
-                foreach (var evnt in tmpEventsAtTheTime.Values) eventKeyMap.Remove(evnt);
-                eventList.Remove(now);
-            }
+            // on an interrupt the events not yet handled stay scheduled at this time
+            if (tmpEventsAtTheTime.Count == 0) eventList.Remove(now);
 
 #if ImmediateEvents
             processingImmediate = true;
@@ -340,8 +354,6 @@ namespace SimOpt.Simulation.Engine
                 timeOfNextScheduledEvent = eventList.First<KeyValuePair<double, SortedDictionary<Priority, IEventInstance>>>().Key;
             else
                 timeOfNextScheduledEvent = NoNextEvent;
-
-            tmpHandledEvents.Clear();
         }
 
         #endregion
@@ -365,6 +377,8 @@ namespace SimOpt.Simulation.Engine
             orderCounter = 0;
             eventList.Clear();
             eventKeyMap.Clear();
+            addedNow.Clear();
+            handledKeys.Clear();
             // SIM-58: Reset cleared the calendar but left the cached next-event time behind, so a
             // freshly reset model still advertised the previous run's schedule.
             timeOfNextScheduledEvent = NoNextEvent;

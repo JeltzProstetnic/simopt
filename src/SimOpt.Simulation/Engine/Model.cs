@@ -906,7 +906,7 @@ namespace SimOpt.Simulation.Engine
         /// <summary>
         /// Schedule an event at currenttime + timespan.
         /// Caution: an exception will be thrown if the
-        /// specified point in time is less or equal now.
+        /// specified point in time is before now (SIM-128: now itself is allowed).
         /// </summary>
         /// <param name="timeSpan"></param>
         /// <param name="evnt"></param>
@@ -918,7 +918,7 @@ namespace SimOpt.Simulation.Engine
         /// <summary>
         /// Schedule an event at the specified point in time.
         /// Caution: an exception will be thrown if the
-        /// specified point in time is less or equal now.
+        /// specified point in time is before now (SIM-128: now itself is allowed).
         /// </summary>
         /// <param name="pointInTime"></param>
         /// <param name="evnt"></param>
@@ -934,16 +934,9 @@ namespace SimOpt.Simulation.Engine
             if (double.IsNaN(pointInTime) || double.IsInfinity(pointInTime)) 
                 throw new Exception("Attempt to add the event instance <" + evnt.Name + "> at " + pointInTime.ToString() + ".");
 
-            if (CurrentState == ExecutionState.Running)
-            {
-                if (pointInTime <= currentTime) throw new CausalityException("You may not change the past or present. Events are "
-                + "results of physical processes, which always take time. If you really still feel you have to "
-                + "do this, use the IEventInstance.Raise() method instead. This will call all handlers \"now\".");
-            }
-            else
-            {
-                if (pointInTime < currentTime) throw new CausalityException("You may not change the past. Time travel is forbidden!");
-            }
+            // SIM-128: the present is allowed. An event at the current time runs in this instant,
+            // after the event being processed, among the pending events by priority (EventScheduler).
+            if (pointInTime < currentTime) throw new CausalityException("You may not change the past. Time travel is forbidden!");
             eventScheduler.Add(pointInTime, evnt);
         }
 
