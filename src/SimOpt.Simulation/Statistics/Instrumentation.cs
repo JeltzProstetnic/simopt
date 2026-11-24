@@ -33,6 +33,43 @@ namespace SimOpt.Simulation.Statistics
         /// <summary>Statistic-name constant for the fraction of time a server was working.</summary>
         public const string Utilization = "utilization";
 
+        /// <summary>Statistic-name constant for a stock's time-averaged level (SIM-127).</summary>
+        public const string StockLevel = "stock_level";
+
+        /// <summary>Statistic-name constant for the fraction of time a stock was empty (SIM-127).</summary>
+        public const string StockEmpty = "stock_empty";
+
+        /// <summary>
+        /// Records a stock's level as a time-persistent statistic (SIM-127).
+        /// </summary>
+        public static TimeWeightedCollector ObserveStockLevel(Stock stock, double warmup = 0d)
+        {
+            var collector = new TimeWeightedCollector(
+                stock.Model, StockLevel, () => stock.Level,
+                id: stock.Identifier + ".stat." + StockLevel,
+                name: stock.EntityName + " level")
+            { WarmupTime = warmup };
+
+            stock.LevelChangedEvent.AddHandler((_, level) => collector.Record(level));
+            return collector;
+        }
+
+        /// <summary>
+        /// Records whether a stock is empty (1) or not (0), so the time average is the share of time
+        /// it stood empty (SIM-127).
+        /// </summary>
+        public static TimeWeightedCollector ObserveStockEmpty(Stock stock, double warmup = 0d)
+        {
+            var collector = new TimeWeightedCollector(
+                stock.Model, StockEmpty, () => stock.Level <= 0d ? 1d : 0d,
+                id: stock.Identifier + ".stat." + StockEmpty,
+                name: stock.EntityName + " empty")
+            { WarmupTime = warmup };
+
+            stock.LevelChangedEvent.AddHandler((_, level) => collector.Record(level <= 0d ? 1d : 0d));
+            return collector;
+        }
+
         /// <summary>
         /// Records the buffer's contents as a time-persistent statistic, so the reported figure is
         /// a time-average rather than the average of however many times someone happened to look.
