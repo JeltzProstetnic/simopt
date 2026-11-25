@@ -412,7 +412,8 @@ namespace SimOpt.Simulation.Engine
         /// Caution: the seed will be set to the defaultSeed value and the start time to zero!
         /// CAUTION: You must initialize the DefaultResourceManager manually!
         /// </summary>
-        public Model() : this("Model" + instanceCounter++.ToString(), defaultSeed, 0d) { }
+        // SIM-133: atomic, like Entity's counter; models may be built on parallel threads.
+        public Model() : this("Model" + (System.Threading.Interlocked.Increment(ref instanceCounter) - 1).ToString(), defaultSeed, 0d) { }
 
         /// <summary>
         /// Creates a new model. The start time may be changed later, but be aware that this 

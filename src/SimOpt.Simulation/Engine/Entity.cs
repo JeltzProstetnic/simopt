@@ -44,6 +44,9 @@ namespace SimOpt.Simulation.Engine
 
         private static int instanceCounter = 0;
         private int instanceNumber;
+
+        /// <summary>SIM-133: the counter's current value, then one more, as a single atomic step.</summary>
+        private static int NextInstanceNumber() => System.Threading.Interlocked.Increment(ref instanceCounter) - 1;
         
         private string id;
         private bool idSet = false;
@@ -138,8 +141,7 @@ namespace SimOpt.Simulation.Engine
         /// </summary>
         internal Entity() 
         {
-            instanceNumber = instanceCounter;
-            instanceCounter += 1;
+            instanceNumber = NextInstanceNumber();
         }
 
         /// <summary>
@@ -161,7 +163,11 @@ namespace SimOpt.Simulation.Engine
             this.model = model;
             modelSet = true;
 
-            if (noID) this.id = "Entity " + instanceCounter.ToString();
+            // SIM-133: one atomic step gives this entity its number and, without an id, its name.
+            // The counter used to be read here and bumped with += below, so models built on parallel
+            // threads lost updates, the counter stepped back, and a model got an id it already held.
+            int number = NextInstanceNumber();
+            if (noID) this.id = "Entity " + number.ToString();
             else this.id = id;
             idSet = true;
             idGiven = !noID;
@@ -171,8 +177,7 @@ namespace SimOpt.Simulation.Engine
             if (string.IsNullOrEmpty(name)) this.EntityName = this.id;
             else this.EntityName = name;
 
-            instanceNumber = instanceCounter;
-            instanceCounter += 1;
+            instanceNumber = number;
 
             initialized = true;
             OnModelInitialized();
