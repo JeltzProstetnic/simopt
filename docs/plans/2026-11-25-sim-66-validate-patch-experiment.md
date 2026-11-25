@@ -103,8 +103,14 @@ patch validates, the copy becomes the next version. If not, nothing changes, and
 | `set_metric` | `value` = `{id, kind, node?}` | adds or replaces the metric with that id |
 | `remove_metric` | `id` | removes it |
 
-A fault in an operation (an unknown op, a missing node, a bad path) is an error with code `PATCH_*` and the
-operation's index, and all such faults are reported at once.
+A fault in an operation is an error with the operation's number in `value` and a message starting
+"Operation n (op)": `PATCH_UNKNOWN_OP`, `PATCH_BAD_PATH` (no such node, parameter or distribution field;
+the suggestion lists what exists), `PATCH_BAD_VALUE`, `PATCH_UNKNOWN_NODE`, `PATCH_NODE_EXISTS`,
+`PATCH_NO_SUCH_CONNECTION`, `PATCH_NO_SUCH_METRIC`. All of them are reported at once, and a patched
+copy that applies cleanly is then validated like a new model. Operations apply in order, so inserting a
+delay is one patch: remove a connection, add the node, add two connections. A node id may contain dots;
+a path takes the longest prefix that names a node. Two patches at once cannot silently drop one: the
+registry refuses a version made from a version that is no longer the latest.
 
 **D10. `run_experiment` builds a fresh model per scenario and reports declared metrics with intervals.**
 Arguments: `model_id`, `duration`, `replications` (10, at most 1,000), `warmup` (0.1 × duration),

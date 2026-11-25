@@ -21,7 +21,23 @@ namespace SimOpt.McpServer.Simulation
     /// </summary>
     public sealed class ModelRegistry
     {
-        private readonly ConcurrentDictionary<string, ActiveModel> _models = new();
+        /// <summary>
+        /// SIM-66 (D8): a model's versions, oldest first, and the model built from the latest. Version n
+        /// is <c>Versions[n - 1]</c>.
+        /// </summary>
+        private sealed class Entry
+        {
+            public Entry(ActiveModel active)
+            {
+                Versions.Add(active.Topology);
+                Latest = active;
+            }
+
+            public List<TopologyDefinition> Versions { get; } = new();
+            public ActiveModel Latest { get; set; }
+        }
+
+        private readonly ConcurrentDictionary<string, Entry> _models = new();
 
         /// <summary>
         /// Builds and registers a new model from the given topology definition.
@@ -32,36 +48,72 @@ namespace SimOpt.McpServer.Simulation
 
         /// <summary>As <see cref="Create(TopologyDefinition)"/>, filling <paramref name="report"/> with what was found.</summary>
         /// <exception cref="ModelValidationException">The topology has errors; all of them are in the report.</exception>
-        public string Create(TopologyDefinition topology, ValidationReport report)
-        {
-            ActiveModel active = TryBuild(topology, report) ?? throw new ModelValidationException(report);
-            string id = Guid.NewGuid().ToString("N");
-            _models[id] = active;
-            return id;
-        }
+        public string Create(TopologyDefinition topology, ValidationReport report) =>
+            Register(TryBuild(topology, report) ?? throw new ModelValidationException(report));
 
-        /// <summary>SIM-66: registers a model already built (by <see cref="ModelValidator"/>) and returns its id.</summary>
+        /// <summary>SIM-66: registers a model already built (by <see cref="ModelValidator"/>) as version 1 and returns its id.</summary>
         public string Register(ActiveModel active)
         {
             string id = Guid.NewGuid().ToString("N");
-            _models[id] = active;
+            _models[id] = new Entry(active);
             return id;
         }
 
         /// <summary>
-        /// Returns the active model for the given id, or throws if not found.
+        /// Returns the active model for the given id (built from its latest version), or throws if not found.
         /// </summary>
-        public ActiveModel Get(string modelId)
+        public ActiveModel Get(string modelId) => Find(modelId).Latest;
+
+        /// <summary>SIM-66 (D8): how many versions the model has; the latest is this number.</summary>
+        public int Versions(string modelId)
         {
-            if (!_models.TryGetValue(modelId, out ActiveModel? active))
-                throw new InvalidOperationException($"Model '{modelId}' not found. Use create_model first.");
-            return active;
+            Entry entry = Find(modelId);
+            lock (entry) return entry.Versions.Count;
+        }
+
+        /// <summary>SIM-66 (D8): the topology of a version of the model, the latest when none is named.</summary>
+        public TopologyDefinition Topology(string modelId, int? version = null)
+        {
+            Entry entry = Find(modelId);
+            lock (entry)
+            {
+                int count = entry.Versions.Count;
+                int wanted = version ?? count;
+                if (wanted < 1 || wanted > count)
+                    throw new InvalidOperationException(
+                        $"Model '{modelId}' has no version {wanted}; it has {count} (1 to {count}).");
+                return entry.Versions[wanted - 1];
+            }
+        }
+
+        /// <summary>
+        /// SIM-66 (D8): makes <paramref name="built"/> the model's next version and returns its number.
+        /// Refused when the model has changed since <paramref name="basedOn"/>, the version the change was
+        /// made from, so two patches at once cannot silently drop one of them.
+        /// </summary>
+        public int AddVersion(string modelId, ActiveModel built, int basedOn)
+        {
+            Entry entry = Find(modelId);
+            lock (entry)
+            {
+                if (entry.Versions.Count != basedOn)
+                    throw new InvalidOperationException(
+                        $"Model '{modelId}' changed while this patch was made (version {entry.Versions.Count}, not {basedOn}); patch it again.");
+                entry.Versions.Add(built.Topology);
+                entry.Latest = built;
+                return entry.Versions.Count;
+            }
         }
 
         /// <summary>
         /// Returns all registered model IDs.
         /// </summary>
         public IEnumerable<string> AllIds() => _models.Keys;
+
+        private Entry Find(string modelId) =>
+            _models.TryGetValue(modelId, out Entry? entry)
+                ? entry
+                : throw new InvalidOperationException($"Model '{modelId}' not found. Use create_model first.");
 
         // ── construction ─────────────────────────────────────────────────────
 

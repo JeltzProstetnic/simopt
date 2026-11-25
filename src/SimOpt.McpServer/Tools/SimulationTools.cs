@@ -82,6 +82,50 @@ namespace SimOpt.McpServer.Tools
             }
         }
 
+        // ── patch_model ───────────────────────────────────────────────────────
+
+        [McpServerTool]
+        [Description(
+            "Changes an existing model by a list of operations, applied in order to a copy of its latest version, all or none. " +
+            "Operations: {op:\"set\", path, value} where path is \"name\", \"seed\", \"<node>.<param>\" (value a number, a string " +
+            "or a distribution object; null removes it) or \"<node>.<param>.<field>\" (one field of a distribution, e.g. " +
+            "{\"op\":\"set\",\"path\":\"arrivals.arrival.mean\",\"value\":2.5}); {op:\"add_node\", value:{id,type,params}}; " +
+            "{op:\"remove_node\", node} (its connections and metrics go with it); {op:\"set_connection\", from, to, weight?} " +
+            "(adds it, or sets its weight); {op:\"remove_connection\", from, to}; {op:\"set_metric\", value:{id,kind,node?}}; " +
+            "{op:\"remove_metric\", id}. The result is validated like create_model. If an operation is faulty or the result has " +
+            "errors, nothing changes and every fault is returned; otherwise it becomes the next version, earlier versions stay " +
+            "available to run_experiment. Returns {model_id, version, changes, validation}.")]
+        public string PatchModel(
+            [Description("The model_id returned by create_model")]
+            string model_id,
+            [Description("The operations, applied in order")]
+            List<PatchOperation> patch)
+        {
+            try
+            {
+                int version = _registry.Versions(model_id);
+                var report = new ValidationReport();
+                var changes = new List<string>();
+                TopologyDefinition? patched = TopologyPatcher.Apply(_registry.Topology(model_id, version), patch ?? new(), report, changes);
+                ActiveModel? built = null;
+                if (patched != null) report = ModelValidator.Validate(patched, out built);
+                if (built == null)
+                    return JsonSerializer.Serialize(new
+                    {
+                        error = string.Join("\n", report.Errors.Select(e => e.Line)),
+                        model_id,
+                        version,
+                        validation = report,
+                    });
+                int next = _registry.AddVersion(model_id, built, basedOn: version);
+                return JsonSerializer.Serialize(new { model_id, version = next, changes, validation = report });
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { error = ex.Message });
+            }
+        }
+
         // ── validate_model ────────────────────────────────────────────────────
 
         [McpServerTool]
