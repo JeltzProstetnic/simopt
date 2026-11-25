@@ -1,4 +1,4 @@
-<!-- Action: act -->
+<!-- Action: await-user-decision -->
 <!-- Work: stage=decided; status=open; next=build SIM-126's process schema (Q-PROC-SCHEMA, brief docs/plans/2026-11-25-sim-126-process-schema.md), then SIM-110 via SIM-70 and SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)

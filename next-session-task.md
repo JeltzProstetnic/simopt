@@ -1,10 +1,5 @@
-<!-- MANDATORY at shutdown — fill this in every session, including sessions with nothing in flight.
-     Required fields: task: true|false, file: <path>, backlog: <ID|none>, description: <text>
-     Optional: resume: <the exact first command or step to run> — carried verbatim, shown in HANDOFF (CFG-948).
-     The file: MUST point to a dedicated file (e.g., docs/pending-*.md), NEVER to session-context.md.
-     rotate-session.sh extracts this section to next-session-task.md automatically. -->
 task: true
 file: docs/pending-sim-122-continuation.md
 backlog: SIM-126
-description: Restart #5 wrote SIM-126's schema brief (Q-PROC-SCHEMA), did SIM-110 in part (layout, pause, engine-measured numbers; rest waits Q-VIEW-PATH), SIM-93 in part (Q-IVO-STATS) and SIM-118. Read MG's answers to Q-PROC-SCHEMA, Q-VIEW-PATH and Q-IVO-STATS first; build what they unblock, otherwise SIM-117 or SIM-86.
-resume: Read docs/pending-sim-122-continuation.md (section "restart #5" and the decisions), then check Telegram for MG's answers before choosing the next item.
+description: All open decisions are answered (docs/decisions.md, 2026-11-25 morning). Build SIM-126's process schema as decided (Q-PROC-SCHEMA: process node with a closed step list), then SIM-110 via SIM-70's extraction (Q-VIEW-PATH), then SIM-86 slice C (report_run, Markdown, English or German). Check the first nightly CI run (2026-11-26 02:17 UTC).
+resume: Read docs/plans/2026-11-25-sim-126-process-schema.md and the Q-PROC-SCHEMA entry in docs/decisions.md, run the suite baseline, then write SIM-126's first schema test.
