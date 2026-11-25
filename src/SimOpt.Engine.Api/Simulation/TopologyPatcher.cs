@@ -115,7 +115,7 @@ namespace SimOpt.Engine.Api.Simulation
                     t.Name = value.Value.GetString()!;
                     return $"name: \"{oldName}\" → \"{t.Name}\"";
                 case "seed" when value?.ValueKind == JsonValueKind.Number && value.Value.TryGetInt32(out int seed):
-                    int oldSeed = t.Seed;
+                    string oldSeed = t.Seed?.ToString() ?? $"{TopologyDefinition.DefaultSeed} (the default)";
                     t.Seed = seed;
                     return $"seed: {oldSeed} → {seed}";
                 case "name":

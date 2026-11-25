@@ -78,10 +78,10 @@ namespace SimOpt.McpServer.Simulation
                 Duration = duration,
                 Warmup = warm,
                 Replications = reps,
-                Seed = seed ?? topology.Seed,
+                Seed = seed ?? topology.EffectiveSeed,
                 Confidence = Confidence,
                 Tool = ToolVersion,
-                Assumed = Assumptions(topology, NotGiven(warmup, seed, ("replications", replications, reps))),
+                Assumed = Assumptions(topology, NotGiven(warmup, seed, topology.Seed, ("replications", replications, reps))),
             };
             result.Scenarios.Add(RunScenario(Baseline, topology, Array.Empty<PatchOperation>(), defaults, result));
             for (int i = 0; i < scenarios.Count; i++)
@@ -252,13 +252,15 @@ namespace SimOpt.McpServer.Simulation
 
         /// <summary>
         /// SIM-86 (UN-035): the call arguments a run used without being given them, with the value used:
-        /// the warm-up, the seed and the replication count named in <paramref name="replications"/>.
+        /// the warm-up, the seed and the replication count named in <paramref name="replications"/>. A seed the call
+        /// leaves out is the model's, or the default when the model gives none either (<paramref name="modelSeed"/>
+        /// null, SIM-144).
         /// </summary>
-        public static IEnumerable<KeyValuePair<string, string>> NotGiven(double? warmup, int? seed,
+        public static IEnumerable<KeyValuePair<string, string>> NotGiven(double? warmup, int? seed, int? modelSeed,
                                                                           (string Name, int? Given, int Used) replications)
         {
             if (warmup == null) yield return new("warmup", "a tenth of the duration");
-            if (seed == null) yield return new("seed", "the model's");
+            if (seed == null) yield return new("seed", modelSeed == null ? "the default; the model gives none" : "the model's");
             if (replications.Given == null)
                 yield return new(replications.Name, replications.Used.ToString(CultureInfo.InvariantCulture));
         }

@@ -55,7 +55,7 @@ namespace SimOpt.McpServer.Optimization
             if (maxSeconds is double s && !(s > 0d)) throw new ArgumentException($"max_seconds must be positive, not {s}.");
 
             double warm = warmup ?? duration / 10d;
-            int baseSeed = seed ?? topology.Seed;
+            int baseSeed = seed ?? topology.EffectiveSeed;
             var problem = new TopologyProblem(topology, variables, objective, duration, warm, replications, baseSeed, maxEvaluations);
             long? space = problem.SpaceSize;
             if (chosen == "auto") chosen = space is long n && n <= maxEvaluations ? "grid" : "ea";
@@ -79,7 +79,7 @@ namespace SimOpt.McpServer.Optimization
 
             OptimizationResult result = Report(modelId, version, chosen, problem, topology, objective, duration, warm, replications, baseSeed);
             result.Assumed = ExperimentRunner.Assumptions(topology,
-                ExperimentRunner.NotGiven(warmup, seed, ("replications_per_eval", replicationsPerEval, replications)),
+                ExperimentRunner.NotGiven(warmup, seed, topology.Seed, ("replications_per_eval", replicationsPerEval, replications)),
                 problem.Variables.Select(v => v.Path).ToList());
             return result;
         }

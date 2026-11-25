@@ -105,7 +105,7 @@ public static class VizSchema
         if (document == null) throw new ArgumentNullException(nameof(document));
         TopologyDefinition t = document.Topology;
         bool plan = document.Layout.Values.Any(l => l.X.HasValue && l.Y.HasValue);
-        var drawing = new VizTopology { Name = t.Name, Seed = t.Seed };
+        var drawing = new VizTopology { Name = t.Name, Seed = t.EffectiveSeed };
         var drawn = new HashSet<string>();
         foreach (NodeDefinition node in t.Nodes)
         {

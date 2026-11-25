@@ -44,6 +44,9 @@ public sealed class ProvenanceTests : IDisposable
          "connections":[["in","q"],["q","s"],["s","out"]]}
         """;
 
+    /// <summary>SIM-144: <see cref="Line"/> without its seed.</summary>
+    private static readonly string Seedless = Line.Replace("\"seed\":3,", "");
+
     /// <summary>Every parameter given, one of them by its older alternative name, and a metric declared.</summary>
     private const string Given = """
         {"name":"given","seed":3,
@@ -216,5 +219,81 @@ public sealed class ProvenanceTests : IDisposable
             ["q.capacity"] = "unlimited",
             ["q.discipline"] = "fifo",
         });
+    }
+
+    [Fact]
+    public async Task AModelWithoutASeed_RunsAtTheDefault42_AndSaysSo()
+    {
+        Seedless.Should().NotContain("\"seed\"");
+        var (tools, id) = await Created(Seedless);
+
+        JsonElement result = await Experiment(tools, id);
+
+        result.GetProperty("seed").GetInt32().Should().Be(42);
+        Assumed(result)["seed"].Should().Be("the default; the model gives none");
+    }
+
+    [Fact]
+    public async Task AModelGiving42_IsToldApartFromOneGivingNone_AndGivesTheSameFigures()
+    {
+        var (seedless, a) = await Created(Seedless);
+        var (given, b) = await Created(Line.Replace("\"seed\":3,", "\"seed\":42,"));
+
+        JsonElement without = await Experiment(seedless, a);
+        JsonElement with42 = await Experiment(given, b);
+
+        Assumed(with42)["seed"].Should().Be("the model's");
+        with42.GetProperty("model_sha256").GetString().Should().NotBe(without.GetProperty("model_sha256").GetString());
+        with42.GetProperty("scenarios").GetRawText().Should().Be(without.GetProperty("scenarios").GetRawText());
+    }
+
+    [Fact]
+    public async Task ASavedModelWithoutASeed_IsWrittenWithoutOne_AndReopensWithoutOne()
+    {
+        var (tools, id) = await Created(Seedless);
+        string path = Path.Combine(folder, "seedless.json");
+        await Call(tools, nameof(SimulationTools.SaveModel), new { model_id = id, path });
+        JsonElement here = await Experiment(tools, id);
+
+        var elsewhere = new SimulationTools(new ModelRegistry());
+        string loaded = Json(await Call(elsewhere, nameof(SimulationTools.LoadModel), new { path })).GetProperty("model_id").GetString()!;
+        JsonElement there = await Experiment(elsewhere, loaded);
+
+        File.ReadAllText(path).Should().NotContain("\"seed\"");
+        here.GetProperty("model_sha256").GetString().Should().Be(Sha256OfFile(path));
+        there.GetProperty("model_sha256").GetString().Should().Be(Sha256OfFile(path));
+        Assumed(there)["seed"].Should().Be("the default; the model gives none");
+    }
+
+    [Fact]
+    public async Task ASeedGivenByTheCallOrByAPatch_LeavesTheDefaultUnused()
+    {
+        var (tools, id) = await Created(Seedless);
+
+        JsonElement called = await Experiment(tools, id, new { seed = 5 });
+        await Call(tools, nameof(SimulationTools.PatchModel), new { model_id = id, patch = Json("""[{"op":"set","path":"seed","value":7}]""") });
+        JsonElement patched = await Experiment(tools, id);
+
+        called.GetProperty("seed").GetInt32().Should().Be(5);
+        Assumed(called).Should().NotContainKey("seed");
+        patched.GetProperty("seed").GetInt32().Should().Be(7);
+        Assumed(patched)["seed"].Should().Be("the model's");
+    }
+
+    [Fact]
+    public async Task Optimize_OnAModelWithoutASeed_SaysTheSeedWasTheDefault()
+    {
+        var (tools, id) = await Created(Seedless);
+
+        JsonElement result = Json(await Call(tools, nameof(SimulationTools.Optimize), new
+        {
+            model_id = id,
+            variables = Json("""[{"path":"s.servers","type":"integer","min":1,"max":2}]"""),
+            objective = Json("""{"metric":"s.servers","direction":"min"}"""),
+            duration = 100.0,
+        }));
+
+        result.GetProperty("seed").GetInt32().Should().Be(42);
+        Assumed(result)["seed"].Should().Be("the default; the model gives none");
     }
 }

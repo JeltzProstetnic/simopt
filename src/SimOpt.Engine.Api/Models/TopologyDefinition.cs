@@ -20,9 +20,21 @@ namespace SimOpt.Engine.Api.Models
         [JsonPropertyName("name")]
         public string Name { get; set; } = "Model";
 
-        [Description("Random seed for reproducibility")]
+        /// <summary>SIM-144: the seed a model runs at when neither it nor the call gives one.</summary>
+        public const int DefaultSeed = 42;
+
+        /// <summary>
+        /// SIM-144: null when the document leaves the seed out, so that such a document stays apart from one
+        /// giving 42 (in its saved bytes, its hash and the run's list of assumed values).
+        /// </summary>
+        [Description("Random seed for reproducibility; 42 when left out")]
         [JsonPropertyName("seed")]
-        public int Seed { get; set; } = 42;
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? Seed { get; set; }
+
+        /// <summary>SIM-144: the seed the model runs at: its own, else <see cref="DefaultSeed"/>.</summary>
+        [JsonIgnore]
+        public int EffectiveSeed => Seed ?? DefaultSeed;
 
         [Description("List of simulation nodes (source, queue, station, delay, router, sink; resource and stock beside the item flow)")]
         [JsonPropertyName("nodes")]

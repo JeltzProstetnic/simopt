@@ -121,6 +121,7 @@ namespace SimOpt.McpServer.Simulation
             {
                 ["a tenth of the duration"] = "ein Zehntel der Laufzeit",
                 ["the model's"] = "wie im Modell",
+                ["the default; the model gives none"] = "der Standardwert; das Modell gibt keinen an",
                 ["unlimited"] = "unbegrenzt",
                 ["the default set; the model declares none"] = "der Standardsatz; das Modell gibt keine an",
             });

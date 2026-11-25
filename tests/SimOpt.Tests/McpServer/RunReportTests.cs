@@ -124,6 +124,22 @@ public sealed class RunReportTests : IDisposable
     }
 
     [Fact]
+    public async Task ARunOfAModelWithoutASeed_ReportsTheDefaultSeed_InEnglishAndGerman()
+    {
+        var tools = new SimulationTools(new ModelRegistry());
+        string id = Json(await Call(tools, nameof(SimulationTools.CreateModel), new { topology = Json(Clinic.Replace("\"seed\":7,", "")) }))
+            .GetProperty("model_id").GetString()!;
+        string path = Path.Combine(folder, "seedless-run.json");
+        await Call(tools, nameof(SimulationTools.RunExperiment), new { model_id = id, duration = 540.0, replications = 2, record = path });
+
+        string en = (await Reported(path)).GetProperty("markdown").GetString()!;
+        string de = (await Reported(path, "de")).GetProperty("markdown").GetString()!;
+
+        en.Should().Contain("| seed | the default; the model gives none: 42 |");
+        de.Should().Contain("| seed | der Standardwert; das Modell gibt keinen an: 42 |");
+    }
+
+    [Fact]
     public void EveryLimitOfTheSchema_HasAGermanText()
     {
         RunReport.GermanLimits.Keys.Should().BeEquivalentTo(SchemaCatalog.Limits);

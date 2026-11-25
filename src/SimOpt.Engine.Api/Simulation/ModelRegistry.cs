@@ -168,7 +168,7 @@ namespace SimOpt.Engine.Api.Simulation
             // while seedChange is set (StochasticEntity.cs:41-49). A model constructed at its final
             // seed would therefore never apply any SeedID, and every node would silently keep the
             // construction-order seed it happened to be handed.
-            var model = new Model(topology.Name, unchecked(topology.Seed + 1), 0d);
+            var model = new Model(topology.Name, unchecked(topology.EffectiveSeed + 1), 0d);
             model.LoggingEnabled = false;
 
             var sources = new Dictionary<string, SimpleSource>();
@@ -685,9 +685,9 @@ namespace SimOpt.Engine.Api.Simulation
             OfferedLoad.Check(topology, report);   // SIM-66 step 3 (D5)
 
             // Apply the real seed. This is the reset that makes every SeedID assignment above take
-            // effect; from here on the per-node streams are a pure function of (topology.Seed,
+            // effect; from here on the per-node streams are a pure function of (the model's seed,
             // node.Id) and survive both a process restart and a reordering of the node list.
-            model.Reset(topology.Seed);
+            model.Reset(topology.EffectiveSeed);
 
             return new ActiveModel(model, sources, buffers, servers, delays, routers, sinks, topology, metrics, resources, stocks,
                 processes);
