@@ -1,6 +1,14 @@
 <!-- Action: reference -->
 <!-- Tracked-by: SIM-65, SIM-66 -->
-# SIM-65 is half built. The distribution layer is in; the node vocabulary is not.
+# SIM-65 is DONE (2026-11-25 night, `ccaaf99`). Kept as reference for SIM-66, which reports what it built.
+
+**For SIM-66:** `ActiveModel.Metrics` maps each declared metric id to its collector's identifier, the key a
+`ReplicationResult` is indexed by, so `run_experiment` is `new ReplicationRunner(active.Model, run, warmup)
+.Run(n, seed)` read through that map. The builder still throws at the first error; SIM-66 wants every
+error at once, so its validation layer has to collect rather than throw (the refusal texts can stay).
+`SchemaCatalog.JsonSchema()` is the schema layer's source. A station's offered load for the rho
+pre-check: arrival rate times `IDistribution.Mean` of the service (shift included since SIM-102) over
+`servers`.
 
 ## Status 2026-11-03
 
@@ -94,7 +102,7 @@ read a sink. ActiveModel has `Delays` and `Routers` besides the old four.
    `utilization` have collectors already (`Instrumentation`); `count`/`throughput` read the sink;
    `cycle_time` needs a new `Instrumentation.ObserveCycleTime` (unblocked now that SIM-90 preserves
    entity identity through servers). Attaching them is this item; **reporting them is SIM-66** (D6).
-6. **`SchemaCatalog` + `get_schema`** — one source of truth that the builder, `get_schema` and
+6. ~~**`SchemaCatalog` + `get_schema`**~~ **done 2026-11-25 (step 6, with the clinic acceptance test)** — one source of truth that the builder, `get_schema` and
    `list_templates` all read, plus a test asserting the node types the builder handles equal the
    ones the catalogue publishes (D7). `DistributionSpec`'s doc comment already `<see cref>`s
    `SchemaCatalog`, so it must be created in `SimOpt.McpServer.Models`.

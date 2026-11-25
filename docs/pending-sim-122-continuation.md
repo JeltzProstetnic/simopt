@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=SIM-132 then SIM-65 step 2b (delay node), then steps 3-6, SIM-126's schema part and SIM-110, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=SIM-66 (validate_model, patch_model, run_experiment), then SIM-137 and SIM-139, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SimPy-gap section: SIM-124, 125, 127, 128, 129, 131 done, SIM-126 slices 1-6 done, SIM-65 step 1 done; next SIM-65 step 2
+# SimPy-gap section: SIM-124..132 done, SIM-126 slices 1-6 done, SIM-65 done (2026-11-25 late night); next SIM-66
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -27,7 +27,9 @@ the private hand-off (see *Private material*).
 
 - **Q-PRIO**: priorities of the items still unset (SIM-124 is done, SIM-125 is P0 since 2026-11-25).
   **Recommended: accept as proposed**: SIM-122 P2, SIM-123 P1 (private material was lost), SIM-132 P2
-  (`Delay<T>` drops items; found 2026-11-25 night). The alternative is to set them yourself.
+  (`Delay<T>` drops items; found 2026-11-25 night, done), and from the late-night run: SIM-133 P2 (done),
+  SIM-134 P1 (done), SIM-135 P1 (done), SIM-136 P2, SIM-137 P1, SIM-138 P3, SIM-139 P1. The alternative is to
+  set them yourself.
 - **Q-PIN-COMMENT: DECIDED and DONE.** MG via Telegram 2026-11-24 (#1660, replying to #1659):
   *"inform him."* The drafted comment was posted unchanged on his issue #30 at 22:14:59 UTC
   (comment id 7145993700). Next: watch #30 for his reply or a pin move.
@@ -83,8 +85,18 @@ the private hand-off (see *Private material*).
    **SIM-65 step 1 and step 2a done the same night** (`6637d1c` `ParamValue`; `f738868` queue/station aliases,
    arrival/service distributions, discipline; suite 1102 passed, 1 skipped). Step 2b found **SIM-132** (`Delay<T>` holds
    one item and silently drops the rest; P2 proposed, **Q-PRIO** now covers it too).
-   **Next, in order:** SIM-132, then SIM-65 step 2b (plan in `docs/pending-sim-65-continuation.md`), then SIM-126's schema part,
-   SIM-110 and SIM-130. Older plan, kept for reference: SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
+   **2026-11-25 late night (unattended, cfg caretaking): SIM-132 and all of SIM-65 done** (steps 2b-6 and the
+   clinic acceptance test; `e1c9899`..`ccaaf99`; suite 1196 passed, 1 skipped). Found and fixed on the way: SIM-133
+   (entity auto-ids raced across threads), SIM-134 (the logger's dispatcher thread killed the test host about one
+   run in 15; proven by 60 clean runs), SIM-135 (the MCP builder silently left source/station -> station links
+   unwired; D3 corrected in `docs/decisions.md`), SIM-138 (flaky allocation tests; awaiting its 40-run proof).
+   Filed, open: SIM-136 (suspected item loss in the visualization builder), SIM-137 (battery fixture NRE, 1 in 60),
+   SIM-139 (a source's first item at t = 1 fresh, t = 0 after a reset). No comment on his issue #30 needed: no
+   template result moved (a one-server station keeps its id and seed; `Delay` keeps capacity 1 by default).
+   **Next, in order:** SIM-66 (P0: `validate_model`, `patch_model`, `run_experiment`; notes at the top of
+   `docs/pending-sim-65-continuation.md`), then SIM-137 and SIM-139 (both P1 proposed, small), SIM-126's schema
+   part, SIM-69 (`optimize`), SIM-110 and SIM-130.
+   Older next list, kept: SIM-132, then SIM-65 step 2b, then SIM-126's schema part, SIM-110 and SIM-130. Older plan, kept for reference: SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
    process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
    follow, unless MG orders otherwise.
    **Q-ASYNC** (new): the process layer uses C# iterators; an `async` front end over the same waits stays
