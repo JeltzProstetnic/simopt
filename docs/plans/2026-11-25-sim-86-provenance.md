@@ -109,6 +109,8 @@ decimal commas (de-AT) and intervals as "[a; b]". Every limit of the catalogue h
 catalogue no longer has is printed in English and marked so. `RunRecordFile.Open` now reads and
 checks a record for both `reproduce_run` and `report_run`. Python: `Server.report_run`. Tests
 `RunReportTests` (7) and one Python acceptance test; suite 1627 -> 1634 passed, 4 skipped; Python 31.
+Samples, the clinic with a flu scenario (540 per replication, 5 replications), rendered at `ff2c874`:
+`2026-11-25-sim-86/sample-report-en.md` and `2026-11-25-sim-86/sample-report-de.md`.
 
 ## Known gap, filed
 
