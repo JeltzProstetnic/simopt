@@ -93,28 +93,12 @@ the private hand-off (see *Private material*).
 ## Decisions for MG (stable IDs; recommended option first)
 
 - **Q-ENGINE-MOVES: DECIDED 2026-11-25 by MG at the console:** after his SIM-122 results arrive (`docs/decisions.md`, 2026-11-25 morning).
-- **Q-PROV-REPORT** (new 2026-11-25, restart #6, SIM-86 slice C, UN-034 "exportable in a form that goes into an
-  expert report"): what form a run record takes for a report.
-  - **A `report_run` tool renders a record as a Markdown appendix, English or German by argument (Recommended):**
-    provenance table (tool, model hash, seed, replications, warm-up), what was assumed, the standing limits of schema
-    v1, results with intervals, and how to repeat it (`reproduce_run`); you turn it into PDF or Word in your own
-    toolchain.
-  - **A PDF straight from the server** (the fleet office template): one step less for you, a heavy dependency in the
-    server.
-  - **No report form:** the JSON record is the exhibit and you write the prose.
-
-- **Q-STORE** (new 2026-11-25, restart #4, SIM-67 D4): should the server keep every model in a directory and
-  reload it when it starts ("re-hydrate on reconnect" in the old backlog text)?
-  - **Not now (Recommended):** `save_model`/`load_model` already let a model outlive the process (UN-005);
-    a store changes what a plain server writes to disk. Revisit with the desktop app (SIM-71).
-  - **Opt-in:** an environment variable `SIMOPT_MODEL_STORE` names the directory; unset, nothing changes.
+- **Q-PROV-REPORT: DECIDED 2026-11-25 by MG at the console:** a Markdown appendix via `report_run`, English or German; SIM-86 slice C is unblocked (`docs/decisions.md`, 2026-11-25 morning).
+- **Q-STORE: DECIDED 2026-11-25 by MG at the console:** not now; revisit with SIM-71 (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-PROC-SCHEMA: DECIDED 2026-11-25 by MG at the console:** the process node with a closed step list; SIM-126's schema build is unblocked (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-VIEW-PATH: DECIDED 2026-11-25 by MG at the console:** a shared library, every viewer model through the schema builder; SIM-110's rest starts with SIM-70's extraction (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-IVO-STATS: DECIDED 2026-11-25 by MG at the console:** 960 minutes with a 120-minute warm-up; SIM-93's defaults are unblocked (`docs/decisions.md`, 2026-11-25 morning).
-- **Q-AUTO** (new 2026-11-25, restart #4): which search "auto" runs when the space is larger than the
-  budget. **Recommended: the EA (built, unattended choice):** best or tied at the default budget with the
-  best worst case. Alternatives: random search (the step-3 behaviour), or SA as D6 planned (measured last).
-
+- **Q-AUTO: DECIDED 2026-11-25 by MG at the console:** the EA stays (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-PRIO**: priorities of the items still unset (SIM-124 is done, SIM-125 is P0 since 2026-11-25).
   **Recommended: accept as proposed**: SIM-122 P2, SIM-123 P1 (private material was lost), SIM-132 P2
   (`Delay<T>` drops items; found 2026-11-25 night, done), and from the late-night run: SIM-133 P2 (done),
@@ -139,13 +123,7 @@ the private hand-off (see *Private material*).
   - **Interim, until `--attach` exists:** the same rule, but the note waits in a gitignored path
     outside `tmp/`. It is still a single untracked copy.
   - **The cfg candidate as written.**
-- **Q-SRC-START** (SIM-139, new 2026-11-25 late night): with `autoStartDelay: 0` a source makes its first item
-  at t = 1 (one interval) on a freshly built model and at t = 0 after `Model.Reset`. Both paths must agree.
-  - **First item at t = 0 on both paths (Recommended):** that is what every replicated run and every MCP run
-    already does (they reset first), so no replicated result and none of his frozen reference runs move; only a
-    caller running a freshly built model without a reset gets one item more.
-  - **First item after one interval on both paths,** as SimPy sources usually do: moves every replicated result
-    and his frozen runs (a comment on his issue #30 then).
+- **Q-SRC-START: DECIDED 2026-11-25 by MG at the console:** first item at t = 0 on both paths; SIM-139 is unblocked (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-STAGED**: `docs/staged/manufacturing-simulation-modelling.md` and
   `shopfloor-management-and-governance.md` now live in the fleet (`global/knowledge/`, CFG-894).
   - **Delete the simopt copies (Recommended):** the fleet copy is canonical and two public copies will

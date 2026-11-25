@@ -658,3 +658,12 @@ closed, and was deleted. Its standing rules for unattended work that still apply
 - **Q-ENGINE-MOVES → SIM-117, SIM-95 and SIM-119 wait for the colleague's SIM-122 results.** They change runs with
   failures or antithetic sampling, the cases his comparison measures; fixing them first would leave a rerun at the
   latest commit differing for two reasons at once.
+- **Q-PROV-REPORT → a Markdown appendix** (SIM-86 slice C): a `report_run` tool renders a run record as Markdown,
+  English or German by argument (provenance table, what was assumed, the limits of schema v1, results with intervals,
+  how to repeat it); MG turns it into PDF or Word in his own toolchain. No rendering dependency in the server.
+- **Q-AUTO → the EA stays** what `optimize`'s "auto" runs on spaces larger than the budget (measured best or tied at
+  the default budget with the best worst case; D6 had planned SA, measured last).
+- **Q-STORE → not now.** `save_model`/`load_model` cover UN-005; a model store is revisited with the desktop app
+  (SIM-71).
+- **Q-SRC-START → first item at t = 0 on both paths** (SIM-139): a freshly built model matches what every replicated
+  and MCP run already does after its reset, so no replicated result and none of his frozen runs move.
