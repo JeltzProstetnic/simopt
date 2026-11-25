@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
@@ -30,7 +31,7 @@ namespace SimOpt.McpServer.Tools
         [Description(
             "Creates a new simulation model from a JSON topology description. " +
             "Returns a model_id to be used in subsequent calls. " +
-            "Nodes may have types: source, queue, station, delay, sink (buffer and server are accepted for queue and station). " +
+            "Nodes may have types: source, queue, station, delay, router, sink (buffer and server are accepted for queue and station). " +
             "Connections flow from source nodes toward sink nodes. " +
             "Source params: arrival, a distribution object such as {\"type\":\"exponential\",\"mean\":2} " +
             "(types: exponential, triangular, uniform, lognormal, gamma, constant, empirical), " +
@@ -40,7 +41,11 @@ namespace SimOpt.McpServer.Tools
             "servers, a whole number (default 1); a station with more than one server must be fed by a queue, " +
             "and its servers are reported as <id>#1 .. <id>#c. " +
             "Delay params: duration, a distribution object, or delay_time, an exponential mean; every item gets its own timer, " +
-            "so a delay holds any number of items (it is fed by a source, station or delay, not by a queue). " +
+            "so a delay holds any number of items (it is fed by a source, station, delay or router, not by a queue). " +
+            "Router params: policy, \"probabilistic\" (each connection leaving it may carry a weight, on all or none; " +
+            "none splits equally) or \"shortest_queue\" (routes only to queues, to the one with the fewest items waiting " +
+            "or in service at the station it feeds; a tie goes to the connection listed first); " +
+            "a router is fed like a delay and feeds a queue, delay, sink or router. " +
             "Sink has no params. " +
             "Example: {\"name\":\"SQSS\",\"seed\":42," +
             "\"nodes\":[{\"id\":\"src\",\"type\":\"source\",\"params\":{\"mean_interval\":2.0}}," +
@@ -116,6 +121,10 @@ namespace SimOpt.McpServer.Tools
                 foreach (var (id, dly) in active.Delays)
                     delayStats[id] = new { in_flight = dly.Count, refused = dly.RefusedCount };
 
+                var routerStats = new Dictionary<string, object>();
+                foreach (var (id, rtr) in active.Routers)
+                    routerStats[id] = new { routed = RoutedByTarget(rtr), refused = rtr.RefusedCount };
+
                 var sourceStats = new Dictionary<string, object>();
                 foreach (var (id, src) in active.Sources)
                     sourceStats[id] = new { running = src.Running };
@@ -132,6 +141,7 @@ namespace SimOpt.McpServer.Tools
                         buffers = bufferStats,
                         servers = serverStats,
                         delays = delayStats,
+                        routers = routerStats,
                         sources = sourceStats,
                     }
                 });
@@ -140,6 +150,18 @@ namespace SimOpt.McpServer.Tools
             {
                 return JsonSerializer.Serialize(new { error = ex.Message });
             }
+        }
+
+        /// <summary>SIM-65 step 4: the items a router passed on, by target id.</summary>
+        private static Dictionary<string, int> RoutedByTarget(SimpleRouter router)
+        {
+            var routed = new Dictionary<string, int>();
+            for (int i = 0; i < router.Targets.Count; i++)
+            {
+                string target = (router.Targets[i] as SimOpt.Simulation.Engine.IEntity)?.Identifier ?? i.ToString();
+                routed[target] = routed.GetValueOrDefault(target) + router.Routed[i];
+            }
+            return routed;
         }
 
         // ── get_status ────────────────────────────────────────────────────────
@@ -170,6 +192,9 @@ namespace SimOpt.McpServer.Tools
 
                 foreach (var (id, dly) in active.Delays)
                     nodeStates.Add(new { id, type = "delay", in_flight = dly.Count, refused = dly.RefusedCount });
+
+                foreach (var (id, rtr) in active.Routers)
+                    nodeStates.Add(new { id, type = "router", routed = RoutedByTarget(rtr), refused = rtr.RefusedCount });
 
                 foreach (var (id, snk) in active.Sinks)
                     nodeStates.Add(new { id, type = "sink", total_received = snk.Count });

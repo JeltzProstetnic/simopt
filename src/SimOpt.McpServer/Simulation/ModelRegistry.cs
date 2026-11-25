@@ -67,6 +67,7 @@ namespace SimOpt.McpServer.Simulation
             var servers = new Dictionary<string, SimpleServer>();               // by server id
             var stations = new Dictionary<string, List<SimpleServer>>();       // by node id
             var delays = new Dictionary<string, SimpleDelay>();
+            var routers = new Dictionary<string, SimpleRouter>();
             var sinks = new Dictionary<string, SimpleSink>();
 
             int entityCounter = 0;
@@ -180,6 +181,20 @@ namespace SimOpt.McpServer.Simulation
                         break;
                     }
 
+                    case "router":
+                    {
+                        // SIM-65 step 4 (D4): a router of its own (SimpleRouter), keyed to the node
+                        // id like every other random node; SimpleRejectServer's routing is outside
+                        // the seed system (SIM-99).
+                        routers[node.Id] = new SimpleRouter(
+                            model,
+                            Policy(node, label),
+                            StableHash.Of(node.Id),
+                            id: node.Id,
+                            name: node.Id);
+                        break;
+                    }
+
                     case "sink":
                     {
                         var sink = new SimpleSink(model, id: node.Id, name: node.Id);
@@ -189,7 +204,7 @@ namespace SimOpt.McpServer.Simulation
 
                     default:
                         throw new InvalidOperationException(
-                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: source, queue, station, delay, sink " +
+                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: source, queue, station, delay, router, sink " +
                             "(buffer and server are accepted for queue and station).");
                 }
             }
@@ -213,28 +228,51 @@ namespace SimOpt.McpServer.Simulation
             // Use Buffer → Server → Sink instead. Buffer → Delay is refused: a delay takes every item at
             // once, so the queue would stay empty.
 
-            // A node that pushes what it releases (a source, a station's server, a delay) into the
+            // SIM-65 step 4: the station pools each queue feeds, filled while wiring and read while
+            // running, so a shortest-queue router counts the items in service behind a queue too.
+            var feeds = new Dictionary<string, List<List<SimpleServer>>>();
+            int WaitingOrInService(SimpleBuffer queue)
+            {
+                int items = queue.Count;
+                if (feeds.TryGetValue(queue.Identifier, out List<List<SimpleServer>>? pools))
+                    foreach (List<SimpleServer> pool in pools)
+                        foreach (SimpleServer server in pool)
+                            if (server.Busy) items++;
+                return items;
+            }
+
+            bool Exists(string id) =>
+                sources.ContainsKey(id) || buffers.ContainsKey(id) || stations.ContainsKey(id) ||
+                delays.ContainsKey(id) || routers.ContainsKey(id) || sinks.ContainsKey(id);
+
+            // A node that pushes what it releases (a source, a station's server, a delay, a router) into the
             // node downstream. False when the destination is not a node that takes a push.
             bool Push(IItemSource<SimpleEntity> upstream, string from, string to)
             {
                 if (buffers.TryGetValue(to, out SimpleBuffer? buffer)) return buffer.ConnectTo(upstream);
                 if (stations.TryGetValue(to, out List<SimpleServer>? pool))
                 {
-                    // SIM-65 (D3, corrected 2026-11-25): every station takes its work from a queue.
-                    // A push reaches every server of a pool at once, which is not a c-server station.
-                    // A single server refuses a push (PushAllowed is false), and the builder used to
-                    // ignore that refusal, so a source or station wired straight to a station built
-                    // without error and delivered nothing. Allowing the push does not help: a busy
-                    // server gathers what is pushed meanwhile and starts its next job with all of it
-                    // as one batch, of which createProduct keeps the first item.
-                    string servers = pool.Count > 1 ? $"has {pool.Count} servers and " : "";
-                    throw new InvalidOperationException(
-                        $"Connection '{from}' → '{to}': station '{to}' {servers}takes its work from a queue, " +
-                        $"and '{from}' is not one. Insert a queue between '{from}' and '{to}'.");
+                    throw StationNeedsAQueue(from, to, pool.Count);   // D3, see there
                 }
                 if (sinks.TryGetValue(to, out SimpleSink? sink)) return sink.ConnectTo(upstream);
                 if (delays.TryGetValue(to, out SimpleDelay? delay)) return delay.ConnectTo(upstream);
+                if (routers.TryGetValue(to, out SimpleRouter? router)) return router.ConnectTo(upstream);
                 return false;
+            }
+
+            // SIM-65 step 4: a router routes along the connections leaving it. A probabilistic router
+            // reads a weight on all of them or on none (an equal split); giving some is ambiguous.
+            foreach (var (routerId, router) in routers)
+            {
+                List<ConnectionDefinition> leaving = topology.Connections.Where(c => c.From == routerId).ToList();
+                if (leaving.Count == 0)
+                    throw new InvalidOperationException(
+                        $"Router '{routerId}' has no connection leaving it. Connect it to a queue, delay, sink or router.");
+                int weighted = leaving.Count(c => c.Weight.HasValue);
+                if (router.Policy == RoutingPolicy.Probabilistic && weighted > 0 && weighted < leaving.Count)
+                    throw new InvalidOperationException(
+                        $"Router '{routerId}': give a weight on every connection leaving it or on none, which splits " +
+                        $"equally; {weighted} of {leaving.Count} have one.");
             }
 
             foreach (ConnectionDefinition conn in topology.Connections)
@@ -244,13 +282,22 @@ namespace SimOpt.McpServer.Simulation
 
                 bool connected = false;
 
-                // SIM-65: a weight is a router's share for this edge. Routers arrive with step 4;
-                // until then no node reads a weight, and ignoring one would build a different model
-                // from the one described.
+                // SIM-65: a weight is a probabilistic router's share for this edge. Any other node
+                // reads none, and ignoring one would build a different model from the one described.
                 if (conn.Weight is double weight)
-                    throw new InvalidOperationException(
-                        $"Connection '{from}' → '{to}': weight {weight} is read only on a connection leaving a router, " +
-                        $"and '{from}' is not a router. Remove the weight.");
+                {
+                    if (!routers.TryGetValue(from, out SimpleRouter? weightedRouter))
+                        throw new InvalidOperationException(
+                            $"Connection '{from}' → '{to}': weight {weight} is read only on a connection leaving a router, " +
+                            $"and '{from}' is not a router. Remove the weight.");
+                    if (weightedRouter.Policy == RoutingPolicy.ShortestQueue)
+                        throw new InvalidOperationException(
+                            $"Connection '{from}' → '{to}': router '{from}' uses shortest_queue, which reads no weight. " +
+                            "Remove the weight, or use the probabilistic policy.");
+                    if (!(weight > 0d) || double.IsInfinity(weight))
+                        throw new InvalidOperationException(
+                            $"Connection '{from}' → '{to}': weight must be a positive number, not {weight}.");
+                }
 
                 // ── from=Source ──────────────────────────────────────────────
                 if (sources.TryGetValue(from, out SimpleSource? upSrc))
@@ -263,6 +310,8 @@ namespace SimOpt.McpServer.Simulation
                     if (stations.TryGetValue(to, out List<SimpleServer>? pool))
                     {
                         foreach (SimpleServer member in pool) member.ConnectTo(upBuf);
+                        if (!feeds.TryGetValue(from, out List<List<SimpleServer>>? fed)) feeds[from] = fed = new List<List<SimpleServer>>();
+                        fed.Add(pool);
                         // SIM-89: a server *pulls* from its buffer, so connecting the two is only
                         // half the wiring — an idle server has nothing telling it that work has
                         // arrived. Without this handler the buffer fills and never drains, the run
@@ -294,6 +343,15 @@ namespace SimOpt.McpServer.Simulation
                             $"at once, so the queue would stay empty. Connect the node that feeds '{from}' to '{to}' " +
                             $"directly, or put a station between '{from}' and '{to}'.");
                     }
+                    else if (routers.ContainsKey(to))
+                    {
+                        // SIM-65 step 4: a queue is taken from by its station; it pushes nothing on.
+                        string feeders = string.Join(", ", topology.Connections.Where(c => c.To == from).Select(c => $"'{c.From}'"));
+                        throw new InvalidOperationException(
+                            $"Connection '{from}' → '{to}': a queue cannot feed a router, because only a station takes " +
+                            $"items from a queue. Route before the queue: connect {(feeders.Length > 0 ? feeders : "its upstream node")} " +
+                            $"to '{to}' and '{to}' to '{from}'.");
+                    }
                 }
                 // ── from=Station ─────────────────────────────────────────────
                 else if (stations.TryGetValue(from, out List<SimpleServer>? upPool))
@@ -304,6 +362,41 @@ namespace SimOpt.McpServer.Simulation
                 else if (delays.TryGetValue(from, out SimpleDelay? upDly))
                 {
                     connected = Push(upDly, from, to);
+                }
+                // ── from=Router ──────────────────────────────────────────────
+                else if (routers.TryGetValue(from, out SimpleRouter? upRtr))
+                {
+                    double share = conn.Weight ?? 1d;
+                    if (upRtr.Policy == RoutingPolicy.ShortestQueue && !buffers.ContainsKey(to) && Exists(to))
+                        throw new InvalidOperationException(
+                            $"Connection '{from}' → '{to}': router '{from}' routes to the shortest queue, and '{to}' is " +
+                            "not a queue. Route only to queues, or use the probabilistic policy.");
+                    if (buffers.TryGetValue(to, out SimpleBuffer? downBuf4))
+                    {
+                        // join the shortest queue: the items waiting plus those in service behind it;
+                        // counting only the waiting sends work to a busy server while another idles
+                        upRtr.AddTarget(downBuf4, share, () => WaitingOrInService(downBuf4));
+                        connected = true;
+                    }
+                    else if (stations.TryGetValue(to, out List<SimpleServer>? downPool))
+                    {
+                        throw StationNeedsAQueue(from, to, downPool.Count);
+                    }
+                    else if (delays.TryGetValue(to, out SimpleDelay? downDly4))
+                    {
+                        upRtr.AddTarget(downDly4, share);
+                        connected = true;
+                    }
+                    else if (sinks.TryGetValue(to, out SimpleSink? downSnk4))
+                    {
+                        upRtr.AddTarget(downSnk4, share);
+                        connected = true;
+                    }
+                    else if (routers.TryGetValue(to, out SimpleRouter? downRtr))
+                    {
+                        upRtr.AddTarget(downRtr, share);
+                        connected = true;
+                    }
                 }
                 // ── from=Sink (invalid) ──────────────────────────────────────
                 else if (sinks.ContainsKey(from))
@@ -334,7 +427,7 @@ namespace SimOpt.McpServer.Simulation
             // node.Id) and survive both a process restart and a reordering of the node list.
             model.Reset(topology.Seed);
 
-            return new ActiveModel(model, sources, buffers, servers, delays, sinks, topology);
+            return new ActiveModel(model, sources, buffers, servers, delays, routers, sinks, topology);
         }
 
         /// <summary>
@@ -414,6 +507,37 @@ namespace SimOpt.McpServer.Simulation
                 default:
                     throw new InvalidOperationException(
                         $"{label} '{node.Id}': discipline must be \"fifo\" or \"lifo\", not {given?.ToString() ?? "null"}.");
+            }
+        }
+
+        /// <summary>
+        /// SIM-65 (D3, corrected 2026-11-25): every station takes its work from a queue. A push reaches
+        /// every server of a pool at once, which is not a c-server station. A single server refuses a
+        /// push (PushAllowed is false), and the builder used to ignore that refusal, so a source or
+        /// station wired straight to a station built without error and delivered nothing (SIM-135).
+        /// Allowing the push does not help: a busy server gathers what is pushed meanwhile and starts
+        /// its next job with all of it as one batch, of which createProduct keeps the first item.
+        /// </summary>
+        private static InvalidOperationException StationNeedsAQueue(string from, string to, int servers)
+        {
+            string pool = servers > 1 ? $"has {servers} servers and " : "";
+            return new InvalidOperationException(
+                $"Connection '{from}' → '{to}': station '{to}' {pool}takes its work from a queue, " +
+                $"and '{from}' is not one. Insert a queue between '{from}' and '{to}'.");
+        }
+
+        /// <summary>SIM-65 step 4: a router's <c>policy</c>, "probabilistic" or "shortest_queue"; required.</summary>
+        private static RoutingPolicy Policy(NodeDefinition node, string label)
+        {
+            node.Params.TryGetValue("policy", out ParamValue? given);
+            switch (given?.Text?.Trim().ToLowerInvariant())
+            {
+                case "probabilistic": return RoutingPolicy.Probabilistic;
+                case "shortest_queue": return RoutingPolicy.ShortestQueue;
+                default:
+                    throw new InvalidOperationException(
+                        $"{label} '{node.Id}': policy must be \"probabilistic\" or \"shortest_queue\", " +
+                        $"not {given?.ToString() ?? "missing"}.");
             }
         }
 
