@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next=MG's answers and his look at the viewer; meanwhile small unblocked items (SIM-94 console examples), then MG looks at the viewer on screen (SIM-110 [?]) and the German sample report; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=MG looks at the viewer on screen (SIM-110 [?]) and the German sample report, answers Q-VIEW-WARMUP and the priority questions; then check the first nightly CI run; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -155,6 +155,11 @@ the private hand-off (see *Private material*).
 - **SIM-140 done** (`b96e995`): a constraint may bound an `expression` over the decision variables
   (`triage.servers + exam.servers <= 12`), checked before a point runs; a breach costs no evaluation and is counted in
   `skipped`; an unsatisfiable bound is refused up front. Clinic, at most 10 staff: 14 run, 10 refused. Suite 1649 passed.
+- **Stopped here, idle:** what is left waits for MG (his look at the viewer, the decisions below, his SIM-122 results
+  for SIM-117/95/119/99's engine half), carries behaviour he has not specified (SIM-38, SIM-70's tool half, SIM-71..76,
+  SIM-82..84, SIM-100/101, SIM-111..114 before he has seen V1), or is P3 without a harness (SIM-94: the four console
+  examples' fixes are clear, but nothing tests example output; SIM-141 needs Ciw installed and an integration design).
+  Check the first nightly CI run (2026-11-26 02:17 UTC). Suite 1649 passed, 4 skipped; Python 31.
 
 ## Decisions for MG (stable IDs; recommended option first)
 
