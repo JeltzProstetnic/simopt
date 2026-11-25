@@ -165,6 +165,9 @@ public class ViewerModelTests
                 .Should().Be((given.X, given.Y, given.Width, given.Height, given.Label, given.Color));
         }
         sim.Drawn.Nodes.Single(n => n.Id == "qc_to_packing").Type.Should().Be("buffer", "a push into a server gets a queue between them");
+        sim.Drawn.Nodes.Single(n => n.Id == "qc_to_packing").Label.Should().BeEmpty("on a floor plan it is drawn small, without a label");
+        ViewerModel.Of(VizTopology.ParallelServers()).Drawn.Nodes.Where(n => n.Label == "").Should()
+            .BeEmpty("off a floor plan an inserted node is drawn full size, named by its id");
         sim.Drawn.Nodes.Single(n => n.Id == "inspect_reject").Type.Should().Be("router");
         sim.Drawn.Nodes.Single(n => n.Id == "inspect").Type.Should().Be("server");
         sim.Drawn.Connections.Select(c => (c.From, c.To)).Should()

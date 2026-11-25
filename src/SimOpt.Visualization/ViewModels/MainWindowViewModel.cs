@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SimOpt.Engine.Api.Models;
 using SimOpt.Ivotion;
 using SimOpt.Visualization.Controls;
 using SimOpt.Visualization.Models;
@@ -96,7 +99,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private DispatcherTimer? _statsTimer;
     private WindowState _previousWindowState = WindowState.Normal;
 
-    public List<string> TopologyNames { get; } = new()
+    public ObservableCollection<string> TopologyNames { get; } = new()
     {
         "SQSS (Source-Queue-Server-Sink)",
         "Parallel Servers",
@@ -104,6 +107,14 @@ public partial class MainWindowViewModel : ViewModelBase
         "Factory Floor (Physical Layout)",
         "Ivoclar Ivotion Packing Line"
     };
+
+    // SIM-110 step 4: the file opened last, the entry after the presets
+    private const int Presets = 5;
+    private VizOpened? _opened;
+    private string _openedName = "";
+
+    /// <summary>The run length of a model file that declares none: the presets' one.</summary>
+    private const double DefaultDuration = 200.0;
 
     private VizTopology GetSelectedTopology() => SelectedTopology switch
     {
@@ -146,6 +157,21 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        if (SelectedTopology == Presets && _opened?.Document != null)
+        {
+            ValidationReport report = Canvas.StartDocument(_opened.Document, _opened.Duration ?? DefaultDuration, _opened.Warmup ?? 0d, Speed);
+            if (!report.Valid)
+            {
+                ShowProblems(report);
+                return;
+            }
+            _loadedTopology = SelectedTopology;
+            IsRunning = true;
+            IsPaused = false;
+            StatusText = $"Running: {_openedName}  |  Space=pause  -/+=speed  F=fullscreen";
+            return;
+        }
+
         var topology = GetSelectedTopology();
         Canvas.StartSimulation(topology, duration: 200.0, speedMs: Speed);
         _loadedTopology = SelectedTopology;
@@ -153,6 +179,86 @@ public partial class MainWindowViewModel : ViewModelBase
         IsPaused = false;
         StatusText = $"Running: {topology.Name}  |  Space=pause  -/+=speed  F=fullscreen";
     }
+
+    /// <summary>
+    /// SIM-110 step 4: File → Open. A model file (save_model, export_model, or saved here) or a run record,
+    /// which also gives the run's length and warm-up, is shown paused; Space runs it. A model with errors is
+    /// drawn with them on its nodes and does not run. A file that is no model changes nothing.
+    /// </summary>
+    public void OpenFile(string path)
+    {
+        string name = Path.GetFileName(path);
+        VizOpened opened;
+        try
+        {
+            opened = VizFile.Read(File.ReadAllText(path));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            opened = VizOpened.Failed(e.Message);
+        }
+        if (opened.Document == null)
+        {
+            StatusText = $"Cannot open {name}: {opened.Error}";
+            return;
+        }
+        if (Canvas == null) return;
+
+        // the canvas ends the run on screen when it loads the file
+        _loadedTopology = null;
+        IsRunning = false;
+        IsPaused = false;
+        _opened = opened;
+        _openedName = name;
+        string entry = $"{(opened.Kind == "run record" ? "Run record" : "File")}: {name}";
+        if (TopologyNames.Count > Presets) TopologyNames[Presets] = entry;
+        else TopologyNames.Add(entry);
+        SelectedTopology = Presets;
+
+        double warmup = opened.Warmup ?? 0d;
+        ValidationReport report = Canvas.LoadDocumentPaused(opened.Document, opened.Duration ?? DefaultDuration, warmup, Speed);
+        if (!report.Valid)
+        {
+            ShowProblems(report);
+            return;
+        }
+        _loadedTopology = Presets;
+        IsPaused = true;
+        string warnings = report.Warnings.Count == 0 ? "" : $", {Plural(report.Warnings.Count, "warning")} marked";
+        string run = warmup > 0d ? $", warm-up {warmup:0.###} of {opened.Duration ?? DefaultDuration:0.###}" : "";
+        StatusText = $"Opened {name}{run}{warnings}  |  Space=run";
+    }
+
+    /// <summary>SIM-110 step 4: File → Save writes the model on screen with its layout, which the MCP head's load_model reads too.</summary>
+    public void SaveFile(string path)
+    {
+        VizDocument? document = Canvas?.CurrentDocument;
+        if (document == null)
+        {
+            StatusText = "Nothing to save: start or open a model first";
+            return;
+        }
+        try
+        {
+            File.WriteAllText(path, VizFile.Write(document));
+            StatusText = $"Saved {Path.GetFileName(path)}";
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            StatusText = $"Cannot save {Path.GetFileName(path)}: {e.Message}";
+        }
+    }
+
+    private void ShowProblems(ValidationReport report)
+    {
+        _loadedTopology = null;
+        IsRunning = false;
+        IsPaused = false;
+        StatusText = $"{_openedName}: {Plural(report.Errors.Count + report.Warnings.Count, "problem")}, marked on the nodes; " +
+                     "fix the file and open it again";
+    }
+
+    private static string Plural(int n, string what) => n == 1 ? $"1 {what}" : $"{n} {what}s";
 
     [RelayCommand]
     private void Pause()

@@ -21,6 +21,13 @@
     <TabControl Background="#161620" Padding="0">
         <TabItem Header="Simulation">
             <DockPanel>
+                <!-- SIM-110 step 4: models and run records the MCP head writes open here -->
+                <Menu DockPanel.Dock="Top" Background="#1C1C2A">
+                    <MenuItem Header="_File">
+                        <MenuItem Header="_Open model or run record..." InputGesture="Ctrl+O" Click="OnOpen"/>
+                        <MenuItem Header="_Save model as..." InputGesture="Ctrl+S" Click="OnSave"/>
+                    </MenuItem>
+                </Menu>
                 <!-- Control bar (hideable via F key / detach) -->
                 <Border x:Name="ControlBar" DockPanel.Dock="Bottom" Background="#1C1C2A" Padding="12,8"
                         IsVisible="{Binding ControlBarVisible}">

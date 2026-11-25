@@ -6,6 +6,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
+using SimOpt.Engine.Api.Models;
+using SimOpt.Engine.Api.Simulation;
 using SimOpt.Visualization.Models;
 
 namespace SimOpt.Visualization.Controls;
@@ -22,6 +24,8 @@ public class SimulationCanvas : Control, ISimulationSurface
 {
     private ViewerModel? _sim;
     private VizTopology? _topology;
+    private VizDocument? _document;     // SIM-110: the document on screen, for File → Save
+    private ModelProblems? _problems;   // what the check found, drawn on the nodes (UN-008)
     private Dictionary<string, Point> _positions = new();
     private DispatcherTimer? _timer;
     private bool _resumable;   // SIM-107: false once the run is stopped or finished
@@ -180,31 +184,74 @@ public class SimulationCanvas : Control, ISimulationSurface
     /// </summary>
     public void StartSimulation(VizTopology topology, double duration = 200.0, int speedMs = 30)
     {
-        Load(VizSchema.ToSchema(topology), duration, warmup: 0d, speedMs);
-        _running = true;
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_speedMs) };
-        _timer.Tick += (_, _) => Tick();
-        _timer.Start();
+        StartDocument(VizSchema.ToSchema(topology), duration, warmup: 0d, speedMs);
     }
+
+    public ValidationReport StartDocument(VizDocument document, double duration, double warmup, int speedMs = 30)
+    {
+        ValidationReport report = Load(document, duration, warmup, speedMs);
+        if (_sim != null)
+        {
+            _running = true;
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_speedMs) };
+            _timer.Tick += (_, _) => Tick();
+            _timer.Start();
+        }
+        InvalidateVisual();
+        return report;
+    }
+
+    public ValidationReport LoadDocumentPaused(VizDocument document, double duration, double warmup, int speedMs = 30)
+    {
+        ValidationReport report = Load(document, duration, warmup, speedMs);
+        InvalidateVisual();
+        return report;
+    }
+
+    public VizDocument? CurrentDocument => _document;
 
     /// <summary>
     /// SIM-110 step 4: builds the document's model with the schema builder at t = 0, paused, and lays out what
-    /// is drawn: every node of the document, the queues and routers the conversion inserted too.
+    /// is drawn: every node of the document, the queues and routers the conversion inserted too. A document
+    /// with errors is drawn without a model, its problems on the nodes; warnings are drawn on a model that runs.
     /// </summary>
-    private void Load(VizDocument document, double duration, double warmup, int speedMs)
+    private ValidationReport Load(VizDocument document, double duration, double warmup, int speedMs)
     {
         _timer?.Stop();   // a second start must not leave the first run's timer ticking
-        _sim = new ViewerModel(document, duration, warmup);
-        _topology = _sim.Drawn;
+        _document = document;
+        ValidationReport report;
+        try
+        {
+            _sim = new ViewerModel(document, duration, warmup);
+            report = _sim.Report;
+            _topology = _sim.Drawn;
+        }
+        catch (ModelValidationException e)
+        {
+            _sim = null;
+            report = e.Report;
+            _topology = VizSchema.Drawing(document);
+        }
+        catch (ArgumentOutOfRangeException e) when (e.ParamName == "warmup")
+        {
+            _sim = null;
+            report = new ValidationReport();
+            report.Errors.Add(new ValidationIssue("INVALID_WARMUP", $"The warm-up {warmup} does not fit a run of {duration}.",
+                Suggestion: "Give a warm-up of at least 0 and shorter than the run."));
+            _topology = VizSchema.Drawing(document);
+        }
+        _problems = report.Errors.Count + report.Warnings.Count > 0 ? ModelProblems.Of(report, _topology) : null;
         _stepCount = 0;
         _frame = 0;
         _dots.Clear();
         _prevCounts.Clear();
         _speedMs = speedMs;
         _running = false;
-        _resumable = true;
+        _resumable = _sim != null;
+        _lastWidth = _lastHeight = 0;   // lay the new drawing out on the next render
         _positions = AutoLayout.Compute(_topology, Bounds.Width > 0 ? Bounds.Width : 960, Bounds.Height > 0 ? Bounds.Height - 60 : 460);
-        _nodeStates = _sim.GetNodeStates();
+        _nodeStates = _sim?.GetNodeStates() ?? new List<NodeState>();
+        return report;
     }
 
     /// <summary>
@@ -244,8 +291,7 @@ public class SimulationCanvas : Control, ISimulationSurface
     /// </summary>
     public void LoadTopologyPaused(VizTopology topology, double duration = 200.0, int speedMs = 30)
     {
-        Load(VizSchema.ToSchema(topology), duration, warmup: 0d, speedMs);
-        InvalidateVisual();
+        LoadDocumentPaused(VizSchema.ToSchema(topology), duration, warmup: 0d, speedMs);
     }
 
     /// <summary>Continues a paused run, or one loaded by <see cref="LoadTopologyPaused"/>.</summary>
@@ -319,7 +365,7 @@ public class SimulationCanvas : Control, ISimulationSurface
                 snap.Servers.Add(new ServerStat
                 {
                     Id = ns.Id,
-                    Name = nodeDef?.Label?.Split('\n')[0] ?? ns.Id,
+                    Name = DisplayName(nodeDef, ns.Id),
                     Utilization = GetUtilization(ns.Id),
                     Working = ns.Working,
                     Damaged = ns.Damaged
@@ -331,7 +377,7 @@ public class SimulationCanvas : Control, ISimulationSurface
                 snap.Buffers.Add(new BufferStat
                 {
                     Id = ns.Id,
-                    Name = nodeDef?.Label?.Split('\n')[0] ?? ns.Id,
+                    Name = DisplayName(nodeDef, ns.Id),
                     Count = ns.Count,
                     Capacity = ns.Capacity < int.MaxValue ? ns.Capacity : null
                 });
@@ -427,9 +473,9 @@ public class SimulationCanvas : Control, ISimulationSurface
         var b = Bounds;
         ctx.DrawRectangle(BgBrush, null, new Rect(0, 0, b.Width, b.Height));
 
-        if (_topology == null || _sim == null)
+        if (_topology == null)
         {
-            Txt(ctx, "Press Start to begin simulation", b.Width / 2, b.Height / 2, 18, Dim);
+            Txt(ctx, "Press Start to begin simulation, or File → Open a model", b.Width / 2, b.Height / 2, 18, Dim);
             return;
         }
 
@@ -450,9 +496,21 @@ public class SimulationCanvas : Control, ISimulationSurface
         else
             RenderSchematic(ctx, b, scale, isPhysical);
 
+        DrawProblems(ctx, b, scale);
+
         // Header
         Txt(ctx, $"SimOpt — {_topology.Name}", b.Width / 2, 22, 17, White, true);
+        if (_sim == null)
+        {
+            Txt(ctx, $"Not built: {_problems?.Count ?? 0} problem(s), marked on the nodes. Fix the file and open it again.",
+                b.Width / 2, 44, 12, ProblemRed);
+            DrawLegend(ctx, b, isPhysical);
+            return;
+        }
         Txt(ctx, $"t = {_sim.CurrentTime:F1}", b.Width / 2, 44, 12, Dim, false, TfMono);
+        // SIM-110: until the warm-up ends the collectors hold nothing, so every measure shows "–"
+        if (_sim.WarmingUp)
+            Txt(ctx, $"warming up until t = {_sim.Warmup:0.###}: nothing is measured yet", b.Width / 2, 62, 11, ProblemAmber);
 
         // Progress bar
         double prog = Math.Min(1.0, _sim.CurrentTime / _sim.EndTime);
@@ -466,7 +524,7 @@ public class SimulationCanvas : Control, ISimulationSurface
         // Stats
         int sinkTotal = _nodeStates.Where(n => n.Type == "sink").Sum(n => n.Count);
         int queueTotal = _nodeStates.Where(n => n.Type == "buffer").Sum(n => n.Count);
-        string tput = Rate(_sim?.Throughput);
+        string tput = Rate(_sim.Throughput);
         string stat = $"{(_running ? "RUN" : "END")}  |  Steps: {_stepCount}  |  Queued: {queueTotal}  |  Produced: {sinkTotal}  |  Throughput: {tput}  |  Speed: {_speedMs}ms";
         Txt(ctx, stat, b.Width / 2, b.Height - 25, 11, Dim, false, TfMono);
 
@@ -478,9 +536,65 @@ public class SimulationCanvas : Control, ISimulationSurface
         DrawLegend(ctx, b, isPhysical);
 
         // Statistics panel (only when not detached)
-        if (_showStats && !_statsDetached && _sim != null && _sim.CurrentTime > 0.5)
+        if (_showStats && !_statsDetached && _sim.CurrentTime > 0.5)
             DrawStatsPanel(ctx, b);
     }
+
+    #region Problems
+
+    private static readonly IBrush ProblemRed = new SolidColorBrush(Color.FromRgb(230, 70, 60));
+    private static readonly IBrush ProblemAmber = new SolidColorBrush(Color.FromRgb(235, 170, 40));
+    private static readonly Pen ProblemRedPen = new(ProblemRed, 2.5);
+    private static readonly Pen ProblemAmberPen = new(ProblemAmber, 1.5) { DashStyle = DashStyle.Dash };
+
+    /// <summary>
+    /// SIM-110 step 4 (UN-008): every node with a problem is outlined, red for an error, dashed amber for a
+    /// warning. When the model could not be built, each node's first error is written under it and a panel
+    /// lists every problem; on a model that runs, a smaller panel lists the warnings, so the text does not
+    /// crowd the flow.
+    /// </summary>
+    private void DrawProblems(DrawingContext ctx, Rect b, double scale)
+    {
+        if (_problems == null || _topology == null) return;
+        foreach (var (id, issues) in _problems.ByNode)
+        {
+            if (!_positions.TryGetValue(id, out var pos)) continue;
+            VizNode? node = _topology.Nodes.FirstOrDefault(n => n.Id == id);
+            Size size = node != null ? AutoLayout.GetNodeSize(node, scale) : new Size(NW, NH);
+            Rect r = new Rect(pos.X - size.Width / 2, pos.Y - size.Height / 2, size.Width, size.Height).Inflate(4);
+            bool error = _problems.Errors.Contains(id);
+            ctx.DrawRectangle(null, error ? ProblemRedPen : ProblemAmberPen, r, 6, 6);
+            if (!error) continue;
+            Txt(ctx, Clip(issues[0].Message, 60), r.Center.X, r.Bottom + 9, 9, ProblemRed);
+            if (issues.Count > 1) Txt(ctx, $"+{issues.Count - 1} more", r.Center.X, r.Bottom + 21, 8, Dim);
+        }
+
+        var lines = _problems.ByNode.SelectMany(kv => kv.Value.Select(i => $"{kv.Key}: {i.Line}"))
+            .Concat(_problems.General.Select(i => i.Node != null ? $"{i.Node}: {i.Line}" : i.Line))
+            .ToList();
+        if (lines.Count == 0) return;
+        const double lineH = 13;
+        // a model that runs keeps the middle of the screen free for the flow
+        double pw = _sim == null ? Math.Min(b.Width - 16, 720) : Math.Min(b.Width * 0.34, 520);
+        int shown = Math.Min(lines.Count, _sim == null ? 8 : 4);
+        double ph = 24 + shown * lineH + (lines.Count > shown ? lineH : 0);
+        double px = 8, py = b.Height - 62 - ph;
+        ctx.DrawRectangle(StatsBg, StatsBorderPen, new Rect(px, py, pw, ph), 6, 6);
+        Txt(ctx, _problems.HasErrors ? "Problems: the model cannot run" : "Warnings", px + 10, py + 11, 9,
+            _problems.HasErrors ? ProblemRed : ProblemAmber, true, leftAlign: true);
+        for (int i = 0; i < shown; i++)
+            Txt(ctx, Clip(lines[i], (int)(pw / 5.4)), px + 10, py + 26 + i * lineH, 8.5, White, leftAlign: true);
+        if (lines.Count > shown)
+            Txt(ctx, $"… {lines.Count - shown} more", px + 10, py + 26 + shown * lineH, 8.5, Dim, leftAlign: true);
+    }
+
+    /// <summary>A node's first label line, or its id when it has no label (a queue the conversion inserted on a floor plan).</summary>
+    private static string DisplayName(VizNode? node, string id) =>
+        string.IsNullOrEmpty(node?.Label) ? id : node.Label.Split('\n')[0];
+
+    private static string Clip(string text, int max) => text.Length <= max ? text : text[..Math.Max(1, max - 1)] + "…";
+
+    #endregion
 
     #region Node Rendering
 
@@ -520,8 +634,11 @@ public class SimulationCanvas : Control, ISimulationSurface
                     ctx.DrawRectangle(br, null, new Rect(r.X + 2, r.Bottom - 2 - fh, r.Width - 4, fh), 2, 2);
                 }
                 DrawLabel(ctx, label, r, fontSize, White);
-                string capTxt = cap < int.MaxValue ? $"{cnt}/{cap}" : $"{cnt}";
-                Txt(ctx, capTxt, r.Center.X, r.Bottom - 8, Math.Max(7, fontSize - 2), White, false, TfMono);
+                if (state != null)   // no model behind it (it did not build): no count to show
+                {
+                    string capTxt = cap < int.MaxValue ? $"{cnt}/{cap}" : $"{cnt}";
+                    Txt(ctx, capTxt, r.Center.X, r.Bottom - 8, Math.Max(7, fontSize - 2), White, false, TfMono);
+                }
                 break;
 
             case "server":
@@ -823,7 +940,7 @@ public class SimulationCanvas : Control, ISimulationSurface
         {
             double? util = GetUtilization(serverId);
             var nodeDef = _topology!.Nodes.FirstOrDefault(n => n.Id == serverId);
-            string name = nodeDef?.Label?.Split('\n')[0] ?? serverId;
+            string name = DisplayName(nodeDef, serverId);
             if (name.Length > 10) name = name[..10];
 
             // Bottleneck highlight
@@ -853,7 +970,7 @@ public class SimulationCanvas : Control, ISimulationSurface
         foreach (var buf in buffers)
         {
             var nodeDef = _topology!.Nodes.FirstOrDefault(n => n.Id == buf.Id);
-            string name = nodeDef?.Label?.Split('\n')[0] ?? buf.Id;
+            string name = DisplayName(nodeDef, buf.Id);
             if (name.Length > 10) name = name[..10];
 
             Txt(ctx, name, px + 14, y, 8, Dim, false, leftAlign: true);
@@ -1165,7 +1282,8 @@ public class SimulationCanvas : Control, ISimulationSurface
         }
 
         // Count text
-        string capTxt = cap < 100 ? $"{cnt}/{cap}" : $"{cnt}";
+        // an unbounded queue shows its count alone (SIM-92); cap above is only the slots to draw
+        string capTxt = state?.Capacity is int limit && limit < 100 ? $"{cnt}/{limit}" : $"{cnt}";
         Txt(ctx, capTxt, r.Center.X, r.Bottom - 6, Math.Max(7, fontSize - 1), White, false, TfMono);
     }
 

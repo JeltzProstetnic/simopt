@@ -23,6 +23,18 @@ public interface ISimulationSurface
     /// <summary>Builds the model afresh at t = 0 and shows it without running it.</summary>
     void LoadTopologyPaused(VizTopology topology, double duration = 200.0, int speedMs = 30);
 
+    /// <summary>
+    /// SIM-110 step 4: builds a schema document's model afresh at t = 0 and shows it without running it. Returns
+    /// what the check found; with errors the document is drawn with its problems on the nodes and cannot run.
+    /// </summary>
+    SimOpt.Engine.Api.Models.ValidationReport LoadDocumentPaused(VizDocument document, double duration, double warmup, int speedMs = 30);
+
+    /// <summary>As <see cref="LoadDocumentPaused"/>, and runs it when it has no errors.</summary>
+    SimOpt.Engine.Api.Models.ValidationReport StartDocument(VizDocument document, double duration, double warmup, int speedMs = 30);
+
+    /// <summary>The document on screen with its layout, for File → Save; null when none is.</summary>
+    VizDocument? CurrentDocument { get; }
+
     /// <summary>Stops the clock and keeps the model, so the run can be resumed.</summary>
     void PauseSimulation();
 

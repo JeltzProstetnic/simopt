@@ -126,6 +126,7 @@ public static class VizSchema
             else if (plan)
             {
                 (shown.Width, shown.Height) = kind switch { "buffer" => (2d, 1.5d), "router" => (1.2d, 1.2d), _ => (3d, 2d) };
+                shown.Label = string.Empty;   // too small for its id; the stats name it by id
             }
             drawing.Nodes.Add(shown);
         }

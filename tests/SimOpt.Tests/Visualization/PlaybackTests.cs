@@ -1,5 +1,8 @@
 using System.Collections.Generic;
+using System.IO;
 using FluentAssertions;
+using SimOpt.Engine.Api.Models;
+using SimOpt.Engine.Api.Simulation;
 using SimOpt.Visualization.Controls;
 using SimOpt.Visualization.Models;
 using SimOpt.Visualization.ViewModels;
@@ -33,6 +36,7 @@ public class PlaybackTests
             Calls.Add("start " + topology.Name);
             Starts++;
             Loaded = topology.Name;
+            CurrentDocument = VizSchema.ToSchema(topology);
             running = live = true;
         }
 
@@ -40,8 +44,38 @@ public class PlaybackTests
         {
             Calls.Add("load " + topology.Name);
             Loaded = topology.Name;
+            CurrentDocument = VizSchema.ToSchema(topology);
             live = true;
             running = false;
+        }
+
+        /// <summary>What the next document reports; valid unless a test says otherwise.</summary>
+        public ValidationReport Report { get; set; } = new();
+
+        public (double Duration, double Warmup)? LastRun { get; private set; }
+
+        public VizDocument? CurrentDocument { get; private set; }
+
+        public ValidationReport LoadDocumentPaused(VizDocument document, double duration, double warmup, int speedMs = 30)
+        {
+            Calls.Add("load document " + document.Topology.Name);
+            Loaded = document.Topology.Name;
+            CurrentDocument = document;
+            LastRun = (duration, warmup);
+            live = Report.Valid;
+            running = false;
+            return Report;
+        }
+
+        public ValidationReport StartDocument(VizDocument document, double duration, double warmup, int speedMs = 30)
+        {
+            Calls.Add("start document " + document.Topology.Name);
+            Starts++;
+            Loaded = document.Topology.Name;
+            CurrentDocument = document;
+            LastRun = (duration, warmup);
+            running = live = Report.Valid;
+            return Report;
         }
 
         public void PauseSimulation() { Calls.Add("pause"); running = false; }
@@ -152,5 +186,132 @@ public class PlaybackTests
 
         surface.Starts.Should().Be(2);
         vm.IsRunning.Should().BeTrue();
+    }
+
+    // ── SIM-110 step 4: File → Open and Save ──────────────────────────────────────────
+
+    private static string Saved(VizTopology topology, string folder, string name = "line.json")
+    {
+        string path = Path.Combine(folder, name);
+        File.WriteAllText(path, VizFile.Write(VizSchema.ToSchema(topology)));
+        return path;
+    }
+
+    [Fact]
+    public void An_opened_model_is_shown_paused_and_space_runs_it()
+    {
+        string folder = Directory.CreateTempSubdirectory("simopt-open-").FullName;
+        var surface = new FakeSurface();
+        var vm = new MainWindowViewModel { Canvas = surface };
+        int presets = vm.TopologyNames.Count;
+
+        vm.OpenFile(Saved(VizTopology.ProductionLine(), folder));
+
+        surface.Calls.Should().Equal("load document " + VizTopology.ProductionLine().Name);
+        surface.LastRun.Should().Be((200.0, 0.0), "a model file declares no run length, so the presets' one is used");
+        vm.TopologyNames.Should().HaveCount(presets + 1);
+        vm.TopologyNames[^1].Should().Contain("line.json");
+        vm.SelectedTopology.Should().Be(presets);
+        vm.IsPaused.Should().BeTrue();
+
+        vm.PlayPauseCommand.Execute(null);
+
+        surface.Calls[^1].Should().Be("resume");
+        surface.Starts.Should().Be(0);
+        vm.IsRunning.Should().BeTrue();
+        Directory.Delete(folder, true);
+    }
+
+    [Fact]
+    public void A_run_record_runs_for_its_length_with_its_warm_up()
+    {
+        string folder = Directory.CreateTempSubdirectory("simopt-open-").FullName;
+        string path = Path.Combine(folder, "run.json");
+        File.WriteAllText(path, "{\"record\": \"simopt-run/1\", \"model\": " + VizFile.Write(VizSchema.ToSchema(VizTopology.Sqss())) +
+                                ", \"call\": {\"duration\": 300, \"warmup\": 50}}");
+        var surface = new FakeSurface();
+        var vm = new MainWindowViewModel { Canvas = surface };
+
+        vm.OpenFile(path);
+
+        surface.LastRun.Should().Be((300.0, 50.0));
+        vm.StatusText.Should().Contain("warm-up 50");
+        Directory.Delete(folder, true);
+    }
+
+    [Fact]
+    public void A_model_with_errors_is_shown_with_them_and_does_not_run()
+    {
+        string folder = Directory.CreateTempSubdirectory("simopt-open-").FullName;
+        var report = new ValidationReport();
+        report.Errors.Add(new ValidationIssue("UNKNOWN_NODE_TYPE", "x is unknown", "x"));
+        var surface = new FakeSurface { Report = report };
+        var vm = new MainWindowViewModel { Canvas = surface };
+
+        vm.OpenFile(Saved(VizTopology.Sqss(), folder));
+
+        vm.IsPaused.Should().BeFalse();
+        vm.StatusText.Should().Contain("1 problem");
+        vm.PlayPauseCommand.Execute(null);
+        surface.Calls[^1].Should().Be("start document " + VizTopology.Sqss().Name);
+        vm.IsRunning.Should().BeFalse();
+        vm.StatusText.Should().Contain("1 problem");
+        Directory.Delete(folder, true);
+    }
+
+    [Fact]
+    public void A_file_that_is_no_model_changes_nothing()
+    {
+        string folder = Directory.CreateTempSubdirectory("simopt-open-").FullName;
+        string path = Path.Combine(folder, "notes.json");
+        File.WriteAllText(path, "{ not json");
+        var (vm, surface) = Started();
+        int names = vm.TopologyNames.Count, calls = surface.Calls.Count;
+
+        vm.OpenFile(path);
+
+        vm.StatusText.Should().Contain("Cannot open notes.json");
+        surface.Calls.Should().HaveCount(calls);
+        vm.TopologyNames.Should().HaveCount(names);
+        vm.IsRunning.Should().BeTrue("the run on screen goes on");
+        Directory.Delete(folder, true);
+    }
+
+    [Fact]
+    public void A_second_file_replaces_the_first_in_the_list_and_a_preset_still_starts()
+    {
+        string folder = Directory.CreateTempSubdirectory("simopt-open-").FullName;
+        var surface = new FakeSurface();
+        var vm = new MainWindowViewModel { Canvas = surface };
+        int presets = vm.TopologyNames.Count;
+
+        vm.OpenFile(Saved(VizTopology.Sqss(), folder, "a.json"));
+        vm.OpenFile(Saved(VizTopology.ProductionLine(), folder, "b.json"));
+        vm.SelectedTopology = 1;
+        vm.PlayPauseCommand.Execute(null);
+
+        vm.TopologyNames.Should().HaveCount(presets + 1);
+        vm.TopologyNames[^1].Should().Contain("b.json");
+        surface.Calls[^1].Should().Be("start " + VizTopology.ParallelServers().Name);
+        Directory.Delete(folder, true);
+    }
+
+    [Fact]
+    public void Save_writes_the_model_on_screen_with_its_layout()
+    {
+        string folder = Directory.CreateTempSubdirectory("simopt-save-").FullName;
+        string path = Path.Combine(folder, "factory.json");
+        var surface = new FakeSurface();
+        var vm = new MainWindowViewModel { Canvas = surface, SelectedTopology = 3 };
+        vm.PlayPauseCommand.Execute(null);
+
+        vm.SaveFile(path);
+
+        VizDocument expected = VizSchema.ToSchema(VizTopology.FactoryFloor());
+        VizOpened reopened = VizFile.Read(File.ReadAllText(path));
+        ModelDocument.Sha256(reopened.Document!.Topology).Should().Be(ModelDocument.Sha256(expected.Topology));
+        reopened.Document.Layout.Should().BeEquivalentTo(expected.Layout);
+        vm.StatusText.Should().Contain("Saved factory.json");
+        Directory.Delete(folder, true);
     }
 }
