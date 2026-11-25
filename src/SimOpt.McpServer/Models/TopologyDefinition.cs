@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SimOpt.McpServer.Models
@@ -9,6 +11,11 @@ namespace SimOpt.McpServer.Models
     /// </summary>
     public sealed class TopologyDefinition
     {
+        [Description("Schema version of this document; \"1\" when given")]
+        [JsonPropertyName("schema_version")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? SchemaVersion { get; set; }
+
         [Description("Human-readable name for the model instance")]
         [JsonPropertyName("name")]
         public string Name { get; set; } = "Model";
@@ -21,7 +28,7 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("nodes")]
         public List<NodeDefinition> Nodes { get; set; } = new();
 
-        [Description("Directed connections between nodes (from -> to)")]
+        [Description("Directed connections between nodes: {from, to, weight?}, or [from, to] or [from, to, weight]")]
         [JsonPropertyName("connections")]
         public List<ConnectionDefinition> Connections { get; set; } = new();
 
@@ -72,6 +79,12 @@ namespace SimOpt.McpServer.Models
     /// <summary>
     /// A directed connection between two nodes.
     /// </summary>
+    /// <remarks>
+    /// SIM-65 step 6: read from <c>{"from": "a", "to": "b", "weight": 0.7}</c> or from the shorter
+    /// <c>["a", "b"]</c> / <c>["a", "b", 0.7]</c>, which the readiness review's clinic walkthrough uses
+    /// and a client LLM writes as readily; written as the object.
+    /// </remarks>
+    [JsonConverter(typeof(ConnectionDefinitionConverter))]
     public sealed class ConnectionDefinition
     {
         [Description("Source node id")]
@@ -90,5 +103,75 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("weight")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? Weight { get; set; }
+    }
+
+    /// <summary>Reads a connection as an object or an array, and writes it as an object.</summary>
+    public sealed class ConnectionDefinitionConverter : JsonConverter<ConnectionDefinition>
+    {
+        public override ConnectionDefinition Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.StartArray) return ReadArray(ref reader);
+            if (reader.TokenType == JsonTokenType.StartObject) return ReadObject(ref reader);
+            throw new JsonException("A connection is {\"from\", \"to\", \"weight\"?} or [from, to] or [from, to, weight].");
+        }
+
+        private static ConnectionDefinition ReadArray(ref Utf8JsonReader reader)
+        {
+            var connection = new ConnectionDefinition();
+            int index = 0;
+            while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+            {
+                switch (index++)
+                {
+                    case 0: connection.From = Text(ref reader, "from"); break;
+                    case 1: connection.To = Text(ref reader, "to"); break;
+                    case 2:
+                        if (reader.TokenType != JsonTokenType.Number)
+                            throw new JsonException("The third entry of a connection array is its weight, a number.");
+                        connection.Weight = reader.GetDouble();
+                        break;
+                    default:
+                        throw new JsonException("A connection array is [from, to] or [from, to, weight].");
+                }
+            }
+            if (index < 2) throw new JsonException("A connection array names its from and its to node: [from, to].");
+            return connection;
+        }
+
+        private static ConnectionDefinition ReadObject(ref Utf8JsonReader reader)
+        {
+            var connection = new ConnectionDefinition();
+            bool from = false, to = false;
+            while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+            {
+                string property = reader.GetString() ?? string.Empty;
+                reader.Read();
+                if (property.Equals("from", StringComparison.OrdinalIgnoreCase)) { connection.From = Text(ref reader, "from"); from = true; }
+                else if (property.Equals("to", StringComparison.OrdinalIgnoreCase)) { connection.To = Text(ref reader, "to"); to = true; }
+                else if (property.Equals("weight", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (reader.TokenType == JsonTokenType.Null) connection.Weight = null;
+                    else if (reader.TokenType == JsonTokenType.Number) connection.Weight = reader.GetDouble();
+                    else throw new JsonException("A connection's weight is a number.");
+                }
+                else reader.Skip();
+            }
+            if (!from || !to) throw new JsonException("A connection names its from and its to node.");
+            return connection;
+        }
+
+        private static string Text(ref Utf8JsonReader reader, string what) =>
+            reader.TokenType == JsonTokenType.String
+                ? reader.GetString()!
+                : throw new JsonException($"A connection's {what} is a node id, a string.");
+
+        public override void Write(Utf8JsonWriter writer, ConnectionDefinition value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("from", value.From);
+            writer.WriteString("to", value.To);
+            if (value.Weight is double weight) writer.WriteNumber("weight", weight);
+            writer.WriteEndObject();
+        }
     }
 }

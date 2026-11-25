@@ -60,6 +60,11 @@ namespace SimOpt.McpServer.Simulation
             // while seedChange is set (StochasticEntity.cs:41-49). A model constructed at its final
             // seed would therefore never apply any SeedID, and every node would silently keep the
             // construction-order seed it happened to be handed.
+            // SIM-65 step 6: a document written for another schema version is refused, not guessed at.
+            if (topology.SchemaVersion != null && topology.SchemaVersion.Trim() != SchemaCatalog.SchemaVersion)
+                throw new InvalidOperationException(
+                    $"schema_version \"{topology.SchemaVersion}\" is not supported; this server reads version {SchemaCatalog.SchemaVersion}.");
+
             var model = new Model(topology.Name, unchecked(topology.Seed + 1), 0d);
             model.LoggingEnabled = false;
 
@@ -205,8 +210,7 @@ namespace SimOpt.McpServer.Simulation
 
                     default:
                         throw new InvalidOperationException(
-                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: source, queue, station, delay, router, sink " +
-                            "(buffer and server are accepted for queue and station).");
+                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: {SchemaCatalog.Vocabulary()}.");
                 }
             }
 
@@ -459,15 +463,7 @@ namespace SimOpt.McpServer.Simulation
         /// <c>queue</c> and <c>station</c>, so every older topology still builds.
         /// </summary>
         private static string CanonicalType(NodeDefinition node)
-        {
-            string type = (node.Type ?? string.Empty).Trim().ToLowerInvariant();
-            return type switch
-            {
-                "buffer" => "queue",
-                "server" => "station",
-                _ => type,
-            };
-        }
+            => SchemaCatalog.Canonical(node.Type) ?? (node.Type ?? string.Empty).Trim().ToLowerInvariant();   // D7
 
         /// <summary>The node's type as the topology wrote it, capitalised, for error messages.</summary>
         private static string Label(NodeDefinition node)
@@ -591,8 +587,8 @@ namespace SimOpt.McpServer.Simulation
                     }
                     default:
                         throw new InvalidOperationException(
-                            $"Metric '{id}': kind must be one of wait_time, queue_length, utilization, count, throughput, " +
-                            $"cycle_time, not \"{metric.Kind}\".");
+                            $"Metric '{id}': kind must be one of {string.Join(", ", SchemaCatalog.MetricKinds.Select(k => k.Name))}, " +
+                            $"not \"{metric.Kind}\".");
                 }
                 keys[id] = key;
             }

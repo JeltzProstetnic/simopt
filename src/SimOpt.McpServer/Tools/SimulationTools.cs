@@ -216,6 +216,45 @@ namespace SimOpt.McpServer.Tools
             }
         }
 
+        // ── get_schema ────────────────────────────────────────────────────────
+
+        [McpServerTool]
+        [Description(
+            "Returns the topology schema (version 1) that create_model reads: a JSON Schema of the document, " +
+            "every node type with its parameters, every metric kind and every distribution family. " +
+            "Check a topology against it before calling create_model. No input required.")]
+        public string GetSchema()
+        {
+            // SIM-65 step 6 (D7): rendered from SchemaCatalog, which the builder reads too
+            return JsonSerializer.Serialize(new
+            {
+                schema_version = SchemaCatalog.SchemaVersion,
+                json_schema = SchemaCatalog.JsonSchema(),
+                node_types = SchemaCatalog.NodeTypes.Select(t => new
+                {
+                    name = t.Name,
+                    aliases = t.Aliases,
+                    description = t.Description,
+                    parameters = t.Parameters.Select(Describe),
+                    fed_by = t.FedBy,
+                    feeds = t.Feeds,
+                }),
+                metric_kinds = SchemaCatalog.MetricKinds.Select(k => new { name = k.Name, measured_at = k.MeasuredAt, description = k.Description }),
+                distributions = SchemaCatalog.DistributionTypes,
+            });
+        }
+
+        private static object Describe(ParameterSpec p) => new
+        {
+            name = p.Name,
+            kind = p.Kind,
+            required = p.Required,
+            @default = p.Default,
+            description = p.Description,
+            choices = p.Choices,
+            alternative = p.Alternative,
+        };
+
         // ── list_templates ────────────────────────────────────────────────────
 
         [McpServerTool]
@@ -225,66 +264,25 @@ namespace SimOpt.McpServer.Tools
             "No input required.")]
         public string ListTemplates()
         {
-            var templates = new List<TemplateDescription>
+            // SIM-65 step 6 (D1, D7): the v1 names only, rendered from SchemaCatalog
+            var templates = SchemaCatalog.NodeTypes.Select(t => new
             {
-                new TemplateDescription(
-                    Type: "source",
-                    Description:
-                        "Generates entities (customers, jobs, parts) at random intervals and pushes " +
-                        "them to the first downstream node. Uses a negative-exponential inter-arrival " +
-                        "distribution (Poisson arrivals). There must be at least one source per model.",
-                    Parameters: new List<ParameterDescription>
-                    {
-                        new ParameterDescription("mean_interval", "double", "1.0",
-                            "Mean time between successive entity arrivals. Smaller = more frequent arrivals.")
-                    },
-                    ConnectionRole: "upstream — connect its id in the 'from' field of a connection"),
-
-                new TemplateDescription(
-                    Type: "buffer",
-                    Description:
-                        "A FIFO queue that holds entities waiting for a downstream server. " +
-                        "When capacity is exceeded, new arrivals are rejected (dropped). " +
-                        "Typical use: place between a source and a server to absorb bursts.",
-                    Parameters: new List<ParameterDescription>
-                    {
-                        new ParameterDescription("capacity", "int", "unlimited",
-                            "Maximum number of entities the buffer can hold simultaneously.")
-                    },
-                    ConnectionRole: "intermediate — appears in both 'from' and 'to' fields"),
-
-                new TemplateDescription(
-                    Type: "server",
-                    Description:
-                        "Processes one entity at a time for a random service duration, then forwards " +
-                        "the finished entity downstream. Uses a negative-exponential service-time " +
-                        "distribution. AutoContinue is enabled: the server automatically pulls the " +
-                        "next entity from its upstream buffer when idle.",
-                    Parameters: new List<ParameterDescription>
-                    {
-                        new ParameterDescription("service_time", "double", "1.0",
-                            "Mean time to process a single entity.")
-                    },
-                    ConnectionRole: "intermediate or terminal — connect upstream buffer/source via 'to'"),
-
-                new TemplateDescription(
-                    Type: "sink",
-                    Description:
-                        "Terminal node that absorbs entities and counts them. A sink does not forward " +
-                        "entities further. Every model should have at least one sink to measure throughput.",
-                    Parameters: new List<ParameterDescription>(),
-                    ConnectionRole: "terminal — appears only in 'to' field, never in 'from'"),
-            };
+                type = t.Name,
+                description = t.Description,
+                parameters = t.Parameters.Select(Describe),
+                fed_by = t.FedBy,
+                feeds = t.Feeds,
+            });
 
             var notes = new[]
             {
-                "All time values share the same unit — you choose what a unit means (minutes, hours, etc.).",
-                "Connections must form a valid DAG (directed acyclic graph) ending at sinks.",
-                "A server must be connected to an upstream buffer or source via ConnectTo semantics.",
-                "The model uses a negative-exponential distribution for both inter-arrival and service times, " +
-                    "which models M/M/1 queuing systems when mean_interval=1/lambda and service_time=1/mu.",
-                "For a basic utilization analysis: rho = service_time / mean_interval. " +
-                    "If rho >= 1, the queue grows unboundedly — use this to explore stability thresholds.",
+                "All time values share one unit; you choose what it means (minutes, hours, etc.).",
+                "Every station takes its work from a queue: source -> queue -> station -> sink is the smallest working line.",
+                "A time is a distribution object such as {\"type\":\"triangular\",\"min\":20,\"mode\":30,\"max\":40}; families: " +
+                    string.Join(", ", SchemaCatalog.DistributionTypes) + ".",
+                "Declare what to measure in metrics: " +
+                    string.Join(", ", SchemaCatalog.MetricKinds.Select(k => $"{k.Name} (at {k.MeasuredAt})")) + ".",
+                "get_schema returns the whole document schema as JSON Schema.",
             };
 
             return JsonSerializer.Serialize(new { templates, usage_notes = notes }, new JsonSerializerOptions
@@ -303,18 +301,4 @@ namespace SimOpt.McpServer.Tools
             return JsonSerializer.Serialize(new { model_count = ids.Count, model_ids = ids });
         }
     }
-
-    // ── supporting DTOs for ListTemplates ────────────────────────────────────
-
-    internal sealed record TemplateDescription(
-        string Type,
-        string Description,
-        List<ParameterDescription> Parameters,
-        string ConnectionRole);
-
-    internal sealed record ParameterDescription(
-        string Name,
-        string Type,
-        string DefaultValue,
-        string Description);
 }
