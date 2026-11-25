@@ -689,3 +689,17 @@ closed, and was deleted. Its standing rules for unattended work that still apply
   "validation lives in tests" bullet is superseded (marked in place).
 - **Q-ASYNC → iterators only** (SIM-126): processes are written with C# iterators; an `async` front end over the
   same waits stays possible later.
+
+## 2026-11-25 (morning, after the decisions) — implementation choices the briefs left open
+
+- **A step's `amount` has no default** (SIM-126): `take` and `put` say how much, so no step field is ever "assumed" in a
+  run record.
+- **A process nothing feeds that repeats its steps 100,000 times at one instant stops the run** naming itself
+  (`ProcessNode.MaxCyclesPerInstant`, SIM-126 slice 4): rule 4's "a step that can wait" holds for every valid list, so
+  only a runtime guard keeps `validate_model` from hanging the server on a `[seize, release]` loop.
+- **`batch: n` is the time of the whole batch, on one server, and passes every item on** (SIM-110 step 2): the Roland
+  printer it replaces passed one representative per batch; several servers are refused because a part-filled batch
+  would compete for arrivals; `batch` has no listed default, so no model's `assumed` list changed.
+- **`STOCK_RUNS_OUT` kept** after measuring it on the car wash (reorder level 5, warned: empty 0.199 of the day; 20, not
+  warned: 0.0046).
+
