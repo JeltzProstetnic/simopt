@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=SIM-137 (battery fixture NRE), then SIM-69 (optimize), while MG owes Q-SRC-START (blocks SIM-139), Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=SIM-68 step 4 with SIM-59 (PSO vector contract, SA/EA seeded and fixed), then SIM-130; MG owes Q-SRC-START (blocks SIM-139), Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SimPy-gap section: SIM-124..132 done, SIM-126 slices 1-6 done, SIM-65 and SIM-66 done (2026-11-25 night); next SIM-137, SIM-69
+# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66 and SIM-69 done (2026-11-25 night); next SIM-68 step 4
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -109,9 +109,18 @@ the private hand-off (see *Private material*).
    without a trace, and SIM-139's first item on a fresh model is a phantom the generator never made (backlog).
    No comment on his issue #30 needed: no template result moved, and his platform does not use the MCP builder.
    Brief with all numbers: `docs/plans/2026-11-25-sim-66-validate-patch-experiment.md`.
-   **Next, in order:** SIM-137 (P1 proposed, small: the battery fixture's NRE, 1 run in 60), SIM-69 (P0,
-   `optimize` over the same patches; SIM-130's Python package then has every tool it needs), SIM-126's schema
-   part, SIM-110 and SIM-130. SIM-139 waits for **Q-SRC-START**.
+   **Same night, later: SIM-68 steps 1-3 and SIM-69 done** (`228bcc5`, `28fb063`, `f128c0f`): `TopologyProblem`
+   (decision variables as patch paths, common random numbers, a constraint kept only on its whole 95 % interval,
+   cache, budget, seeded moves) and the `optimize` tool (auto/grid/random). The clinic's "fewest exam rooms keeping
+   the mean wait under 15 minutes" answers 7 in one call. Measured on the way: on the mean, 5 replications passed
+   6 rooms that 20 failed, which is why constraints use the interval. Suite 1290 passed, 1 skipped. Brief:
+   `docs/plans/2026-11-25-sim-68-69-topology-problem-optimize.md`. SIM-137: a 90-run hunt found nothing (see its
+   backlog entry for the count).
+   **Next, in order:** SIM-68 step 4 together with SIM-59 (`IVectorSolution` replacing PSO's reflection; SA and
+   EA through the seeded operators with SIM-59's cloning and temperature fixes; then `sa`, `ea`, `pso` in
+   `optimize`), SIM-130 (the Python package; every tool it needs now exists), SIM-126's schema part, SIM-110.
+   SIM-139 waits for **Q-SRC-START**; SIM-137 stays open until it recurs.
+   Older next list (before SIM-69): SIM-137, SIM-69, SIM-126's schema part, SIM-110 and SIM-130.
    Older next list, kept: SIM-66, then SIM-137 and SIM-139, SIM-126's schema part, SIM-69, SIM-110 and SIM-130.
    Older next list, kept: SIM-132, then SIM-65 step 2b, then SIM-126's schema part, SIM-110 and SIM-130. Older plan, kept for reference: SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
    process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
