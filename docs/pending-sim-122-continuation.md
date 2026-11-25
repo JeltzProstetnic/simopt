@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next=ask MG Q-CIW-WHERE and Q-CIW-CASES then build SIM-141 (ciw installed), MG looks at the viewer (SIM-110 [?]) and the German sample report, check the first nightly CI run; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=build SIM-141 (Q-CIW-WHERE/CASES decided: nightly; entry-loss tandem + non-Jackson), MG looks at the viewer (SIM-110 [?]) and the German sample report, check the first nightly CI run; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -163,15 +163,10 @@ the private hand-off (see *Private material*).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
-- **Q-CIW-WHERE (open, 2026-11-25, SIM-141; ask at the start of the next session):** where the Ciw cross-check runs.
-  **Recommended: in the nightly workflow** (`.github/workflows/nightly.yml` installs Python and ciw, a pytest in
-  `python/` runs each network in Ciw and in SimOpt and compares intervals), so the per-commit suite stays .NET-only and
-  fast. Alternatives: a per-commit pytest (every push needs Python and ciw, about a minute more), or a manual script whose
-  results are committed under `docs/plans/` (no automation; a regression goes unseen).
-- **Q-CIW-CASES (open, 2026-11-25, SIM-141):** which networks first. **Recommended: a finite tandem with blocking**
-  (two stations, a small buffer between; no closed form, both engines have it) **and a non-Jackson network** (lognormal
-  or deterministic service, probabilistic routing with rework). Priorities cannot be cross-checked yet: SimOpt has no
-  priority discipline (SIM-100).
+- **Q-CIW-WHERE, Q-CIW-CASES: DECIDED 2026-11-25 (noon) by MG at the console,** both as recommended: the nightly
+  workflow; a tandem with a finite first queue (entry loss) and a non-Jackson network. The handover's "finite tandem
+  with blocking, both engines have it" was wrong: SimOpt loses an item at a full internal queue, Ciw blocks it
+  (`docs/decisions.md`, 2026-11-25 noon). SIM-141 is unblocked.
 
 - **Q-VIEW-WARMUP, Q-SIM143-PRIO, Q-SIM144-PRIO, Q-SIM142-PRIO: DECIDED 2026-11-25 (midday) by MG at the console,** all as
   recommended: the warm-up stays a run-record setting; SIM-143 P3, SIM-144 P3, SIM-142 P1 (`docs/decisions.md`).

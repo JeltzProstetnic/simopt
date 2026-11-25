@@ -712,3 +712,14 @@ closed, and was deleted. Its standing rules for unattended work that still apply
 - **Q-SIM143-PRIO → P3.** SIM-143 (the factory preset is overloaded and its staging queue refuses parts).
 - **Q-SIM144-PRIO → P3.** SIM-144 (a topology without `seed` runs at 42 and is not listed as assumed).
 - **Q-SIM142-PRIO → P1.** SIM-142 (no topology with two sources could be created; fixed in `69476ff`).
+
+## 2026-11-25 (noon) — the Ciw cross-check (SIM-141), MG at the console
+
+- **Q-CIW-WHERE → the nightly workflow.** `nightly.yml` installs Python and ciw and builds the MCP server; a pytest in
+  `python/` runs each network in both engines and compares intervals. The per-commit suite stays .NET-only and fast.
+- **Q-CIW-CASES → entry loss and a non-Jackson network first.** (a) A two-station tandem whose first queue is finite, so
+  both engines turn an outside arrival away the same way; (b) lognormal or deterministic service with probabilistic
+  routing and rework. The premise the question was first written on was wrong and was corrected before asking: a full
+  queue inside a SimOpt network loses the item (counted), while Ciw blocks it at the upstream server (blocking after
+  service), so an internal finite buffer is not the same system in the two engines. Internal blocking through a process
+  node (seize the next slot before releasing the server) was offered and not chosen. Priorities wait for SIM-100.
