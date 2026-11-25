@@ -20,6 +20,7 @@
     <Project Path="benchmarks/SimOpt.Benchmarks/SimOpt.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/examples/">
+    <Project Path="examples/SimOpt.Examples.CarWash/SimOpt.Examples.CarWash.csproj" />
     <Project Path="examples/SimOpt.Examples.DiningPhilosophers/SimOpt.Examples.DiningPhilosophers.csproj" />
     <Project Path="examples/SimOpt.Examples.EmergencyDepartment/SimOpt.Examples.EmergencyDepartment.csproj" />
     <Project Path="examples/SimOpt.Examples.SimOptDemo/SimOpt.Examples.SimOptDemo.csproj" />

@@ -107,4 +107,25 @@ IEnumerable<Wait> Machine(Process p)
   a model stream or a long-lived process's stream instead.
 - Tests `ProcessRandomStreamTests` (4); without the reseed in `Reset` the rebuilt-against-reset test fails.
 
-**Next slices:** a process example in `examples/`, then the SIM-65 schema.
+## Slice 6: the example (2026-11-25, night)
+
+`examples/SimOpt.Examples.CarWash` is SimPy's classic car wash, extended to use every process feature:
+a pool of bays (`Resource`), drivers who give up when their patience runs out (`AnyOf`, which withdraws
+the lost request), a soap tank each wash draws from (`Stock`), a supplier who reacts when the tank runs
+low (`Wait.Next` on its `LevelChangedEvent` with a filter), named streams in the arrival and supplier
+processes, and 20 replicated days through `ReplicationRunner` with `TallyCollector`s and the stock and
+resource collectors. `dotnet run --project examples/SimOpt.Examples.CarWash` prints:
+
+| 20 days of 600 minutes | 2 bays | 3 bays |
+|---|---:|---:|
+| drivers who gave up | 0.170 ± 0.017 | 0.114 ± 0.015 |
+| wait for a bay (minutes) | 3.24 ± 0.19 | 1.25 ± 0.21 |
+| bays busy | 0.836 ± 0.018 | 0.650 ± 0.019 |
+| soap tank empty | 0.186 ± 0.014 | 0.205 ± 0.012 |
+
+A third bay cuts the wait, but one driver in nine still gives up: the tank is empty a fifth of the day,
+and a car waiting for soap keeps its bay. The supply is the bottleneck, which is the kind of answer the
+optimiser is for. `CarWashExampleTests` (3) runs the same file: reproducible, every figure in range, and
+a third bay lowers both the share who give up and the wait.
+
+**Next:** the SIM-65 schema (SIM-126's last part), which waits for SIM-65 step 1.

@@ -40,6 +40,8 @@
   <ItemGroup>
     <!-- SIM-129: EngineFingerprintTests pins the speed harness's cases, compiled from the same file. -->
     <Compile Include="../../benchmarks/SimOpt.Benchmarks/BenchmarkCases.cs" Link="Simulation/Engine/BenchmarkCases.cs" />
+    <!-- SIM-126: CarWashExampleTests runs the process example, compiled from the same file. -->
+    <Compile Include="../../examples/SimOpt.Examples.CarWash/CarWash.cs" Link="Simulation/Processes/CarWash.cs" />
   </ItemGroup>
 
 </Project>
