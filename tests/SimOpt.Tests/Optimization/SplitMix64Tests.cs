@@ -31,6 +31,18 @@ public class SplitMix64Tests
     }
 
     [Fact]
+    public void Split_GivesANewSequence_AndMovesThisOneOn()
+    {
+        var g = new SplitMix64(42);
+        SplitMix64 same = g;
+
+        SplitMix64 child = g.Split();
+
+        child.Next().Should().NotBe(g.Next());
+        g.Should().NotBe(same);
+    }
+
+    [Fact]
     public void Uniform_IsInTheUnitInterval_AndBelow_IsInRange()
     {
         var g = new SplitMix64(9);

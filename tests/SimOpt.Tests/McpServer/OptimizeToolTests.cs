@@ -41,6 +41,15 @@ public class OptimizeToolTests
          "duration": 540, "warmup": 60}
         """;
 
+    // two variables, 6 x 9 = 54 points: more than the searches below may evaluate
+    private const string TwoStations = """
+        {"variables": [{"path": "triage.servers", "type": "integer", "min": 1, "max": 6},
+                       {"path": "exam.servers", "type": "integer", "min": 4, "max": 12}],
+         "objective": {"metric": "exam.servers", "direction": "min",
+                       "constraints": [{"metric": "wait_exam", "op": "<", "value": 15}]},
+         "duration": 540, "warmup": 60}
+        """;
+
     private static JsonElement Json(string text) => JsonDocument.Parse(text).RootElement.Clone();
 
     private static AIFunction Tool(SimulationTools tools, string name) => AIFunctionFactory.Create(
@@ -140,14 +149,65 @@ public class OptimizeToolTests
         result.GetProperty("evaluations").GetInt32().Should().BeGreaterThanOrEqualTo(1);
     }
 
+    // ── SIM-68 step 4: simulated annealing, the evolutionary algorithm and the particle swarm ──
+
+    [Theory]
+    [InlineData("sa")]
+    [InlineData("ea")]
+    [InlineData("pso")]
+    public async Task EachSearch_FindsTheGridsOptimum_OnTwoVariables_EvaluatingFewerPoints(string strategy)
+    {
+        // under common random numbers the grid's best is the exact optimum of the space (D6)
+        var (tools, id) = await Created();
+        JsonElement grid = Json(await Optimize(tools, id, TwoStations, """{"strategy": "grid", "max_evaluations": 54}"""));
+
+        JsonElement result = Json(await Optimize(tools, id, TwoStations, $$"""{"strategy": "{{strategy}}", "max_evaluations": 40}"""));
+
+        result.GetProperty("strategy").GetString().Should().Be(strategy);
+        result.GetProperty("evaluations").GetInt32().Should().BeLessThanOrEqualTo(40);
+        result.GetProperty("best").GetProperty("feasible").GetBoolean().Should().BeTrue();
+        result.GetProperty("best").GetProperty("objective").GetDouble()
+            .Should().Be(grid.GetProperty("best").GetProperty("objective").GetDouble());
+    }
+
+    [Theory]
+    [InlineData("sa")]
+    [InlineData("ea")]
+    [InlineData("pso")]
+    public async Task EachSearch_GivesTheSameResult_FromTheSameCall(string strategy)
+    {
+        var (tools, id) = await Created();
+        string call = $$"""{"strategy": "{{strategy}}", "max_evaluations": 15, "seed": 5}""";
+
+        string first = await Optimize(tools, id, TwoStations, call);
+        string second = await Optimize(tools, id, TwoStations, call);
+
+        second.Should().Be(first);
+        Json(first).GetProperty("evaluations").GetInt32().Should().Be(15);
+    }
+
+    [Theory]
+    [InlineData("sa")]
+    [InlineData("ea")]
+    [InlineData("pso")]
+    public async Task EachSearch_StopsAtTheBudget(string strategy)
+    {
+        var (tools, id) = await Created();
+
+        JsonElement result = Json(await Optimize(tools, id, TwoStations, $$"""{"strategy": "{{strategy}}", "max_evaluations": 8}"""));
+
+        result.GetProperty("evaluations").GetInt32().Should().Be(8);
+        result.GetProperty("stopped").GetString().Should().Be("budget");
+    }
+
     [Fact]
     public async Task AnImpossibleRequest_IsAnError()
     {
         var (tools, id) = await Created();
 
         Json(await Optimize(tools, "nope", FewestRooms)).GetProperty("error").GetString().Should().Contain("nope");
-        Json(await Optimize(tools, id, FewestRooms, """{"strategy": "pso"}""")).GetProperty("error").GetString()
-            .Should().Contain("pso").And.Contain("grid");
+        Json(await Optimize(tools, id, FewestRooms, """{"strategy": "hill"}""")).GetProperty("error").GetString()
+            .Should().Contain("hill").And.Contain("grid").And.Contain("pso");
         Json(await Optimize(tools, id, FewestRooms, """{"strategy": "grid", "max_evaluations": 5}""")).GetProperty("error").GetString()
             .Should().Contain("9 points");
         Json(await Optimize(tools, id, FewestRooms, """{"objective": {"metric": "joy", "direction": "min"}}""")).GetProperty("error").GetString()

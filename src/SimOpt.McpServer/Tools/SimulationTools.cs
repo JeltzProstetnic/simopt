@@ -188,7 +188,8 @@ namespace SimOpt.McpServer.Tools
             "metric is a metric id or a variable's path (\"exam.servers\" with min = use as few as possible). Every point is " +
             "run with replications_per_eval replications at one seed, so points differ only where their settings do; a " +
             "constraint counts as kept only when the metric's whole 95% interval keeps it. strategy: \"auto\" (every point " +
-            "when the space fits max_evaluations, else random), \"grid\" or \"random\". Returns the best point with its " +
+            "when the space fits max_evaluations, else random), \"grid\", \"random\", \"sa\" (simulated annealing), " +
+            "\"ea\" (evolutionary algorithm) or \"pso\" (particle swarm); each stops at the budget. Returns the best point with its " +
             "metrics and intervals, violations if no point is feasible, the five best points, provenance and a summary. " +
             "Example: fewest exam rooms keeping the mean wait under 15: variables [{\"path\":\"exam.servers\",\"type\":" +
             "\"integer\",\"min\":4,\"max\":12}], objective {\"metric\":\"exam.servers\",\"direction\":\"min\",\"constraints\":" +
@@ -210,7 +211,7 @@ namespace SimOpt.McpServer.Tools
             int max_evaluations = Optimizer.DefaultEvaluations,
             [Description("Wall-clock limit in seconds (default none)")]
             double? max_seconds = null,
-            [Description("auto | grid | random (default auto)")]
+            [Description("auto | grid | random | sa | ea | pso (default auto)")]
             string strategy = "auto",
             [Description("Seed of the replications and of the search (default the model's seed)")]
             int? seed = null,

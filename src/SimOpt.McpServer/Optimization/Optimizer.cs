@@ -5,7 +5,10 @@ using System.Linq;
 using SimOpt.McpServer.Models;
 using SimOpt.McpServer.Simulation;
 using SimOpt.Optimization.Interfaces;
+using SimOpt.Optimization.Strategies.Evolutionary;
+using SimOpt.Optimization.Strategies.ParticleSwarm;
 using SimOpt.Optimization.Strategies.RandomSearch;
+using SimOpt.Optimization.Strategies.SimulatedAnnealing;
 using SimOpt.Simulation.Statistics;
 
 namespace SimOpt.McpServer.Optimization
@@ -14,12 +17,20 @@ namespace SimOpt.McpServer.Optimization
     /// SIM-69 (D6, D9): runs a search over a model version's decision variables and reports the best
     /// point. "grid" evaluates every point of a discrete space; "random" draws points from the seeded
     /// space; "auto" enumerates when the space fits the evaluation budget and draws at random otherwise.
+    /// SIM-68 step 4: "sa", "ea" and "pso" run simulated annealing, the evolutionary algorithm and the
+    /// particle swarm of SimOpt.Optimization on the same problem, each until the budget is spent.
     /// </summary>
     public static class Optimizer
     {
         public const int DefaultEvaluations = 50;
         public const int DefaultReplications = 5;
-        public static readonly IReadOnlyList<string> Strategies = new[] { "auto", "grid", "random" };
+        public static readonly IReadOnlyList<string> Strategies = new[] { "auto", "grid", "random", "sa", "ea", "pso" };
+
+        /// <summary>
+        /// Moves a search may propose per evaluation it is allowed. A point proposed again is answered from
+        /// the cache and costs nothing, so a search that keeps returning to known points still ends.
+        /// </summary>
+        private const int ProposalsPerEvaluation = 20;
 
         /// <exception cref="ArgumentException">The request cannot be searched; the message says why.</exception>
         public static OptimizationResult Run(string modelId, int version, TopologyDefinition topology,
@@ -29,8 +40,7 @@ namespace SimOpt.McpServer.Optimization
         {
             string chosen = (strategy ?? "auto").Trim().ToLowerInvariant();
             if (!Strategies.Contains(chosen))
-                throw new ArgumentException($"strategy must be one of {string.Join(", ", Strategies)}, not \"{strategy}\"; " +
-                                            "sa, ea and pso follow (SIM-68 step 4).");
+                throw new ArgumentException($"strategy must be one of {string.Join(", ", Strategies)}, not \"{strategy}\".");
             if (maxEvaluations < 1) throw new ArgumentException($"max_evaluations must be at least 1, not {maxEvaluations}.");
             if (maxSeconds is double s && !(s > 0d)) throw new ArgumentException($"max_seconds must be positive, not {s}.");
 
@@ -46,8 +56,15 @@ namespace SimOpt.McpServer.Optimization
                                             "raise max_evaluations or use random.");
 
             if (maxSeconds is double seconds) problem.Deadline = DateTime.UtcNow.AddSeconds(seconds);
-            if (chosen == "grid") SearchGrid(problem);
-            else SearchRandom(problem, maxEvaluations, baseSeed);
+            int proposals = maxEvaluations * ProposalsPerEvaluation;
+            switch (chosen)
+            {
+                case "grid": SearchGrid(problem); break;
+                case "sa": Search(new AnnealingAlgorithm(), Annealing(proposals, baseSeed), problem); break;
+                case "ea": Search(new EvolutionaryAlgorithm(), Evolution(proposals, baseSeed), problem); break;
+                case "pso": Search(new ParticleSwarmOptimization(), Swarm(proposals, baseSeed), problem); break;
+                default: SearchRandom(problem, maxEvaluations, baseSeed); break;
+            }
 
             return Report(modelId, version, chosen, problem, topology, objective, duration, warm, replicationsPerEval, baseSeed);
         }
@@ -70,6 +87,54 @@ namespace SimOpt.McpServer.Optimization
             search.Initialize(new SearchConfiguration { Seed = seed, NumberOfIterations = maxEvaluations * 20 });
             problem.BudgetExhausted += search.Stop;
             search.Solve(problem).ToList();
+        }
+
+        private static void Search(IStrategy search, IConfiguration configuration, TopologyProblem problem)
+        {
+            search.Initialize(configuration);
+            problem.BudgetExhausted += search.Stop;
+            search.Solve(problem).ToList();
+        }
+
+        /// <summary>
+        /// Simulated annealing over <paramref name="proposals"/> moves (one Tweak each). The temperature is
+        /// relative to the current point: a feasible point's fitness is the objective in its own unit, so a
+        /// move worse by a tenth of it is accepted at odds of 1 in e at the start, falling geometrically to
+        /// a thousandth of that by the end. An infeasible point's fitness differs from its neighbours' by
+        /// relative violations, which need no scale; a move into infeasibility (about -1e12) is never taken.
+        /// </summary>
+        private static SimulatedAnnealingConfiguration Annealing(int proposals, int seed)
+        {
+            const double start = 0.1, end = start / 1000d;
+            double cooling = Math.Pow(end / start, 1d / proposals);
+            return new SimulatedAnnealingConfiguration
+            {
+                Seed = seed,
+                NumberOfIterations = proposals,
+                InitialTemperature = start,
+                DecreaseTemperature = a => start * Math.Pow(cooling, a.Steps + 1) * Scale(a.CurrentCandidate.Fitness),
+            };
+        }
+
+        private static double Scale(double fitness) =>
+            fitness > TopologyProblem.Infeasible / 2d ? Math.Max(Math.Abs(fitness), 1e-9) : 1d;
+
+        /// <summary>
+        /// A (5 + 10) evolutionary algorithm: the five best breed ten children by uniform crossover, each
+        /// mutated by one Tweak, and the next generation is the fifteen of parents and children.
+        /// </summary>
+        private static EvolutionaryAlgorithmConfiguration Evolution(int proposals, int seed)
+        {
+            const int mu = 5, lambda = 10;
+            return new EvolutionaryAlgorithmConfiguration(seed, Math.Max(1, proposals / lambda), mu, lambda, keepParentsAlive: true);
+        }
+
+        /// <summary>A swarm of ten with the constriction defaults of <see cref="ParticleSwarmConfiguration"/>.</summary>
+        private static ParticleSwarmConfiguration Swarm(int proposals, int seed)
+        {
+            var configuration = new ParticleSwarmConfiguration { Seed = seed };
+            configuration.NumberOfIterations = Math.Max(1, proposals / configuration.SwarmSize);
+            return configuration;
         }
 
         private static OptimizationResult Report(string modelId, int version, string strategy, TopologyProblem problem,

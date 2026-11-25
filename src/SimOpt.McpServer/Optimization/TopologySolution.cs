@@ -11,8 +11,10 @@ namespace SimOpt.McpServer.Optimization
     /// SIM-68: a point in a <see cref="TopologyProblem"/>'s search space, one real per decision variable.
     /// </summary>
     /// <remarks>
-    /// D8: its moves draw from a SplitMix64 generator whose state is part of the solution, so a clone
-    /// moves exactly as the original would, and a search started from the same seed takes the same path.
+    /// D8: its moves draw from a SplitMix64 generator that is part of the solution, so a search started
+    /// from the same seed takes the same path. A clone splits the generator (step 4): it moves differently
+    /// from the original and from every other clone, or a strategy that tweaks a clone of an unchanged
+    /// point (SA after a rejection) proposes the same move again.
     /// The wall-clock <c>new Random()</c> in the Ivotion operators is what broke that (SIM-59).
     /// </remarks>
     public sealed class TopologySolution : IVectorSolution, ITweakable, ICombinable<ISolution>
@@ -27,8 +29,22 @@ namespace SimOpt.McpServer.Optimization
             moves = new SplitMix64(state);
         }
 
-        /// <summary>The point, one coordinate per decision variable, before quantisation.</summary>
-        public double[] Parameters { get; set; }
+        private double[] parameters = Array.Empty<double>();
+
+        /// <summary>
+        /// The point, one coordinate per decision variable, before quantisation. Setting it keeps each
+        /// coordinate inside its variable's bounds, so a particle that overshoots stays at the wall.
+        /// </summary>
+        public double[] Parameters
+        {
+            get => parameters;
+            set
+            {
+                parameters = (double[])value.Clone();
+                for (int i = 0; i < Math.Min(parameters.Length, variables.Count); i++)
+                    parameters[i] = Math.Clamp(parameters[i], variables[i].Min, variables[i].Max);
+            }
+        }
 
         public double Fitness { get; set; } = double.NegativeInfinity;
 
@@ -37,7 +53,7 @@ namespace SimOpt.McpServer.Optimization
         public int CompareTo(ISolution? other) => Fitness.CompareTo(other?.Fitness ?? double.NegativeInfinity);
 
         public object Clone() =>
-            new TopologySolution(variables, (double[])Parameters.Clone(), 0) { Fitness = Fitness, HasFitness = HasFitness, moves = moves };
+            new TopologySolution(variables, (double[])Parameters.Clone(), 0) { Fitness = Fitness, HasFitness = HasFitness, moves = moves.Split() };
 
         /// <summary>
         /// Moves one coordinate, chosen at random: an integer or stepped variable by one step up or down,

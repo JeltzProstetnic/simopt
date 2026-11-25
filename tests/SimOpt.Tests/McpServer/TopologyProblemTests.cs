@@ -174,11 +174,11 @@ public class TopologyProblemTests
     {
         TopologyProblem problem = Problem(new[] { Rooms(), new DecisionVariable { Path = "triage.servers", Type = "integer", Min = 1, Max = 6 } });
         var a = (TopologySolution)problem.GenerateCandidates(11, 1).Single();
-        var b = (TopologySolution)a.Clone();
+        var b = (TopologySolution)problem.GenerateCandidates(11, 1).Single();
 
         for (int i = 0; i < 200; i++) { a.Tweak(); b.Tweak(); }
 
-        b.Parameters.Should().Equal(a.Parameters, "a clone carries its generator's state");
+        b.Parameters.Should().Equal(a.Parameters, "the same seed moves the same");
         a.Parameters[0].Should().BeInRange(4, 12);
         a.Parameters[1].Should().BeInRange(1, 6);
         ((TopologySolution)problem.GenerateCandidates(11, 1).Single()).Parameters
@@ -190,8 +190,7 @@ public class TopologyProblemTests
     {
         // SIM-68 step 4: the EA's crossover; like Tweak it draws from the candidate's own generator (D8)
         TopologyProblem problem = Problem(new[] { Rooms(), new DecisionVariable { Path = "triage.servers", Type = "integer", Min = 1, Max = 6 } });
-        TopologySolution a = At(problem, 4, 1), b = At(problem, 12, 6);
-        var a2 = (TopologySolution)a.Clone();
+        TopologySolution a = At(problem, 4, 1), b = At(problem, 12, 6), a2 = At(problem, 4, 1);
 
         var children = Enumerable.Range(0, 40).Select(_ => (TopologySolution)a.CombineWith(b)).ToList();
         var again = Enumerable.Range(0, 40).Select(_ => (TopologySolution)a2.CombineWith(b)).ToList();
@@ -200,6 +199,38 @@ public class TopologyProblemTests
         children.Should().OnlyContain(c => (c.Parameters[0] == 4 || c.Parameters[0] == 12) && (c.Parameters[1] == 1 || c.Parameters[1] == 6));
         children.Select(c => (c.Parameters[0], c.Parameters[1])).Distinct().Should().HaveCount(4, "each coordinate comes from either parent");
         children.Should().OnlyContain(c => !c.HasFitness);
+    }
+
+    [Fact]
+    public void ClonesOfOnePoint_MoveDifferently()
+    {
+        // SA proposes each move on a clone of its current point; clones that moved alike froze it
+        TopologyProblem problem = Problem(new[]
+        {
+            new DecisionVariable { Path = "arrivals.arrival.mean", Type = "real", Min = 3, Max = 10 },
+            new DecisionVariable { Path = "exam.servers", Type = "real", Min = 4, Max = 12 },
+        });
+        TopologySolution point = At(problem, 5, 8);
+
+        var moved = Enumerable.Range(0, 20).Select(_ =>
+        {
+            var clone = (TopologySolution)point.Clone();
+            clone.Tweak();
+            return string.Join(",", clone.Parameters);
+        });
+
+        moved.Distinct().Should().HaveCount(20);
+    }
+
+    [Fact]
+    public void SettingThePoint_KeepsItInsideTheBounds()
+    {
+        // the particle swarm writes positions that can overshoot; a point outside the box is held at its wall
+        TopologyProblem problem = Problem(new[] { Rooms(), new DecisionVariable { Path = "triage.servers", Type = "integer", Min = 1, Max = 6 } });
+
+        TopologySolution s = At(problem, 30, -2);
+
+        s.Parameters.Should().Equal(12, 1);
     }
 
     [Fact]

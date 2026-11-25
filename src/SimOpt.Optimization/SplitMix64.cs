@@ -2,11 +2,15 @@ namespace SimOpt.Optimization
 {
     /// <summary>
     /// SIM-59, SIM-68 D8: the generator a solution candidate carries for its moves (Steele, Lea and Flood
-    /// 2014, "SplitMix64"). Its whole state is one 64-bit number, so a candidate that keeps one as a field
-    /// and copies it into its clone has a clone that moves exactly as it would, and a search started from
-    /// the same seed takes the same path. A wall-clock <c>new Random()</c> in the operators broke that.
+    /// 2014, "SplitMix64"). Its whole state is one 64-bit number held by the candidate, so a search started
+    /// from the same seed takes the same path. A wall-clock <c>new Random()</c> in the operators broke that.
     /// </summary>
-    /// <remarks>A value type: keep it in a field that is not readonly, or every draw works on a copy.</remarks>
+    /// <remarks>
+    /// A value type: keep it in a field that is not readonly, or every draw works on a copy. A candidate's
+    /// clone takes <see cref="Split"/>, not a copy: strategies tweak a clone of an unchanged point (SA after
+    /// a rejected move, the EA mutating a surviving parent), and a copied state made every such clone
+    /// propose the same move again, which froze a cold annealing run.
+    /// </remarks>
     public struct SplitMix64
     {
         private ulong state;
@@ -24,6 +28,9 @@ namespace SimOpt.Optimization
 
         /// <summary>A uniform draw on [0, 1).</summary>
         public double Uniform() => (Next() >> 11) * (1d / (1UL << 53));
+
+        /// <summary>A new generator seeded from this one's next draw; this one moves on.</summary>
+        public SplitMix64 Split() => new SplitMix64(Next());
 
         /// <summary>A whole number from 0 to <paramref name="count"/> - 1.</summary>
         public int Below(int count) => (int)(Next() % (ulong)count);

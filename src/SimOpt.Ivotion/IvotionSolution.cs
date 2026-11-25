@@ -77,7 +77,7 @@ public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISoluti
         {
             Fitness = this.Fitness,
             HasFitness = this.HasFitness,
-            moves = this.moves,
+            moves = moves.Split(), // a clone moves differently from the original, see SplitMix64
         };
     }
 

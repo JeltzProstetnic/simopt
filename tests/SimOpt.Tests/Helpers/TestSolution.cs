@@ -43,7 +43,7 @@ public class TestSolution : IVectorSolution, ITweakable, ICombinable<ISolution>
 
     public object Clone()
     {
-        return new TestSolution(Parameters, moves)
+        return new TestSolution(Parameters, moves.Split())
         {
             Fitness = this.Fitness,
             HasFitness = this.HasFitness

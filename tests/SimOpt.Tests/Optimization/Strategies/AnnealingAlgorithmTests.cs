@@ -131,6 +131,24 @@ public class AnnealingAlgorithmTests
     }
 
     [Fact]
+    public void Solve_ProposesANewMoveAfterARejection()
+    {
+        // SA tweaks a clone of the current point; when the clone carried its parent's generator state, a
+        // rejected move was proposed again and again from the unchanged point, and a cold run froze
+        var strategy = new AnnealingAlgorithm();
+        var config = Geometric(iterations: 300);
+        config.InitialTemperature = 1e-9;
+        strategy.Initialize(config);
+        var problem = new CountingProblem();
+        var proposals = new HashSet<string>();
+        problem.Proposed += p => proposals.Add(string.Join(",", p));
+
+        strategy.Solve(problem).ToList();
+
+        proposals.Count.Should().BeGreaterThan(290, "nearly every one of 300 moves is new");
+    }
+
+    [Fact]
     public void BestSolutionChanged_FiresOnlyOnAStrictImprovement()
     {
         // near 0 K most worse moves are rejected, so the current candidate often is the best one; the
@@ -163,6 +181,7 @@ public class AnnealingAlgorithmTests
         private readonly TestProblem sphere = new();
         public int Evaluations { get; private set; }
         public event Action<int>? Evaluated;
+        public event Action<double[]>? Proposed;
         public double OptimumFitness => sphere.OptimumFitness;
         public bool IsValid(ISolution solutionCandidate) => true;
         public IEnumerable<ISolution> GenerateCandidates(int seed, int count) => sphere.GenerateCandidates(seed, count);
@@ -170,6 +189,7 @@ public class AnnealingAlgorithmTests
         public bool Evaluate(ISolution solutionCandidate)
         {
             sphere.Evaluate(solutionCandidate);
+            Proposed?.Invoke(((TestSolution)solutionCandidate).Parameters);
             Evaluations++; // not inside ?.Invoke(...), which skips its arguments when nobody listens
             Evaluated?.Invoke(Evaluations);
             return true;
