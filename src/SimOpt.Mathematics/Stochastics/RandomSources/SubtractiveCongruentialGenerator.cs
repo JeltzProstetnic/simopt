@@ -13,7 +13,9 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
     /// a pseudo random number generator; more precisely the subtractive congruential 
     /// generator used in the System.Random namespace of .NET wrapped to implement IRandomGenerator
     /// </summary>
-    /// <remarks>beta</remarks>
+    /// <remarks>beta. SIM-98: the seeded System.Random is Knuth's subtractive generator (TAOCP vol. 2, 3.6) as
+    /// .NET Framework published it; RandomSourceReferenceTests checks it against that algorithm, so a .NET
+    /// release that changed it would fail there. Its runs reproduce only as long as that test passes.</remarks>
     [Serializable]
     public class SubtractiveCongruentialGenerator : IRandomSource, ISerializableSimulation
     {
@@ -37,7 +39,7 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
 
         public string Name
         {
-            get { return "C# Multiplicative Congruential Generator"; }
+            get { return "Knuth subtractive generator (seeded System.Random)"; }
         }
 
         public bool Initialized
@@ -70,7 +72,7 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
         #region ctor
 
         /// <summary>
-        /// create an instance of MultiplicativeCongruentialGenerator. caution: you have to initialize it before you can use it!
+        /// create an instance of SubtractiveCongruentialGenerator. caution: you have to initialize it before you can use it!
         /// </summary>
         public SubtractiveCongruentialGenerator() { }
 

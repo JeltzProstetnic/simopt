@@ -15,7 +15,8 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
     /// J. Computational Physics, vol 40, pp. 517-526.
     /// with modification GFSR(521,168) to improve statistical properties
     /// </summary>
-    /// <remarks>beta</remarks>
+    /// <remarks>beta. SIM-98: no published reference vector exists for its seeding, so a run made with it
+    /// cannot be checked by a third party; use <see cref="MersenneTwister"/> for a defensible run.</remarks>
     public class R250_521 : IRandomSource, ISerializableSimulation
     {
         #region cvar
@@ -110,38 +111,35 @@ namespace SimOpt.Mathematics.Stochastics.RandomSources
             Initialize(seed, false);
         }
 
+        /// <remarks>
+        /// SIM-98: the words used to come from <c>System.Random.Next()</c>, which has 31 bits, so bit 31 was
+        /// 0 in every word but one; the "linear independence" step shifted its mask right from 1, so it
+        /// set no high bit; and two slots were never filled. XOR feedback cannot create a bit a column does
+        /// not have, so the top bit stayed almost always 0: of the first 1,000 doubles 0.4 % reached 0.5,
+        /// of the first million 16 %. Now every word takes 32 bits from <see cref="MersenneTwister"/>
+        /// (pinned to MT19937 by SIM-81), and 32 words spread through each buffer are made triangular
+        /// (their diagonal bit set, every bit above it cleared, as in Kirkpatrick and Stoll's and Maier's
+        /// R250), so the 32 bit columns are linearly independent and none can be all zero. There is no
+        /// published reference vector for this seeding: not for a defensible run, use the Mersenne Twister.
+        /// </remarks>
         public void Initialize(int seed, bool antithetic)
         {
             Antithetic = antithetic;
             this.seed = seed;
-            System.Random rnd = new System.Random(seed);
+            var words = new MersenneTwister(seed);
+            for (int k = 0; k < r250_buffer.Length; k++) r250_buffer[k] = words.NextUInt();
+            for (int k = 0; k < r521_buffer.Length; k++) r521_buffer[k] = words.NextUInt();
 
-            int i = 521;
-            uint mask1 = 1;
-            uint mask2 = 0xFFFFFFFF;
-
-            while (i-- > 250)
+            uint diagonal = 0x80000000u, keep = 0xFFFFFFFFu;
+            for (int bit = 0; bit < 32; bit++)
             {
-                r521_buffer[i] = (uint)rnd.Next();
+                int k250 = 7 * bit + 3, k521 = 16 * bit + 3;   // up to 220 of 250 and 499 of 521
+                r250_buffer[k250] = (r250_buffer[k250] & keep) | diagonal;
+                r521_buffer[k521] = (r521_buffer[k521] & keep) | diagonal;
+                keep >>= 1;
+                diagonal >>= 1;
             }
 
-            while (i-- > 31)
-            {
-                r250_buffer[i] = (uint)rnd.Next();
-                r521_buffer[i] = (uint)rnd.Next();
-            }
-
-            // enforce linear independence of the bit columns by setting the diagonal bits and clearing all bits above
-            while (i-- > 0)
-            {
-                r250_buffer[i] = ((uint)rnd.Next() | mask1) & mask2;
-                r521_buffer[i] = ((uint)rnd.Next() | mask1) & mask2;
-                mask2 ^= mask1;
-                mask1 >>= 1;
-            }
-
-            r250_buffer[0] = mask1;
-            r521_buffer[0] = mask2;
             r250_index = 0;
             r521_index = 0;
 
