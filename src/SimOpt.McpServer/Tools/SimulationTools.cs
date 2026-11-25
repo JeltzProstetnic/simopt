@@ -61,15 +61,22 @@ namespace SimOpt.McpServer.Tools
         {
             try
             {
-                string modelId = _registry.Create(topology);
+                var report = new ValidationReport();
+                string modelId = _registry.Create(topology, report);
                 return JsonSerializer.Serialize(new
                 {
                     model_id = modelId,
                     name = topology.Name,
                     node_count = topology.Nodes.Count,
                     connection_count = topology.Connections.Count,
-                    message = $"Model '{topology.Name}' created with id '{modelId}'."
+                    message = $"Model '{topology.Name}' created with id '{modelId}'.",
+                    validation = report,
                 });
+            }
+            catch (ModelValidationException ex)
+            {
+                // SIM-66 (D7): every error at once, as text and as the structured report
+                return JsonSerializer.Serialize(new { error = ex.Message, validation = ex.Report });
             }
             catch (Exception ex)
             {

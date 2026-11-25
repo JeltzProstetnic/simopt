@@ -129,7 +129,11 @@ public class ParamValueTests
 
         object? result = await createModel.InvokeAsync(new AIFunctionArguments { ["topology"] = topology });
 
-        result!.ToString().Should().Contain("model_id").And.NotContain("error");
+        // SIM-66: create_model also returns its validation report, whose "errors" list is empty here
+        JsonElement created = JsonDocument.Parse(result!.ToString()!).RootElement;
+        created.TryGetProperty("model_id", out _).Should().BeTrue();
+        created.TryGetProperty("error", out JsonElement error).Should().BeFalse(error.ToString());
+        created.GetProperty("validation").GetProperty("errors").GetArrayLength().Should().Be(0);
         createModel.JsonSchema.ToString().Should().Contain("params");
     }
 }

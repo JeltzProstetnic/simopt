@@ -27,10 +27,15 @@ namespace SimOpt.McpServer.Simulation
         /// Builds and registers a new model from the given topology definition.
         /// Returns the model ID that callers use for subsequent operations.
         /// </summary>
-        public string Create(TopologyDefinition topology)
+        /// <exception cref="ModelValidationException">The topology has errors; all of them are in its report.</exception>
+        public string Create(TopologyDefinition topology) => Create(topology, new ValidationReport());
+
+        /// <summary>As <see cref="Create(TopologyDefinition)"/>, filling <paramref name="report"/> with what was found.</summary>
+        /// <exception cref="ModelValidationException">The topology has errors; all of them are in the report.</exception>
+        public string Create(TopologyDefinition topology, ValidationReport report)
         {
+            ActiveModel active = TryBuild(topology, report) ?? throw new ModelValidationException(report);
             string id = Guid.NewGuid().ToString("N");
-            ActiveModel active = BuildModel(id, topology);
             _models[id] = active;
             return id;
         }
@@ -52,19 +57,55 @@ namespace SimOpt.McpServer.Simulation
 
         // ── construction ─────────────────────────────────────────────────────
 
-        private static ActiveModel BuildModel(string registryId, TopologyDefinition topology)
+        /// <summary>
+        /// Builds the model a topology describes, or returns null when it cannot be built. Every error
+        /// found goes into <paramref name="report"/>, not only the first (SIM-66, D1): each check
+        /// throws a <see cref="TopologyException"/>, caught here per node, router, connection and
+        /// metric. A node that failed is remembered, so a connection or metric at it adds no second,
+        /// misleading "not found".
+        /// </summary>
+        public static ActiveModel? TryBuild(TopologyDefinition topology, ValidationReport report)
         {
+            // SIM-65 step 6: a document written for another schema version is refused, not guessed at,
+            // and nothing else in it is read.
+            if (topology.SchemaVersion != null && topology.SchemaVersion.Trim() != SchemaCatalog.SchemaVersion)
+            {
+                report.Errors.Add(new ValidationIssue("SCHEMA_VERSION",
+                    $"schema_version \"{topology.SchemaVersion}\" is not supported; this server reads version {SchemaCatalog.SchemaVersion}.",
+                    Suggestion: $"Write \"schema_version\": \"{SchemaCatalog.SchemaVersion}\" or leave it out."));
+                return null;
+            }
+
+            var failed = new HashSet<string>();
+            void Fail(ValidationIssue issue, string? node)
+            {
+                report.Errors.Add(issue);
+                if (node != null) failed.Add(node);
+            }
+
+            // Run a check; a fault it finds is recorded against the node and the build carries on.
+            // Only the exceptions a refusal is made of are caught: anything else is a defect in the
+            // builder and must surface as one. A faulty connection does not fail its node: the node's
+            // other connections are still checked.
+            void Check(string? node, string code, Action check, bool failsNode = true)
+            {
+                string? failing = failsNode ? node : null;
+                try { check(); }
+                catch (TopologyException e) { Fail(e.Issue, failing); }
+                catch (Exception e) when (e is InvalidOperationException or ArgumentException)
+                {
+                    Fail(new ValidationIssue(code, e.Message, node), failing);
+                }
+            }
+
+            CheckNodeIds(topology, Fail);
+
             // SIM-89: built at a deliberately different seed, then reset to the real one at the end
             // of this method. Model.Reset sets seedChange only when the seed actually differs
             // (Model.cs:1191), and StochasticEntity re-derives its per-node seed from SeedID only
             // while seedChange is set (StochasticEntity.cs:41-49). A model constructed at its final
             // seed would therefore never apply any SeedID, and every node would silently keep the
             // construction-order seed it happened to be handed.
-            // SIM-65 step 6: a document written for another schema version is refused, not guessed at.
-            if (topology.SchemaVersion != null && topology.SchemaVersion.Trim() != SchemaCatalog.SchemaVersion)
-                throw new InvalidOperationException(
-                    $"schema_version \"{topology.SchemaVersion}\" is not supported; this server reads version {SchemaCatalog.SchemaVersion}.");
-
             var model = new Model(topology.Name, unchecked(topology.Seed + 1), 0d);
             model.LoggingEnabled = false;
 
@@ -82,136 +123,140 @@ namespace SimOpt.McpServer.Simulation
 
             foreach (NodeDefinition node in topology.Nodes)
             {
+                if (string.IsNullOrWhiteSpace(node.Id) || failed.Contains(node.Id)) continue;   // CheckNodeIds reported it
                 string label = Label(node);
-                switch (CanonicalType(node))
+                Check(node.Id, "INVALID_NODE", () =>
                 {
-                    case "source":
+                    switch (CanonicalType(node))
                     {
-                        var dist = TimeDistribution(node, label, "arrival", "mean_interval");
-                        int localCounter = entityCounter; // closure capture
-                        Func<SimpleEntity> generator = () =>
+                        case "source":
                         {
-                            localCounter++;
-                            entityCounter = localCounter;
-                            return new SimpleEntity(model, $"E{localCounter}", $"E{localCounter}");
-                        };
+                            var dist = TimeDistribution(node, label, "arrival", "mean_interval");
+                            int localCounter = entityCounter; // closure capture
+                            Func<SimpleEntity> generator = () =>
+                            {
+                                localCounter++;
+                                entityCounter = localCounter;
+                                return new SimpleEntity(model, $"E{localCounter}", $"E{localCounter}");
+                            };
 
-                        // SIM-62/SIM-89: the node's random stream is keyed to its stable ID, not to
-                        // its position in the node list, so reordering the topology JSON cannot
-                        // change any node's stream. The seedID must be supplied at construction —
-                        // StochasticEntity seeds itself in its constructor and the SeedID setter
-                        // refuses to run afterwards (StochasticEntity.cs:157-160).
-                        var source = new SimpleSource(
-                            model,
-                            StableHash.Of(node.Id),
-                            dist,
-                            generator,
-                            autoStartDelay: 0d,
-                            id: node.Id,
-                            name: node.Id);
-                        sources[node.Id] = source;
-                        break;
-                    }
-
-                    case "queue":
-                    {
-                        int capacity = TryGetNumber(node, label, "capacity", out double cap)
-                            ? (int)cap
-                            : int.MaxValue;
-                        var buffer = new SimpleBuffer(
-                            model,
-                            Discipline(node, label),
-                            id: node.Id,
-                            name: node.Id,
-                            maxCapacity: capacity);
-                        buffers[node.Id] = buffer;
-                        break;
-                    }
-
-                    case "station":
-                    {
-                        int count = ServerCount(node, label);
-                        // SIM-65 (D2): c servers are a pool of single servers behind the upstream
-                        // queue, the construction AnalyticBatteryTests.RunMMc validates against
-                        // Erlang-C. One server keeps the node id, so its seed, and every result built
-                        // on it, stays where it was; pool members are "<id>#1" .. "<id>#c".
-                        var pool = new List<SimpleServer>(count);
-                        for (int k = 1; k <= count; k++)
-                        {
-                            string memberId = count == 1 ? node.Id : $"{node.Id}#{k}";
-                            var server = new SimpleServer(
+                            // SIM-62/SIM-89: the node's random stream is keyed to its stable ID, not to
+                            // its position in the node list, so reordering the topology JSON cannot
+                            // change any node's stream. The seedID must be supplied at construction —
+                            // StochasticEntity seeds itself in its constructor and the SeedID setter
+                            // refuses to run afterwards (StochasticEntity.cs:157-160).
+                            var source = new SimpleSource(
                                 model,
-                                StableHash.Of(memberId),   // see the source case above
-                                // a distribution object belongs to one random stream, so each
-                                // member gets its own
-                                TimeDistribution(node, label, "service", "service_time"),
-                                id: memberId,
-                                name: memberId,
-                                // SIM-90: pass the input entity through instead of manufacturing a
-                                // fresh SimpleEntity with a null Identifier. `Buffer.Put` keys on
-                                // Identifier, so with the default generator any server feeding a
-                                // downstream buffer threw — every multi-stage topology was unbuildable.
-                                // It also destroys entity identity, which makes an end-to-end cycle
-                                // time unmeasurable: the thing reaching the sink was not the thing that
-                                // left the source. For a flow model the part that leaves a station is
-                                // the part that entered it.
-                                createProduct: m => m[0]);
-                            server.AutoContinue = true;
-                            servers[memberId] = server;
-                            pool.Add(server);
+                                StableHash.Of(node.Id),
+                                dist,
+                                generator,
+                                autoStartDelay: 0d,
+                                id: node.Id,
+                                name: node.Id);
+                            sources[node.Id] = source;
+                            break;
                         }
-                        stations[node.Id] = pool;
-                        break;
-                    }
 
-                    case "delay":
-                    {
-                        if (!node.Params.ContainsKey("duration") && !node.Params.ContainsKey("delay_time"))
-                            throw new InvalidOperationException(
-                                $"{label} '{node.Id}': give duration, a distribution object such as " +
-                                "{\"type\": \"constant\", \"value\": 5}, or delay_time, an exponential mean.");
-                        var dist = TimeDistribution(node, label, "duration", "delay_time");
-                        // SIM-65/SIM-132: the schema's delay gives every item its own timer, so it has
-                        // no capacity limit; with one place it would refuse every item that arrives
-                        // while another is inside.
-                        var delay = new SimpleDelay(
-                            model,
-                            dist,
-                            StableHash.Of(node.Id),   // see the source case above
-                            id: node.Id,
-                            name: node.Id)
+                        case "queue":
                         {
-                            Capacity = int.MaxValue,
-                        };
-                        delays[node.Id] = delay;
-                        break;
-                    }
+                            int capacity = Capacity(node, label);
+                            var buffer = new SimpleBuffer(
+                                model,
+                                Discipline(node, label),
+                                id: node.Id,
+                                name: node.Id,
+                                maxCapacity: capacity);
+                            buffers[node.Id] = buffer;
+                            break;
+                        }
 
-                    case "router":
-                    {
-                        // SIM-65 step 4 (D4): a router of its own (SimpleRouter), keyed to the node
-                        // id like every other random node; SimpleRejectServer's routing is outside
-                        // the seed system (SIM-99).
-                        routers[node.Id] = new SimpleRouter(
-                            model,
-                            Policy(node, label),
-                            StableHash.Of(node.Id),
-                            id: node.Id,
-                            name: node.Id);
-                        break;
-                    }
+                        case "station":
+                        {
+                            int count = ServerCount(node, label);
+                            // SIM-65 (D2): c servers are a pool of single servers behind the upstream
+                            // queue, the construction AnalyticBatteryTests.RunMMc validates against
+                            // Erlang-C. One server keeps the node id, so its seed, and every result built
+                            // on it, stays where it was; pool members are "<id>#1" .. "<id>#c".
+                            var pool = new List<SimpleServer>(count);
+                            for (int k = 1; k <= count; k++)
+                            {
+                                string memberId = count == 1 ? node.Id : $"{node.Id}#{k}";
+                                var server = new SimpleServer(
+                                    model,
+                                    StableHash.Of(memberId),   // see the source case above
+                                    // a distribution object belongs to one random stream, so each
+                                    // member gets its own
+                                    TimeDistribution(node, label, "service", "service_time"),
+                                    id: memberId,
+                                    name: memberId,
+                                    // SIM-90: pass the input entity through instead of manufacturing a
+                                    // fresh SimpleEntity with a null Identifier. `Buffer.Put` keys on
+                                    // Identifier, so with the default generator any server feeding a
+                                    // downstream buffer threw — every multi-stage topology was unbuildable.
+                                    // It also destroys entity identity, which makes an end-to-end cycle
+                                    // time unmeasurable: the thing reaching the sink was not the thing that
+                                    // left the source. For a flow model the part that leaves a station is
+                                    // the part that entered it.
+                                    createProduct: m => m[0]);
+                                server.AutoContinue = true;
+                                servers[memberId] = server;
+                                pool.Add(server);
+                            }
+                            stations[node.Id] = pool;
+                            break;
+                        }
 
-                    case "sink":
-                    {
-                        var sink = new SimpleSink(model, id: node.Id, name: node.Id);
-                        sinks[node.Id] = sink;
-                        break;
-                    }
+                        case "delay":
+                        {
+                            if (!node.Params.ContainsKey("duration") && !node.Params.ContainsKey("delay_time"))
+                                throw new TopologyException("MISSING_PARAMETER", node.Id,
+                                    $"{label} '{node.Id}' has no duration.",
+                                    "Give duration, a distribution object such as {\"type\": \"constant\", \"value\": 5}, " +
+                                    "or delay_time, an exponential mean.");
+                            var dist = TimeDistribution(node, label, "duration", "delay_time");
+                            // SIM-65/SIM-132: the schema's delay gives every item its own timer, so it has
+                            // no capacity limit; with one place it would refuse every item that arrives
+                            // while another is inside.
+                            var delay = new SimpleDelay(
+                                model,
+                                dist,
+                                StableHash.Of(node.Id),   // see the source case above
+                                id: node.Id,
+                                name: node.Id)
+                            {
+                                Capacity = int.MaxValue,
+                            };
+                            delays[node.Id] = delay;
+                            break;
+                        }
 
-                    default:
-                        throw new InvalidOperationException(
-                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: {SchemaCatalog.Vocabulary()}.");
-                }
+                        case "router":
+                        {
+                            // SIM-65 step 4 (D4): a router of its own (SimpleRouter), keyed to the node
+                            // id like every other random node; SimpleRejectServer's routing is outside
+                            // the seed system (SIM-99).
+                            routers[node.Id] = new SimpleRouter(
+                                model,
+                                Policy(node, label),
+                                StableHash.Of(node.Id),
+                                id: node.Id,
+                                name: node.Id);
+                            break;
+                        }
+
+                        case "sink":
+                        {
+                            var sink = new SimpleSink(model, id: node.Id, name: node.Id);
+                            sinks[node.Id] = sink;
+                            break;
+                        }
+
+                        default:
+                            throw new TopologyException("UNKNOWN_NODE_TYPE", node.Id,
+                                $"Unknown node type '{node.Type}' for node '{node.Id}'.",
+                                $"Valid types: {SchemaCatalog.Vocabulary()}.");
+                    }
+                });
             }
 
             // ── wire connections ─────────────────────────────────────────────
@@ -269,18 +314,29 @@ namespace SimOpt.McpServer.Simulation
             // reads a weight on all of them or on none (an equal split); giving some is ambiguous.
             foreach (var (routerId, router) in routers)
             {
-                List<ConnectionDefinition> leaving = topology.Connections.Where(c => c.From == routerId).ToList();
-                if (leaving.Count == 0)
-                    throw new InvalidOperationException(
-                        $"Router '{routerId}' has no connection leaving it. Connect it to a queue, delay, sink or router.");
-                int weighted = leaving.Count(c => c.Weight.HasValue);
-                if (router.Policy == RoutingPolicy.Probabilistic && weighted > 0 && weighted < leaving.Count)
-                    throw new InvalidOperationException(
-                        $"Router '{routerId}': give a weight on every connection leaving it or on none, which splits " +
-                        $"equally; {weighted} of {leaving.Count} have one.");
+                Check(routerId, "INVALID_ROUTER", () =>
+                {
+                    List<ConnectionDefinition> leaving = topology.Connections.Where(c => c.From == routerId).ToList();
+                    if (leaving.Count == 0)
+                        throw new TopologyException("ROUTER_WITHOUT_TARGETS", routerId,
+                            $"Router '{routerId}' has no connection leaving it.",
+                            "Connect it to a queue, delay, sink or router.");
+                    int weighted = leaving.Count(c => c.Weight.HasValue);
+                    if (router.Policy == RoutingPolicy.Probabilistic && weighted > 0 && weighted < leaving.Count)
+                        throw new TopologyException("PARTIAL_WEIGHTS", routerId,
+                            $"Router '{routerId}': {weighted} of the {leaving.Count} connections leaving it have a weight.",
+                            "Give a weight on every connection leaving it or on none, which splits equally.");
+                });
             }
 
             foreach (ConnectionDefinition conn in topology.Connections)
+            {
+                // a connection at a node that failed would only repeat that node's error as "not found"
+                if (failed.Contains(conn.From ?? string.Empty) || failed.Contains(conn.To ?? string.Empty)) continue;
+                Check(conn.From, "INVALID_CONNECTION", () => Wire(conn), failsNode: false);
+            }
+
+            void Wire(ConnectionDefinition conn)
             {
                 string from = conn.From;
                 string to = conn.To;
@@ -292,15 +348,15 @@ namespace SimOpt.McpServer.Simulation
                 if (conn.Weight is double weight)
                 {
                     if (!routers.TryGetValue(from, out SimpleRouter? weightedRouter))
-                        throw new InvalidOperationException(
+                        throw new TopologyException("WEIGHT_NOT_READ", from,
                             $"Connection '{from}' → '{to}': weight {weight} is read only on a connection leaving a router, " +
-                            $"and '{from}' is not a router. Remove the weight.");
+                            $"and '{from}' is not a router.", "Remove the weight.");
                     if (weightedRouter.Policy == RoutingPolicy.ShortestQueue)
-                        throw new InvalidOperationException(
-                            $"Connection '{from}' → '{to}': router '{from}' uses shortest_queue, which reads no weight. " +
+                        throw new TopologyException("WEIGHT_NOT_READ", from,
+                            $"Connection '{from}' → '{to}': router '{from}' uses shortest_queue, which reads no weight.",
                             "Remove the weight, or use the probabilistic policy.");
                     if (!(weight > 0d) || double.IsInfinity(weight))
-                        throw new InvalidOperationException(
+                        throw new TopologyException("INVALID_WEIGHT", from,
                             $"Connection '{from}' → '{to}': weight must be a positive number, not {weight}.");
                 }
 
@@ -332,29 +388,31 @@ namespace SimOpt.McpServer.Simulation
                     }
                     else if (sinks.TryGetValue(to, out _))
                     {
-                        throw new InvalidOperationException(
-                            $"Connection '{from}' → '{to}': Buffer cannot connect directly to Sink. " +
+                        throw new TopologyException("INVALID_CONNECTION", from,
+                            $"Connection '{from}' → '{to}': Buffer cannot connect directly to Sink.",
                             $"Insert a Server between them: Buffer → Server → Sink.");
                     }
                     else if (buffers.TryGetValue(to, out _))
                     {
-                        throw new InvalidOperationException(
-                            $"Connection '{from}' → '{to}': Buffer cannot connect to another Buffer.");
+                        throw new TopologyException("INVALID_CONNECTION", from,
+                            $"Connection '{from}' → '{to}': Buffer cannot connect to another Buffer.",
+                            $"Put a station between '{from}' and '{to}', or merge the two queues.");
                     }
                     else if (delays.ContainsKey(to))
                     {
-                        throw new InvalidOperationException(
+                        throw new TopologyException("INVALID_CONNECTION", from,
                             $"Connection '{from}' → '{to}': a queue cannot feed a delay. A delay takes every item " +
-                            $"at once, so the queue would stay empty. Connect the node that feeds '{from}' to '{to}' " +
-                            $"directly, or put a station between '{from}' and '{to}'.");
+                            $"at once, so the queue would stay empty.",
+                            $"Connect the node that feeds '{from}' to '{to}' directly, or put a station between '{from}' and '{to}'.");
                     }
                     else if (routers.ContainsKey(to))
                     {
                         // SIM-65 step 4: a queue is taken from by its station; it pushes nothing on.
                         string feeders = string.Join(", ", topology.Connections.Where(c => c.To == from).Select(c => $"'{c.From}'"));
-                        throw new InvalidOperationException(
+                        throw new TopologyException("INVALID_CONNECTION", from,
                             $"Connection '{from}' → '{to}': a queue cannot feed a router, because only a station takes " +
-                            $"items from a queue. Route before the queue: connect {(feeders.Length > 0 ? feeders : "its upstream node")} " +
+                            $"items from a queue.",
+                            $"Route before the queue: connect {(feeders.Length > 0 ? feeders : "its upstream node")} " +
                             $"to '{to}' and '{to}' to '{from}'.");
                     }
                 }
@@ -373,9 +431,9 @@ namespace SimOpt.McpServer.Simulation
                 {
                     double share = conn.Weight ?? 1d;
                     if (upRtr.Policy == RoutingPolicy.ShortestQueue && !buffers.ContainsKey(to) && Exists(to))
-                        throw new InvalidOperationException(
+                        throw new TopologyException("INVALID_CONNECTION", from,
                             $"Connection '{from}' → '{to}': router '{from}' routes to the shortest queue, and '{to}' is " +
-                            "not a queue. Route only to queues, or use the probabilistic policy.");
+                            "not a queue.", "Route only to queues, or use the probabilistic policy.");
                     if (buffers.TryGetValue(to, out SimpleBuffer? downBuf4))
                     {
                         // join the shortest queue: the items waiting plus those in service behind it;
@@ -406,28 +464,33 @@ namespace SimOpt.McpServer.Simulation
                 // ── from=Sink (invalid) ──────────────────────────────────────
                 else if (sinks.ContainsKey(from))
                 {
-                    throw new InvalidOperationException(
-                        $"Connection source '{from}' is a sink. Sinks are terminal nodes and cannot be connection sources.");
+                    throw new TopologyException("INVALID_CONNECTION", from,
+                        $"Connection source '{from}' is a sink. Sinks are terminal nodes and cannot be connection sources.",
+                        $"Remove the connection '{from}' → '{to}', or reverse it.");
                 }
                 else
                 {
-                    throw new InvalidOperationException(
-                        $"Connection source '{from}' not found in the topology.");
+                    throw new TopologyException("UNKNOWN_NODE", null,
+                        $"Connection source '{from}' not found in the topology.",
+                        $"Declare a node '{from}', or connect from one of the declared nodes.");
                 }
 
                 if (!connected && !sinks.ContainsKey(from) && !sources.ContainsKey(from))
                 {
-                    throw new InvalidOperationException(
-                        $"Connection '{from}' → '{to}': destination '{to}' not found or connection type is unsupported.");
+                    throw new TopologyException("UNKNOWN_NODE", from,
+                        $"Connection '{from}' → '{to}': destination '{to}' not found or connection type is unsupported.",
+                        "See get_schema for what each node type feeds.");
                 }
                 else if (!connected)
                 {
-                    throw new InvalidOperationException(
-                        $"Connection '{from}' → '{to}': destination '{to}' not found in the topology.");
+                    throw new TopologyException("UNKNOWN_NODE", from,
+                        $"Connection '{from}' → '{to}': destination '{to}' not found in the topology.",
+                        $"Declare a node '{to}', or connect to one of the declared nodes.");
                 }
             }
 
-            IReadOnlyDictionary<string, string> metrics = AttachMetrics(model, topology, sources, buffers, stations, sinks);
+            IReadOnlyDictionary<string, string> metrics = AttachMetrics(model, topology, sources, buffers, stations, sinks, report, failed);
+            if (report.Errors.Count > 0) return null;
 
             // Apply the real seed. This is the reset that makes every SeedID assignment above take
             // effect; from here on the per-node streams are a pure function of (topology.Seed,
@@ -482,16 +545,24 @@ namespace SimOpt.McpServer.Simulation
             if (node.Params.TryGetValue(distName, out ParamValue? given))
             {
                 if (hasMean)
-                    throw new InvalidOperationException($"{label} '{node.Id}': give {distName} or {meanName}, not both.");
+                    throw new TopologyException("CONFLICTING_PARAMETERS", node.Id,
+                        $"{label} '{node.Id}': give {distName} or {meanName}, not both.", $"Remove {meanName}.");
                 if (given?.Distribution == null)
-                    throw new InvalidOperationException(
+                    throw new TopologyException("INVALID_PARAMETER", node.Id,
                         $"{label} '{node.Id}': {distName} must be a distribution object such as " +
                         $"{{\"type\": \"exponential\", \"mean\": 2}}, not {given?.ToString() ?? "null"}.");
-                return DistributionFactory.Create(given.Distribution, $"node '{node.Id}', parameter '{distName}'");
+                try
+                {
+                    return DistributionFactory.Create(given.Distribution, $"node '{node.Id}', parameter '{distName}'");
+                }
+                catch (InvalidOperationException e)
+                {
+                    throw new TopologyException("INVALID_DISTRIBUTION", node.Id, e.Message);
+                }
             }
             if (!hasMean) mean = 1.0;
             if (mean <= 0)
-                throw new InvalidOperationException($"{label} '{node.Id}': {meanName} must be positive.");
+                throw new TopologyException("INVALID_PARAMETER", node.Id, $"{label} '{node.Id}': {meanName} must be positive.");
             return CreateNegExp(mean);
         }
 
@@ -504,7 +575,7 @@ namespace SimOpt.McpServer.Simulation
                 case "fifo": return QueueRule.FIFO;
                 case "lifo": return QueueRule.LIFO;
                 default:
-                    throw new InvalidOperationException(
+                    throw new TopologyException("INVALID_PARAMETER", node.Id,
                         $"{label} '{node.Id}': discipline must be \"fifo\" or \"lifo\", not {given?.ToString() ?? "null"}.");
             }
         }
@@ -513,31 +584,53 @@ namespace SimOpt.McpServer.Simulation
         /// SIM-65 step 5 (D6): attaches a collector for every declared metric and returns each
         /// metric's id mapped to its collector's identifier. Metrics of one kind at one node share a
         /// collector, because a collector's identifier is its node's and its kind's.
+        /// SIM-66 (D1): a faulty metric is reported and the others are still attached; a metric at a node
+        /// that failed is skipped, because that node's error already says what is wrong.
         /// </summary>
         private static IReadOnlyDictionary<string, string> AttachMetrics(Model model, TopologyDefinition topology,
             Dictionary<string, SimpleSource> sources, Dictionary<string, SimpleBuffer> buffers,
-            Dictionary<string, List<SimpleServer>> stations, Dictionary<string, SimpleSink> sinks)
+            Dictionary<string, List<SimpleServer>> stations, Dictionary<string, SimpleSink> sinks,
+            ValidationReport report, ISet<string> failed)
         {
             var keys = new Dictionary<string, string>();
             var attached = new HashSet<string>();
+            var seen = new HashSet<string>();
             foreach (MetricDefinition metric in topology.Metrics)
+            {
+                try
+                {
+                    string? key = AttachMetric(metric);
+                    if (key != null) keys[metric.Id.Trim()] = key;
+                }
+                catch (TopologyException e)
+                {
+                    report.Errors.Add(e.Issue);
+                }
+            }
+            return keys;
+
+            string? AttachMetric(MetricDefinition metric)
             {
                 string id = (metric.Id ?? string.Empty).Trim();
                 if (id.Length == 0)
-                    throw new InvalidOperationException("Every metric needs an id.");
-                if (keys.ContainsKey(id))
-                    throw new InvalidOperationException($"Metric '{id}' is declared twice; metric ids are unique.");
+                    throw new TopologyException("INVALID_METRIC", null, "A metric has no id.", "Give every metric a unique id.");
+                if (!seen.Add(id))
+                    throw new TopologyException("DUPLICATE_METRIC", null,
+                        $"Metric '{id}' is declared twice; metric ids are unique.", "Rename or remove one of them.");
                 string kind = (metric.Kind ?? string.Empty).Trim().ToLowerInvariant();
+                if (!SchemaCatalog.MetricKinds.Any(k => k.Name == kind)) throw UnknownKind(id, metric.Kind);
                 string? node = string.IsNullOrWhiteSpace(metric.Node) ? null : metric.Node.Trim();
+                if (node != null && failed.Contains(node)) return null;
 
                 T At<T>(Dictionary<string, T> nodes, string needs) where T : class
                 {
                     if (node == null)
-                        throw new InvalidOperationException(
+                        throw new TopologyException("INVALID_METRIC", null,
                             $"Metric '{id}': {kind} is measured at a {needs}; give its node.");
                     if (!nodes.TryGetValue(node, out T? found))
-                        throw new InvalidOperationException(
-                            $"Metric '{id}': {kind} is measured at a {needs}, and '{node}' is not one in this topology.");
+                        throw new TopologyException("INVALID_METRIC", null,
+                            $"Metric '{id}': {kind} is measured at a {needs}, and '{node}' is not one in this topology.",
+                            $"Measure it at one of: {string.Join(", ", nodes.Keys.Select(k => $"'{k}'"))}.");
                     return found;
                 }
 
@@ -586,13 +679,15 @@ namespace SimOpt.McpServer.Simulation
                         break;
                     }
                     default:
-                        throw new InvalidOperationException(
-                            $"Metric '{id}': kind must be one of {string.Join(", ", SchemaCatalog.MetricKinds.Select(k => k.Name))}, " +
-                            $"not \"{metric.Kind}\".");
+                        throw UnknownKind(id, metric.Kind);
                 }
-                keys[id] = key;
+                return key;
             }
-            return keys;
+
+            static TopologyException UnknownKind(string id, string? kind) =>
+                new TopologyException("INVALID_METRIC", null,
+                    $"Metric '{id}': kind must be one of {string.Join(", ", SchemaCatalog.MetricKinds.Select(k => k.Name))}, " +
+                    $"not \"{kind}\".");
         }
 
         /// <summary>The owner of a cycle time measured at every sink, in its collector's identifier.</summary>
@@ -606,12 +701,12 @@ namespace SimOpt.McpServer.Simulation
         /// Allowing the push does not help: a busy server gathers what is pushed meanwhile and starts
         /// its next job with all of it as one batch, of which createProduct keeps the first item.
         /// </summary>
-        private static InvalidOperationException StationNeedsAQueue(string from, string to, int servers)
+        private static TopologyException StationNeedsAQueue(string from, string to, int servers)
         {
             string pool = servers > 1 ? $"has {servers} servers and " : "";
-            return new InvalidOperationException(
-                $"Connection '{from}' → '{to}': station '{to}' {pool}takes its work from a queue, " +
-                $"and '{from}' is not one. Insert a queue between '{from}' and '{to}'.");
+            return new TopologyException("STATION_NEEDS_QUEUE", to,
+                $"Connection '{from}' → '{to}': station '{to}' {pool}takes its work from a queue, and '{from}' is not one.",
+                $"Insert a queue between '{from}' and '{to}'.");
         }
 
         /// <summary>SIM-65 step 4: a router's <c>policy</c>, "probabilistic" or "shortest_queue"; required.</summary>
@@ -623,7 +718,7 @@ namespace SimOpt.McpServer.Simulation
                 case "probabilistic": return RoutingPolicy.Probabilistic;
                 case "shortest_queue": return RoutingPolicy.ShortestQueue;
                 default:
-                    throw new InvalidOperationException(
+                    throw new TopologyException(given == null ? "MISSING_PARAMETER" : "INVALID_PARAMETER", node.Id,
                         $"{label} '{node.Id}': policy must be \"probabilistic\" or \"shortest_queue\", " +
                         $"not {given?.ToString() ?? "missing"}.");
             }
@@ -634,9 +729,40 @@ namespace SimOpt.McpServer.Simulation
         {
             if (!TryGetNumber(node, label, "servers", out double count)) return 1;
             if (count < 1 || count > MaxServers || count != Math.Floor(count))
-                throw new InvalidOperationException(
+                throw new TopologyException("INVALID_PARAMETER", node.Id,
                     $"{label} '{node.Id}': servers must be a whole number from 1 to {MaxServers:N0}, not {count}.");
             return (int)count;
+        }
+
+        /// <summary>SIM-66: a queue's <c>capacity</c>, a whole number of at least 1; unlimited when absent.</summary>
+        private static int Capacity(NodeDefinition node, string label)
+        {
+            if (!TryGetNumber(node, label, "capacity", out double capacity)) return int.MaxValue;
+            if (capacity < 1 || capacity > int.MaxValue || capacity != Math.Floor(capacity))
+                throw new TopologyException("INVALID_PARAMETER", node.Id,
+                    $"{label} '{node.Id}': capacity must be a whole number of at least 1, not {capacity}.",
+                    "Leave it out for an unlimited queue.");
+            return (int)capacity;
+        }
+
+        /// <summary>
+        /// SIM-66: every node has an id of its own. A missing id cannot be connected to, and a second
+        /// node with the same id used to replace the first without a word. Both are reported, and the
+        /// nodes concerned are not built.
+        /// </summary>
+        private static void CheckNodeIds(TopologyDefinition topology, Action<ValidationIssue, string?> fail)
+        {
+            for (int i = 0; i < topology.Nodes.Count; i++)
+            {
+                NodeDefinition node = topology.Nodes[i];
+                if (string.IsNullOrWhiteSpace(node.Id))
+                    fail(new ValidationIssue("MISSING_NODE_ID", $"Node {i + 1} ({node.Type}) has no id.",
+                        Suggestion: "Give every node a unique id."), null);
+            }
+            foreach (IGrouping<string, NodeDefinition> twins in topology.Nodes
+                         .Where(n => !string.IsNullOrWhiteSpace(n.Id)).GroupBy(n => n.Id).Where(g => g.Count() > 1))
+                fail(new ValidationIssue("DUPLICATE_NODE_ID", $"Node id '{twins.Key}' is used by {twins.Count()} nodes.",
+                    twins.Key, "Give each node its own id."), twins.Key);
         }
 
         private const int MaxServers = 10_000;
@@ -654,7 +780,7 @@ namespace SimOpt.McpServer.Simulation
                 value = number;
                 return true;
             }
-            throw new InvalidOperationException(
+            throw new TopologyException("INVALID_PARAMETER", node.Id,
                 $"{kind} '{node.Id}': {name} must be a number, not {param?.ToString() ?? "null"}.");
         }
     }
