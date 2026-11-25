@@ -151,3 +151,10 @@ docs/terminal-logs/
 .serena/memories/
 .serena/csharp/
 .serena/**/*.pkl
+
+# =========================
+# Python (SIM-130 package)
+# =========================
+__pycache__/
+.pytest_cache/
+*.egg-info/
