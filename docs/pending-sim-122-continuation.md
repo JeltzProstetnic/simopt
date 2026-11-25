@@ -185,7 +185,7 @@ the private hand-off (see *Private material*).
    Older next list, kept: SIM-132, then SIM-65 step 2b, then SIM-126's schema part, SIM-110 and SIM-130. Older plan, kept for reference: SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
    process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
    follow, unless MG orders otherwise.
-   **Q-ASYNC** (new): the process layer uses C# iterators; an `async` front end over the same waits stays
+   **Q-ASYNC: DECIDED 2026-11-25 by MG: iterators only.** (Was: the process layer uses C# iterators; an `async` front end over the same waits stays
    possible. **Recommended: iterators only for now**; the alternative is to add `async` as well
    (`docs/plans/2026-11-25-sim-126-process-modelling.md`).
 5. When his comparison results arrive, check them against the prediction in the private hand-off.

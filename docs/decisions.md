@@ -163,9 +163,11 @@ and throwaway what-if analysis.
 - **Domain classes (like `RolandPrinter`) belong with the skill's memory, not as customer-facing
   options.** The agent recognizes "it batches 15 pieces at a time" and picks the class; avoid
   "pick your server subtype" UX.
-- **Validation lives in tests, not in constructor parameter matrices.** A fast test suite saying
+- ~~**Validation lives in tests, not in constructor parameter matrices.** A fast test suite saying
   whether an unusual topology runs to completion is cheaper than schema validation and catches the
-  failures that actually matter.
+  failures that actually matter.~~ **Superseded 2026-11-25 (MG, Q-VALID)** by D-02's validation layer (UN-008) and
+  the SIM-65/66 design: a published schema, `validate_model` with every fault at once, structural lint, offered load
+  and a trial run.
 - **The MCP server (SIM-19/20) is first-class surface area,** not a side feature: it is how the
   agent reaches the framework.
 
@@ -680,3 +682,10 @@ closed, and was deleted. Its standing rules for unattended work that still apply
   repository for SIM-105."
 - **Q-STAGED → simopt's staged copies deleted**; the fleet copies (byte-identical) are canonical.
 - **Q-CIW → filed as SIM-141 at P3.**
+- **SIM-105 carry-overs, all as recommended:** **Q-SFM9** → §9 "Role-based views" of the shopfloor file stays
+  public (re-verified: already in the public agent-fleet template; ordinary dashboard practice, phrased generically).
+  **Q-PRIVHOME** → the private colleague material stays in cfg (`cross-project/simopt-private/`), confirming
+  2026-11-03. **Q-FMT** → the FMT Gridworld entry stays live until SIM-47..54 are triaged. **Q-VALID** → the
+  "validation lives in tests" bullet is superseded (marked in place).
+- **Q-ASYNC → iterators only** (SIM-126): processes are written with C# iterators; an `async` front end over the
+  same waits stays possible later.

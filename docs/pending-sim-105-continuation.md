@@ -1,4 +1,4 @@
-<!-- Action: await-user-decision -->
+<!-- Action: reference -->
 <!-- Tracked-by: SIM-105, SIM-65, SIM-110, SIM-117 -->
 # SIM-105 first pass is done; next is SIM-65 step 1, then visualization slice V1
 
@@ -35,7 +35,7 @@ specific to him lives in the gitignored `tmp/` on WSL only (see *Private materia
 
 ## Next concrete actions, in order
 
-1. Present the four decisions below (Q-SFM9, Q-PRIVHOME, Q-FMT, Q-VALID), after re-verifying each premise; first those in `docs/pending-sim-122-continuation.md`.
+1. ~~Present the four decisions below~~ **All four DECIDED 2026-11-25 by MG** as recommended (`docs/decisions.md`, 2026-11-25 morning).
 2. ~~SIM-65 step 1~~ SIM-65 and SIM-66 are done (2026-11-25); their briefs are in `docs/plans/`.
 3. SIM-110 (visualization V1). Its first engine seam is `Instrumentation.ObserveThroughput` /
    `ObserveTimeInSystem`.
@@ -53,29 +53,9 @@ analysis, the demo crawl and the SIM-122 hand-off are in `~/cfg-agent-fleet/cros
 His repo was re-cloned under `tmp/` on 2026-11-24 (the path is in the private SIM-122 file). The issues
 we posted are on his repo, #1-#31.
 
-## Open decisions (ask each with AskUserQuestion; recommended option first)
+## Decisions
 
-1. **Q-SFM9: Section 9 of the generic shopfloor-management file.** Premise: the home queue (sign-offs,
-   decisions, escalations, overdue, due today) and the team-health columns in
-   `docs/staged/shopfloor-management-and-governance.md` §9 closely mirror the demo's own design
-   (the writer agent's note).
-   - **Keep it public (Recommended):** it is ordinary dashboard practice, phrased generically.
-   - **Move it to the private file** before cfg publishes.
-2. **Q-PRIVHOME: Home of the private colleague material.** Premise: his fictional example company is a
-   dental-paste maker (private knowledge file, see `tmp/PRIVATE-INDEX.md`); MG ruled cfg on 2026-11-03
-   (`docs/decisions.md`).
-   - **Keep cfg (Recommended):** it is his private work with synthetic data, not employer content.
-   - **Route through the ivoclar project** instead.
-3. **Q-FMT: The FMT Gridworld decision entry.** Premise: the decisions review kept it live although SIM-61
-   says crucible forked the FMT logic to Python, while SIM-47..54 are still open and
-   `src/SimOpt.GridWorld` exists.
-   - **Keep it live until SIM-47..54 are triaged (Recommended).**
-   - **Archive its ".NET over Python" and placement parts now.**
-4. **Q-VALID: "Validation lives in tests, cheaper than schema validation"** (`docs/decisions.md`,
-   Agent-Driven Positioning) against D-02's load-bearing validation layer (UN-008) and SIM-65/66's
-   published schema with three-layer validation.
-   - **Supersede it with the SIM-65 validation design (Recommended).**
-   - **Keep both, and state where each applies.**
+Q-SFM9, Q-PRIVHOME, Q-FMT and Q-VALID were decided on 2026-11-25, all as recommended; see `docs/decisions.md`.
 
 ## Recovery notes
 
