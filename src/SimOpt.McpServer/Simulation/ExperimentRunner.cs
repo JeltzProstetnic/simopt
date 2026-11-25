@@ -30,23 +30,26 @@ namespace SimOpt.McpServer.Simulation
     {
         public const double Confidence = 0.95;
         public const int MaxReplications = 1000;
+        public const int DefaultReplications = 10;
         public const string Baseline = "baseline";
 
         /// <param name="duration">Simulated time per replication, warm-up included.</param>
+        /// <param name="replications">Per scenario; <see cref="DefaultReplications"/> when not given.</param>
         /// <param name="warmup">Excluded from every statistic; a tenth of the duration when not given.</param>
         /// <param name="seed">The base seed of every scenario; the model's seed when not given.</param>
         /// <exception cref="ArgumentException">The request cannot be run; the message says why.</exception>
         public static ExperimentResult Run(string modelId, int version, TopologyDefinition topology, double duration,
-            int replications = 10, double? warmup = null, IReadOnlyList<string>? metrics = null,
+            int? replications = null, double? warmup = null, IReadOnlyList<string>? metrics = null,
             IReadOnlyList<ScenarioDefinition>? scenarios = null, int? seed = null)
         {
             double warm = warmup ?? duration / 10d;
+            int reps = replications ?? DefaultReplications;
             if (!(duration > 0d) || double.IsInfinity(duration))
                 throw new ArgumentException($"duration must be a positive number of time units, not {duration}.");
             if (!(warm >= 0d) || warm >= duration)
                 throw new ArgumentException($"warmup must be at least 0 and shorter than the duration ({Fmt(duration)}), not {warm}.");
-            if (replications < 1 || replications > MaxReplications)
-                throw new ArgumentException($"replications must be from 1 to {MaxReplications}, not {replications}.");
+            if (reps < 1 || reps > MaxReplications)
+                throw new ArgumentException($"replications must be from 1 to {MaxReplications}, not {reps}.");
             scenarios ??= Array.Empty<ScenarioDefinition>();
             var names = scenarios.Select((s, i) => string.IsNullOrWhiteSpace(s?.Name) ? $"scenario {i + 1}" : s.Name.Trim()).ToList();
             string? twice = names.Prepend(Baseline).GroupBy(n => n).FirstOrDefault(g => g.Count() > 1)?.Key;
@@ -69,16 +72,23 @@ namespace SimOpt.McpServer.Simulation
             {
                 ModelId = modelId,
                 Version = version,
+                ModelSha256 = ModelDocument.Sha256(topology),
                 Duration = duration,
                 Warmup = warm,
-                Replications = replications,
+                Replications = reps,
                 Seed = seed ?? topology.Seed,
                 Confidence = Confidence,
                 Tool = ToolVersion,
+                Assumed = Assumptions(topology, NotGiven(warmup, seed, ("replications", replications, reps))),
             };
             result.Scenarios.Add(RunScenario(Baseline, topology, Array.Empty<PatchOperation>(), defaults, result));
             for (int i = 0; i < scenarios.Count; i++)
-                result.Scenarios.Add(RunScenario(names[i], topology, scenarios[i]?.Patch ?? new(), defaults, result));
+            {
+                List<PatchOperation> patch = scenarios[i]?.Patch ?? new();
+                ScenarioResult scenario = RunScenario(names[i], topology, patch, defaults, result);
+                scenario.Patch = patch;
+                result.Scenarios.Add(scenario);
+            }
 
             if (metrics is { Count: > 0 }) Choose(result, metrics);
             Compare(result);
@@ -225,6 +235,36 @@ namespace SimOpt.McpServer.Simulation
                 t.Metrics.Add(new MetricDefinition { Id = $"util_{station}", Kind = Instrumentation.Utilization, Node = station });
             foreach (string queue in Of("queue"))
                 t.Metrics.Add(new MetricDefinition { Id = $"wait_{queue}", Kind = Instrumentation.WaitTime, Node = queue });
+        }
+
+        /// <summary>
+        /// SIM-86 (UN-035): the call arguments a run used without being given them, with the value used:
+        /// the warm-up, the seed and the replication count named in <paramref name="replications"/>.
+        /// </summary>
+        public static IEnumerable<KeyValuePair<string, string>> NotGiven(double? warmup, int? seed,
+                                                                          (string Name, int? Given, int Used) replications)
+        {
+            if (warmup == null) yield return new("warmup", "a tenth of the duration");
+            if (seed == null) yield return new("seed", "the model's");
+            if (replications.Given == null)
+                yield return new(replications.Name, replications.Used.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// SIM-86 (UN-035): what a run assumed rather than was told: the call arguments not given, the default
+        /// metric set when the model declares none, and every node parameter left to the catalogue, by patch
+        /// path. Paths in <paramref name="searched"/> are decision variables, varied rather than assumed. Null
+        /// when nothing was assumed.
+        /// </summary>
+        public static Dictionary<string, string>? Assumptions(TopologyDefinition topology,
+            IEnumerable<KeyValuePair<string, string>> call, IReadOnlyCollection<string>? searched = null)
+        {
+            var assumed = new Dictionary<string, string>();
+            foreach (var (name, value) in call) assumed[name] = value;
+            if (topology.Metrics.Count == 0) assumed["metrics"] = "the default set; the model declares none";
+            foreach (var (path, value) in ModelDocument.Defaults(topology))
+                if (searched == null || !searched.Contains(path)) assumed[path] = value;
+            return assumed.Count == 0 ? null : assumed;
         }
 
         /// <summary>The tool's name and version, with the commit it was built from shortened (UN-034).</summary>

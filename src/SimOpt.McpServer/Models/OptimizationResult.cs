@@ -34,12 +34,17 @@ namespace SimOpt.McpServer.Models
 
     /// <summary>
     /// SIM-69 (D9): the outcome of <c>optimize</c>, with what a third party needs to repeat the search
-    /// (UN-034): version, strategy, seeds, run length, warm-up, replications per point, tool version.
+    /// (UN-034): version and the SHA-256 of its document (SIM-86), strategy, seeds, run length, warm-up,
+    /// replications per point, tool version, and what the search assumed rather than was told (UN-035).
     /// </summary>
     public sealed class OptimizationResult
     {
         [JsonPropertyName("model_id")] public string ModelId { get; set; } = string.Empty;
         [JsonPropertyName("version")] public int Version { get; set; }
+
+        /// <summary>SIM-86: the SHA-256 of the version's schema v1 document, the bytes save_model writes.</summary>
+        [JsonPropertyName("model_sha256")] public string ModelSha256 { get; set; } = string.Empty;
+
         [JsonPropertyName("strategy")] public string Strategy { get; set; } = string.Empty;
         [JsonPropertyName("evaluations")] public int Evaluations { get; set; }
 
@@ -61,6 +66,15 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("replications_per_eval")] public int ReplicationsPerEval { get; set; }
         [JsonPropertyName("seed")] public int Seed { get; set; }
         [JsonPropertyName("tool")] public string Tool { get; set; } = string.Empty;
+
+        /// <summary>
+        /// SIM-86 (UN-035): every value the search used without being given it, as in run_experiment; the
+        /// decision variables are searched, not assumed, and are left out. Absent when everything was given.
+        /// </summary>
+        [JsonPropertyName("assumed")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public Dictionary<string, string>? Assumed { get; set; }
+
         [JsonPropertyName("summary")] public string Summary { get; set; } = string.Empty;
     }
 }

@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=read MG's answers; SIM-117 or SIM-86 while SIM-126 schema, SIM-110 rest and SIM-93 defaults wait for Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=read MG's answers, then SIM-117 or SIM-86 while SIM-126 schema, SIM-110 rest and SIM-93 defaults wait for Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 

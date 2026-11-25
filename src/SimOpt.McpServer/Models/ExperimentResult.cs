@@ -61,6 +61,11 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
 
+        /// <summary>SIM-86: the patch that made the scenario from the version run; absent for the baseline.</summary>
+        [JsonPropertyName("patch")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<PatchOperation>? Patch { get; set; }
+
         /// <summary>Why the scenario was not run: its patch, or the patched model, has errors.</summary>
         [JsonPropertyName("errors")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -85,19 +90,33 @@ namespace SimOpt.McpServer.Models
 
     /// <summary>
     /// SIM-66 (D10-D12): the outcome of <c>run_experiment</c>, with what a third party needs to
-    /// reproduce it (UN-034): model version, seed, run length, warm-up, replications, confidence and
-    /// the tool's version. Replication r runs at <c>ReplicationRunner.SeedFor(seed, r)</c>.
+    /// reproduce it (UN-034): model version and the SHA-256 of its document (SIM-86), seed, run length,
+    /// warm-up, replications, confidence, the tool's version, and what the run assumed rather than was
+    /// told (UN-035). Replication r runs at <c>ReplicationRunner.SeedFor(seed, r)</c>.
     /// </summary>
     public sealed class ExperimentResult
     {
         [JsonPropertyName("model_id")] public string ModelId { get; set; } = string.Empty;
         [JsonPropertyName("version")] public int Version { get; set; }
+
+        /// <summary>SIM-86: the SHA-256 of the version's schema v1 document, the bytes save_model writes.</summary>
+        [JsonPropertyName("model_sha256")] public string ModelSha256 { get; set; } = string.Empty;
+
         [JsonPropertyName("duration")] public double Duration { get; set; }
         [JsonPropertyName("warmup")] public double Warmup { get; set; }
         [JsonPropertyName("replications")] public int Replications { get; set; }
         [JsonPropertyName("seed")] public int Seed { get; set; }
         [JsonPropertyName("confidence")] public double Confidence { get; set; }
         [JsonPropertyName("tool")] public string Tool { get; set; } = string.Empty;
+
+        /// <summary>
+        /// SIM-86 (UN-035): every value the run used without being given it, call arguments by name and node
+        /// parameters by patch path, with the value used; absent when everything was given.
+        /// </summary>
+        [JsonPropertyName("assumed")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public Dictionary<string, string>? Assumed { get; set; }
+
         [JsonPropertyName("scenarios")] public List<ScenarioResult> Scenarios { get; set; } = new();
         [JsonPropertyName("summary")] public string Summary { get; set; } = string.Empty;
     }

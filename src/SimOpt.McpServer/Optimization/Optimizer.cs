@@ -42,9 +42,10 @@ namespace SimOpt.McpServer.Optimization
         /// <exception cref="ArgumentException">The request cannot be searched; the message says why.</exception>
         public static OptimizationResult Run(string modelId, int version, TopologyDefinition topology,
             IReadOnlyList<DecisionVariable> variables, ObjectiveDefinition objective, double duration, double? warmup = null,
-            int replicationsPerEval = DefaultReplications, int maxEvaluations = DefaultEvaluations, double? maxSeconds = null,
+            int? replicationsPerEval = null, int maxEvaluations = DefaultEvaluations, double? maxSeconds = null,
             string strategy = "auto", int? seed = null, int? searchSeed = null)
         {
+            int replications = replicationsPerEval ?? DefaultReplications;
             string chosen = (strategy ?? "auto").Trim().ToLowerInvariant();
             if (!Strategies.Contains(chosen))
                 throw new ArgumentException($"strategy must be one of {string.Join(", ", Strategies)}, not \"{strategy}\".");
@@ -53,7 +54,7 @@ namespace SimOpt.McpServer.Optimization
 
             double warm = warmup ?? duration / 10d;
             int baseSeed = seed ?? topology.Seed;
-            var problem = new TopologyProblem(topology, variables, objective, duration, warm, replicationsPerEval, baseSeed, maxEvaluations);
+            var problem = new TopologyProblem(topology, variables, objective, duration, warm, replications, baseSeed, maxEvaluations);
             long? space = problem.SpaceSize;
             if (chosen == "auto") chosen = space is long n && n <= maxEvaluations ? "grid" : "ea";
             if (chosen == "grid" && space == null)
@@ -74,7 +75,11 @@ namespace SimOpt.McpServer.Optimization
                 default: SearchRandom(problem, maxEvaluations, search); break;
             }
 
-            return Report(modelId, version, chosen, problem, topology, objective, duration, warm, replicationsPerEval, baseSeed);
+            OptimizationResult result = Report(modelId, version, chosen, problem, topology, objective, duration, warm, replications, baseSeed);
+            result.Assumed = ExperimentRunner.Assumptions(topology,
+                ExperimentRunner.NotGiven(warmup, seed, ("replications_per_eval", replicationsPerEval, replications)),
+                problem.Variables.Select(v => v.Path).ToList());
+            return result;
         }
 
         private static void SearchGrid(TopologyProblem problem)
@@ -154,6 +159,7 @@ namespace SimOpt.McpServer.Optimization
             {
                 ModelId = modelId,
                 Version = version,
+                ModelSha256 = ModelDocument.Sha256(topology),
                 Strategy = strategy,
                 Evaluations = problem.Evaluations.Count,
                 Space = problem.SpaceSize,

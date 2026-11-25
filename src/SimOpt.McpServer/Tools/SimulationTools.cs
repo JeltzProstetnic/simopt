@@ -32,14 +32,6 @@ namespace SimOpt.McpServer.Tools
         /// </summary>
         private static readonly JsonSerializerOptions Output = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-        /// <summary>SIM-67: a saved topology, indented and without empty optional fields.</summary>
-        private static readonly JsonSerializerOptions Document = new()
-        {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        };
-
         public SimulationTools(ModelRegistry registry)
         {
             _registry = registry;
@@ -155,16 +147,18 @@ namespace SimOpt.McpServer.Tools
             "scenarios: variants run in the same call, each {name, patch} with a patch as for patch_model; each is compared " +
             "with the unpatched \"baseline\" replication by replication (all share the seed, so unchanged parts draw the same " +
             "random numbers), giving vs_baseline {diff, ci95, significant}. flags say what went wrong: saturated stations, " +
-            "items refused per replication, nothing finished, metrics without data. Returns provenance (version, seed, " +
-            "duration, warmup, replications, confidence, tool) and a one-line summary. Reproducible: the same call gives " +
-            "the same result.")]
+            "items refused per replication, nothing finished, metrics without data. Returns provenance (version, " +
+            "model_sha256 = sha256sum of the file save_model writes for that version, seed, duration, warmup, replications, " +
+            "confidence, tool), assumed (every value the run used without being given it, call arguments by name and node " +
+            "parameters by patch path, with the value used), each scenario's patch, and a one-line summary. Reproducible: " +
+            "the same call gives the same result.")]
         public string RunExperiment(
             [Description("The model_id returned by create_model")]
             string model_id,
             [Description("Simulated time per replication, warm-up included, in the model's time unit")]
             double duration,
             [Description("Replications per scenario, 1 to 1000 (default 10)")]
-            int replications = 10,
+            int? replications = null,
             [Description("Time at the start of each replication excluded from every metric (default a tenth of duration)")]
             double? warmup = null,
             [Description("Metric ids to report (default all)")]
@@ -202,7 +196,8 @@ namespace SimOpt.McpServer.Tools
             "constraint counts as kept only when the metric's whole 95% interval keeps it. strategy: \"auto\" (every point " +
             "when the space fits max_evaluations, else the evolutionary algorithm), \"grid\", \"random\", \"sa\" (simulated annealing), " +
             "\"ea\" (evolutionary algorithm) or \"pso\" (particle swarm); each stops at the budget. Returns the best point with its " +
-            "metrics and intervals, violations if no point is feasible, the five best points, provenance and a summary. " +
+            "metrics and intervals, violations if no point is feasible, the five best points, provenance (as run_experiment, " +
+            "with model_sha256 and assumed; the decision variables are not listed as assumed) and a summary. " +
             "Example: fewest exam rooms keeping the mean wait under 15: variables [{\"path\":\"exam.servers\",\"type\":" +
             "\"integer\",\"min\":4,\"max\":12}], objective {\"metric\":\"exam.servers\",\"direction\":\"min\",\"constraints\":" +
             "[{\"metric\":\"wait_exam\",\"op\":\"<\",\"value\":15}]}.")]
@@ -218,7 +213,7 @@ namespace SimOpt.McpServer.Tools
             [Description("Time at the start of each replication excluded from every metric (default a tenth of duration)")]
             double? warmup = null,
             [Description("Replications per evaluated point (default 5)")]
-            int replications_per_eval = Optimizer.DefaultReplications,
+            int? replications_per_eval = null,
             [Description("Most points to evaluate (default 50)")]
             int max_evaluations = Optimizer.DefaultEvaluations,
             [Description("Wall-clock limit in seconds (default none)")]
@@ -356,13 +351,8 @@ namespace SimOpt.McpServer.Tools
             }
         }
 
-        /// <summary>SIM-67 (D1): the topology as a schema v1 document, stamped "1" when it carried no version.</summary>
-        private static string Saved(TopologyDefinition topology)
-        {
-            TopologyDefinition copy = TopologyPatcher.Copy(topology);
-            copy.SchemaVersion ??= "1";
-            return JsonSerializer.Serialize(copy, Document);
-        }
+        /// <summary>SIM-67 (D1): the topology as a schema v1 document; its SHA-256 names it in results (SIM-86).</summary>
+        private static string Saved(TopologyDefinition topology) => ModelDocument.Write(topology);
 
         // ── run_simulation ────────────────────────────────────────────────────
 
