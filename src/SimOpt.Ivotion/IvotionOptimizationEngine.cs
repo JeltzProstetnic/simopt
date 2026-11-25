@@ -5,13 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using SimOpt.Optimization.Interfaces;
 using SimOpt.Optimization.Strategies.Evolutionary;
+using SimOpt.Optimization.Strategies.ParticleSwarm;
 
 namespace SimOpt.Ivotion;
 
 /// <summary>
-/// Default <see cref="IIvotionOptimizationEngine"/>. Supports Random and
-/// Evolutionary strategies; ParticleSwarm and Sweep throw
-/// <see cref="NotSupportedException"/> until Phase A.2 / later lands.
+/// Default <see cref="IIvotionOptimizationEngine"/>. Supports Random, Evolutionary and (SIM-36)
+/// ParticleSwarm strategies; Sweep throws <see cref="NotSupportedException"/> until it lands.
 /// </summary>
 public sealed class IvotionOptimizationEngine : IIvotionOptimizationEngine
 {
@@ -24,9 +24,9 @@ public sealed class IvotionOptimizationEngine : IIvotionOptimizationEngine
         if (settings.Iterations <= 0)
             throw new ArgumentOutOfRangeException(nameof(settings),
                 "Iterations must be > 0.");
-        if (settings.Strategy is IvotionStrategyKind.ParticleSwarm or IvotionStrategyKind.Sweep)
+        if (settings.Strategy is IvotionStrategyKind.Sweep)
             throw new NotSupportedException(
-                $"Strategy {settings.Strategy} is not yet wired (Phase A.2 / later).");
+                $"Strategy {settings.Strategy} is not yet wired (later).");
 
         // SIM-121: not Task.Run(..., ct): with the token already cancelled when the pool got to the work it
         // returned a cancelled task, so a cancellation threw or returned depending on timing. The loops poll
@@ -52,6 +52,7 @@ public sealed class IvotionOptimizationEngine : IIvotionOptimizationEngine
         {
             IvotionStrategyKind.Random => RunRandom(problem, settings, progress, ct, sw),
             IvotionStrategyKind.Evolutionary => RunEvolutionary(problem, settings, progress, ct, sw),
+            IvotionStrategyKind.ParticleSwarm => RunParticleSwarm(problem, settings, progress, ct, sw),
             _ => throw new NotSupportedException($"Strategy {settings.Strategy} not wired."),
         };
     }
@@ -129,6 +130,39 @@ public sealed class IvotionOptimizationEngine : IIvotionOptimizationEngine
         _ = strategy.Solve(problem).ToList();
 
         return BuildResult(problem, settings, bestSoFar, gen, sw, ct.IsCancellationRequested);
+    }
+
+    /// <summary>
+    /// SIM-36: the particle swarm over <see cref="IvotionSolution"/>'s real-valued view; Iterations are swarm
+    /// steps and PopulationSize the swarm, as they are generations and offspring for the EA.
+    /// </summary>
+    private static IvotionOptimizationResult RunParticleSwarm(
+        IvotionProblem problem,
+        IvotionOptimizationSettings settings,
+        IProgress<IvotionFitnessSample>? progress,
+        CancellationToken ct,
+        Stopwatch sw)
+    {
+        var swarm = new ParticleSwarmOptimization();
+        swarm.Initialize(new ParticleSwarmConfiguration
+        {
+            Seed = settings.Seed,
+            NumberOfIterations = settings.Iterations,
+            SwarmSize = Math.Max(2, settings.PopulationSize),
+        });
+
+        IvotionSolution? best = null;
+        int steps = 0;
+        using var reg = ct.Register(() => swarm.Stop());
+        foreach (ISolution snapshot in swarm.Solve(problem))
+        {
+            steps++;
+            best = (IvotionSolution)snapshot;
+            progress?.Report(new IvotionFitnessSample(steps, best.Fitness, (IvotionSolution)best.Clone()));
+            if (ct.IsCancellationRequested) break;
+        }
+
+        return BuildResult(problem, settings, best, steps, sw, ct.IsCancellationRequested);
     }
 
     private static IvotionOptimizationResult BuildResult(

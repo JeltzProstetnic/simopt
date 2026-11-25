@@ -21,8 +21,13 @@ namespace SimOpt.Ivotion;
 ///
 /// <see cref="Tweak()"/> and <see cref="CombineWith(ISolution)"/> draw from a generator that travels with
 /// the solution, so a search is reproducible from its seed (SIM-59; they used a wall-clock Random).
+///
+/// SIM-36: as an <see cref="IVectorSolution"/> it shows the particle swarm one real coordinate per
+/// dimension, the place of its value among <see cref="AllowedValues"/> (0, 1, 2). Setting the view keeps
+/// the position, inside the range, and takes the nearest allowed value; a swarm that moves by less than
+/// half a step therefore still moves, which snapping the position would prevent.
 /// </summary>
-public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISolution>
+public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISolution>, IVectorSolution
 {
     public static readonly int[][] AllowedValues =
     {
@@ -38,7 +43,36 @@ public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISoluti
 
     private SplitMix64 moves;
 
+    /// <summary>The swarm's position, when it set one; a dimension whose value changed since shows the new value's place.</summary>
+    private double[]? position;
+
     public int[] Parameters { get; }
+
+    double[] IVectorSolution.Parameters
+    {
+        get
+        {
+            var view = new double[DimensionCount];
+            for (int d = 0; d < DimensionCount; d++)
+            {
+                int place = Array.IndexOf(AllowedValues[d], Parameters[d]);
+                view[d] = position != null && Nearest(d, position[d]) == place ? position[d] : place;
+            }
+            return view;
+        }
+        set
+        {
+            position = new double[DimensionCount];
+            for (int d = 0; d < DimensionCount; d++)
+            {
+                position[d] = Math.Clamp(value[d], 0, AllowedValues[d].Length - 1);
+                Parameters[d] = AllowedValues[d][Nearest(d, position[d])];
+            }
+        }
+    }
+
+    private static int Nearest(int dim, double place) =>
+        (int)Math.Round(Math.Clamp(place, 0, AllowedValues[dim].Length - 1), MidpointRounding.AwayFromZero);
     public double Fitness { get; set; } = -double.MaxValue;
     public bool HasFitness { get; set; }
 
@@ -78,6 +112,7 @@ public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISoluti
             Fitness = this.Fitness,
             HasFitness = this.HasFitness,
             moves = moves.Split(), // a clone moves differently from the original, see SplitMix64
+            position = (double[]?)position?.Clone(),
         };
     }
 

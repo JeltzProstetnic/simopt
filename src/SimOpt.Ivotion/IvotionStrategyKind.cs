@@ -20,7 +20,7 @@ public static class IvotionStrategyInfo
     {
         IvotionStrategyKind.Random => "Random Search",
         IvotionStrategyKind.Evolutionary => "Evolutionary Algorithm",
-        IvotionStrategyKind.ParticleSwarm => "Particle Swarm (coming soon)",
+        IvotionStrategyKind.ParticleSwarm => "Particle Swarm",
         IvotionStrategyKind.Sweep => "Sweep / Exhaustive (later)",
         _ => kind.ToString(),
     };
@@ -29,6 +29,7 @@ public static class IvotionStrategyInfo
     {
         IvotionStrategyKind.Random => true,
         IvotionStrategyKind.Evolutionary => true,
+        IvotionStrategyKind.ParticleSwarm => true,
         _ => false,
     };
 }

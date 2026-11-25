@@ -64,14 +64,15 @@ public class IvotionOptimizationViewModelTests
     }
 
     [Fact]
-    public void Strategies_HasRandomAndEvolutionaryEnabled_PsoAndSweepDisabled()
+    public void Strategies_HasRandomEvolutionaryAndPsoEnabled_SweepDisabled()
     {
+        // SIM-36 enabled the particle swarm
         var vm = MakeVm(new FakeEngine());
 
         vm.Strategies.Should().HaveCount(4);
         vm.Strategies.Single(s => s.Kind == IvotionStrategyKind.Random).IsEnabled.Should().BeTrue();
         vm.Strategies.Single(s => s.Kind == IvotionStrategyKind.Evolutionary).IsEnabled.Should().BeTrue();
-        vm.Strategies.Single(s => s.Kind == IvotionStrategyKind.ParticleSwarm).IsEnabled.Should().BeFalse();
+        vm.Strategies.Single(s => s.Kind == IvotionStrategyKind.ParticleSwarm).IsEnabled.Should().BeTrue();
         vm.Strategies.Single(s => s.Kind == IvotionStrategyKind.Sweep).IsEnabled.Should().BeFalse();
     }
 
@@ -93,7 +94,7 @@ public class IvotionOptimizationViewModelTests
     public void RunCommand_Disabled_WhenDisabledStrategySelected()
     {
         var vm = MakeVm(new FakeEngine());
-        vm.SelectedStrategy = IvotionStrategyKind.ParticleSwarm;
+        vm.SelectedStrategy = IvotionStrategyKind.Sweep;
 
         vm.RunCommand.CanExecute(null).Should().BeFalse();
     }

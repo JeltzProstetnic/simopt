@@ -186,6 +186,56 @@ public class IvotionSolutionTests
         act.Should().Throw<ArgumentException>();
     }
 
+    // ─── SIM-36: the particle swarm's real-valued view ─────────────────────
+
+    private static double[] View(IvotionSolution s) => ((IVectorSolution)s).Parameters;
+
+    [Fact]
+    public void TheSwarmsView_IsEachValuesPlaceAmongItsAllowedValues()
+    {
+        var sol = new IvotionSolution(new[] { 2, 3, 1, 1, 2, 15 });
+
+        View(sol).Should().Equal(1, 2, 0, 0, 1, 1);
+    }
+
+    [Fact]
+    public void SettingTheView_TakesTheNearestAllowedValue_AndKeepsThePositionInsideTheRange()
+    {
+        var sol = new IvotionSolution(ValidSample);
+
+        ((IVectorSolution)sol).Parameters = new[] { 0.6, -3, 1.4, 9, 0.49, 1.5 };
+
+        sol.Parameters.Should().Equal(2, 1, 2, 2, 1, 20);
+        View(sol).Should().Equal(0.6, 0, 1.4, 1, 0.49, 1.5);
+    }
+
+    [Fact]
+    public void AMoveThatChangesAValue_MovesTheViewThere_AndLeavesTheOtherPositions()
+    {
+        var sol = new IvotionSolution(ValidSample);
+        ((IVectorSolution)sol).Parameters = new[] { 0.2, 0.2, 0.2, 0.2, 0.2, 0.2 };
+        int[] before = (int[])sol.Parameters.Clone();
+
+        sol.Tweak(new Random(5));
+
+        double[] view = View(sol);
+        for (int d = 0; d < IvotionSolution.DimensionCount; d++)
+            view[d].Should().Be(sol.Parameters[d] == before[d]
+                ? 0.2
+                : Array.IndexOf(IvotionSolution.AllowedValues[d], sol.Parameters[d]), $"dimension {d}");
+    }
+
+    [Fact]
+    public void AClone_KeepsTheView()
+    {
+        var sol = new IvotionSolution(ValidSample);
+        ((IVectorSolution)sol).Parameters = new[] { 0.6, 1.4, 1.6, 0.3, 0.7, 1.2 };
+
+        var copy = (IvotionSolution)sol.Clone();
+
+        View(copy).Should().Equal(View(sol));
+    }
+
     private sealed class DummySolution : ISolution
     {
         public double Fitness { get; set; }

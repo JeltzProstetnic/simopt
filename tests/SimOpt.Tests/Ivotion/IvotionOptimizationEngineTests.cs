@@ -154,18 +154,57 @@ public class IvotionOptimizationEngineTests
     }
 
     [Fact]
-    public async Task RunAsync_ParticleSwarm_Throws()
+    public async Task RunAsync_ParticleSwarm_SearchesTheLine_Reproducibly()
     {
-        var engine = new IvotionOptimizationEngine();
+        // SIM-36: the swarm moves through the real-valued view of IvotionSolution; Iterations are swarm
+        // steps and PopulationSize the swarm, as they are generations and offspring for the EA
         var settings = new IvotionOptimizationSettings
         {
             Strategy = IvotionStrategyKind.ParticleSwarm,
-            Iterations = 3,
+            Iterations = 5,
+            PopulationSize = 6,
+            SimDurationMinutes = 30.0,
+            Seed = 3,
         };
 
-        var act = () => engine.RunAsync(settings, progress: null, CancellationToken.None);
+        var first = await new IvotionOptimizationEngine().RunAsync(settings, progress: null, CancellationToken.None);
+        var second = await new IvotionOptimizationEngine().RunAsync(settings, progress: null, CancellationToken.None);
 
-        await act.Should().ThrowAsync<NotSupportedException>();
+        first.BestSolution.Should().NotBeNull();
+        IvotionSolution.IsInRange(first.BestSolution!.Parameters).Should().BeTrue();
+        first.TotalIterations.Should().Be(5);
+        first.WasCancelled.Should().BeFalse();
+        second.BestSolution!.Parameters.Should().Equal(first.BestSolution.Parameters);
+        second.BestSolution.Fitness.Should().Be(first.BestSolution.Fitness);
+    }
+
+    [Fact]
+    public async Task RunAsync_ParticleSwarm_ReportsEachStep_AndStopsWhenCancelled()
+    {
+        var settings = new IvotionOptimizationSettings
+        {
+            Strategy = IvotionStrategyKind.ParticleSwarm,
+            Iterations = 50,
+            PopulationSize = 4,
+            SimDurationMinutes = 30.0,
+            Seed = 1,
+        };
+        using var cts = new CancellationTokenSource();
+        var steps = new List<int>();
+        var progress = new SynchronousProgress(s => { steps.Add(s.Iteration); if (s.Iteration >= 2) cts.Cancel(); });
+
+        var result = await new IvotionOptimizationEngine().RunAsync(settings, progress, cts.Token);
+
+        steps.Should().Equal(1, 2);
+        result.TotalIterations.Should().Be(2);
+        result.WasCancelled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ParticleSwarm_IsOffered_UnderItsOwnName()
+    {
+        IvotionStrategyInfo.IsEnabled(IvotionStrategyKind.ParticleSwarm).Should().BeTrue();
+        IvotionStrategyInfo.DisplayName(IvotionStrategyKind.ParticleSwarm).Should().Be("Particle Swarm");
     }
 
     [Fact]
