@@ -138,17 +138,37 @@ namespace SimOpt.Logging
         {
             if (autoDispatch)
             {
-                foreach (ILogger logger in loggers.Keys)
-                {
-                    if (loggers[logger].ProcessFilters(data))
-                        logger.Log((DateTime)data[TimeStamp], data[Sender], (Type)data[MessageClass], (string)data[Message], data);
-                }
+                Deliver(data);
             }
             else
             {
                 if (!isDispatcherRunning) StartDispatcherThread();
                 Logger.messageQueue.Enqueue(data);
                 dataAvailableEvent.Set();
+            }
+        }
+
+        /// <summary>
+        /// SIM-134: hands a message to every registered logger. It walks the registered pairs, so a
+        /// logger removed meanwhile is never looked up; reading the keys and then looking each up
+        /// threw KeyNotFoundException when a logger was removed in between, which on the dispatcher
+        /// thread ended the process. A logger that throws is reported to Trace and skipped, for the
+        /// same reason: a failing logger must not end the run it logs.
+        /// </summary>
+        private static void Deliver(Dictionary<string, object> data, bool stopOnClear = false)
+        {
+            foreach (KeyValuePair<ILogger, ILoggerSettings> registered in loggers)
+            {
+                try
+                {
+                    if (registered.Value.ProcessFilters(data))
+                        registered.Key.Log((DateTime)data[TimeStamp], data[Sender], (Type)data[MessageClass], (string)data[Message], data);
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Trace.TraceError("Logger " + registered.Key + " failed and was skipped: " + e);
+                }
+                if (stopOnClear && requestClear) break;
             }
         }
 
@@ -204,6 +224,9 @@ namespace SimOpt.Logging
         private static void StartDispatcherThread()
         {
             if (isDispatcherRunning) return;
+            // SIM-134: StopDispatcherThread leaves this set, so after AutoDispatch was switched on
+            // and off again the new thread ended at its first wake-up and nothing drained the queue.
+            requestDispatcherFinish = false;
             dataAvailableEvent = new AutoResetEvent(false);
             dispatcherIdleEvent = new AutoResetEvent(false);
             dispatcherThread = new Thread(DispatcherThread);
@@ -226,12 +249,7 @@ namespace SimOpt.Logging
                 // the AutoResetEvent, a headless run's queue only grew.
                 if (dataAvailable)
                 {
-                    foreach (ILogger logger in loggers.Keys)
-                    {
-                        if (loggers[logger].ProcessFilters(data))
-                            logger.Log((DateTime)data[TimeStamp], data[Sender], (Type)data[MessageClass], (string)data[Message], data);
-                        if (requestClear) break;
-                    }
+                    Deliver(data, stopOnClear: true);
                 }
                 else
                 {
