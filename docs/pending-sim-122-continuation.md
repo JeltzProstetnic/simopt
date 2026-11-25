@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=read MG's answers and act on them (SIM-94 is the only unblocked item left) while SIM-126 schema, SIM-110 rest, SIM-93 defaults, SIM-86 slice C and SIM-95/117/119 wait - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-PROV-REPORT Q-ENGINE-MOVES Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=build SIM-126's schema (Q-PROC-SCHEMA decided), then SIM-93 defaults and SIM-110 via SIM-70, while SIM-126 schema, SIM-110 rest, SIM-93 defaults, SIM-86 slice C and SIM-95/117/119 wait - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-PROV-REPORT Q-ENGINE-MOVES Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -92,15 +92,7 @@ the private hand-off (see *Private material*).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
-- **Q-ENGINE-MOVES** (new 2026-11-25, restart #6): when to fix the three open engine items that move results of runs with
-  failures or antithetic sampling: SIM-117 (P2, when a failure that fell due during a batch takes effect, near-tie
-  tolerance), SIM-95 (P2, the failure-continue path resumes with a null product) and SIM-119 (P2, antithetic streams are
-  not mirrored). His SIM-122 comparison is about exactly his failure-bearing cases.
-  - **After his SIM-122 results arrive (Recommended):** otherwise a rerun at the latest commit differs for two reasons at
-    once, and the comparison cannot say which.
-  - **Now, with one comment on his issue #30 listing what moved:** the fixes land sooner; his rerun then has to pin
-    `96f979c` to isolate SIM-115.
-
+- **Q-ENGINE-MOVES: DECIDED 2026-11-25 by MG at the console:** after his SIM-122 results arrive (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-PROV-REPORT** (new 2026-11-25, restart #6, SIM-86 slice C, UN-034 "exportable in a form that goes into an
   expert report"): what form a run record takes for a report.
   - **A `report_run` tool renders a record as a Markdown appendix, English or German by argument (Recommended):**
@@ -116,44 +108,9 @@ the private hand-off (see *Private material*).
   - **Not now (Recommended):** `save_model`/`load_model` already let a model outlive the process (UN-005);
     a store changes what a plain server writes to disk. Revisit with the desktop app (SIM-71).
   - **Opt-in:** an environment variable `SIMOPT_MODEL_STORE` names the directory; unset, nothing changes.
-- **Q-PROC-SCHEMA** (new 2026-11-25, restart #5; brief `docs/plans/2026-11-25-sim-126-process-schema.md`,
-  with the car wash written as a document): which shape processes take in the topology schema, the
-  contract the MCP tools and the Python package inherit. Building SIM-126's last part waits for this.
-  - **Process node with a closed step list (Recommended):** `resource` and `stock` become nodes, and a
-    `process` node runs each item through `delay`, `seize`, `release`, `take`, `put` and `wait_until`
-    steps; an unfed process repeats its steps beside the flow (the supplier). Fixed with it: no loops or
-    conditions inside a process; an item leaving a process frees every unit it holds there (no leak, but no
-    holding a unit across nodes); patience on `seize`/`take` sends the item out by a named outlet; step values
-    are drawn on entry (measured on the car wash: no worse than at the step); schema version stays "1". Answer
-    "yes", or name the piece to change.
-  - **Flowchart blocks** (Arena style): `seize`, `release`, `take`, `put` as graph nodes; a unit can be held
-    across nodes, but an activity needs three to five nodes and a forgotten release shows up as a deadlock.
-  - **Scripted processes:** loops, conditions and variables in JSON; reaches the most models, loses the
-    offered-load pre-check, a plain read-back and SIM-83's grammar.
-- **Q-VIEW-PATH** (new 2026-11-25, restart #5; brief `docs/plans/2026-11-25-sim-110-one-model-path.md`): how the
-  viewer builds its models, the rest of SIM-110 (one model path, JSON and MCP models in the viewer). Its pause,
-  cycle-safe layout and engine-measured numbers are done.
-  - **A shared library (SIM-70's `SimOpt.Engine.Api`), every viewer model through the schema builder
-    (Recommended):** the topology layer moves out of the MCP server (namespaces change, JSON and tools do not);
-    SIM-72's reverse mapping is dropped; `VizTopology` presets and
-    furkansim's glass line convert to schema documents plus a layout overlay; the schema gains `normal` arrivals
-    and a `batch` station for the Roland printer. You will see: reject decisions follow the seed (the same run
-    every time, other numbers than today), a queue drawn where a server fed a server directly, and furkansim's
-    glass-line numbers move (inbox item).
-  - **The viewer references the MCP server project directly:** one line, but the MCP SDK and the host ride into
-    the viewer and furkansim's app.
-  - **Two paths:** presets keep their own builder, JSON and MCP models use the schema builder; SIM-99's viewer
-    half stays open.
-- **Q-IVO-STATS** (new 2026-11-25, restart #5, SIM-93): how long the Ivotion optimiser runs each configuration.
-  Measured on the baseline (1 printer, batches of 15): the first batch ships at about 84 minutes, then one every ~83,
-  a steady ~10.8 pieces/h. A score counts whole batches in its window, so it can be off by one batch: today's
-  120-minute run with no warm-up scores 7.5. 20 seeds gave the same score at every setting below except where the
-  warm-up ends near a shipment, so replications would not help; run length does. A warm-up setting now exists
-  (default 0).
-  - **960 minutes (two shifts) with a 120-minute warm-up (Recommended):** the baseline scores 10.71, the same on all
-    20 seeds; off by at most one batch, 1.1 pieces/h; each evaluation takes about eight times as long as today.
-  - **480 minutes with a 120-minute warm-up:** scores 10.0, off by at most 2.5 pieces/h; four times as long.
-  - **Keep 120 minutes, no warm-up,** and label the score as one batch cycle.
+- **Q-PROC-SCHEMA: DECIDED 2026-11-25 by MG at the console:** the process node with a closed step list; SIM-126's schema build is unblocked (`docs/decisions.md`, 2026-11-25 morning).
+- **Q-VIEW-PATH: DECIDED 2026-11-25 by MG at the console:** a shared library, every viewer model through the schema builder; SIM-110's rest starts with SIM-70's extraction (`docs/decisions.md`, 2026-11-25 morning).
+- **Q-IVO-STATS: DECIDED 2026-11-25 by MG at the console:** 960 minutes with a 120-minute warm-up; SIM-93's defaults are unblocked (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-AUTO** (new 2026-11-25, restart #4): which search "auto" runs when the space is larger than the
   budget. **Recommended: the EA (built, unattended choice):** best or tied at the default budget with the
   best worst case. Alternatives: random search (the step-3 behaviour), or SA as D6 planned (measured last).

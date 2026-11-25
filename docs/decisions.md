@@ -637,3 +637,24 @@ closed, and was deleted. Its standing rules for unattended work that still apply
 - The beachhead obligations (no claim of court-admissibility, no re-opening of the beachhead) stand as
   written under D-06 above. Its rule "no UI work before Slice 1 is green" is spent: Slice 1 (SIM-63, SIM-64)
   is done, and the visualization work is SIM-110.
+
+## 2026-11-25 (morning) — four owner decisions after restart #6 (MG at the console, 06:5x)
+
+- **Q-PROC-SCHEMA → a process node with a closed step list** (SIM-126's last part). `resource` and `stock` become
+  nodes; a `process` node runs each item through `delay`, `seize`, `release`, `take`, `put` and `wait_until`; an unfed
+  process repeats its steps beside the flow. No loops or conditions inside a process; an item leaving frees every unit
+  it holds; patience on `seize`/`take` exits by a named outlet; step values are drawn on entry; schema version stays
+  "1". Why: it keeps the offered-load pre-check, a plain read-back and SIM-83's grammar, which flowchart blocks and
+  scripted processes would each lose part of. Brief: `docs/plans/2026-11-25-sim-126-process-schema.md`.
+- **Q-VIEW-PATH → one model path through a shared library** (the rest of SIM-110). The topology layer moves out of
+  the MCP server into `SimOpt.Engine.Api` (SIM-70's first half); every viewer model goes through the schema builder;
+  SIM-72's reverse mapping is dropped; presets and furkansim's glass line become schema documents plus a layout
+  overlay; the schema gains `normal` arrivals and a `batch` station. Accepted consequences: reject decisions follow
+  the seed, a queue is drawn where a server fed a server, furkansim's glass-line numbers move (inbox item when it lands).
+  Brief: `docs/plans/2026-11-25-sim-110-one-model-path.md`.
+- **Q-IVO-STATS → 960 minutes (two shifts) with a 120-minute warm-up** as the Ivotion optimiser's defaults (SIM-93).
+  The baseline then scores 10.71 pieces/h on all 20 seeds, off by at most one batch; each evaluation takes about eight
+  times as long as the old 120 minutes.
+- **Q-ENGINE-MOVES → SIM-117, SIM-95 and SIM-119 wait for the colleague's SIM-122 results.** They change runs with
+  failures or antithetic sampling, the cases his comparison measures; fixing them first would leave a rerun at the
+  latest commit differing for two reasons at once.
