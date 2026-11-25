@@ -39,9 +39,6 @@ public class SimulationCanvas : Control, ISimulationSurface
     }
 
     // Throughput tracking
-    private int _lastSinkTotal;
-    private double _lastTime;
-    private double _throughput;
 
     // Entity animations — driven by state changes, not frame count
     private readonly List<AnimDot> _dots = new();
@@ -57,9 +54,6 @@ public class SimulationCanvas : Control, ISimulationSurface
     private const double NH = AutoLayout.NodeHeight;
 
     // Statistics tracking
-    private readonly Dictionary<string, double> _busyTime = new();
-    private readonly Dictionary<string, double> _lastBusyChange = new();
-    private readonly Dictionary<string, bool> _wasBusy = new();
     private bool _showStats = true;
     private bool _statsDetached;
 
@@ -192,14 +186,8 @@ public class SimulationCanvas : Control, ISimulationSurface
         _sim.Build(topology);
         _stepCount = 0;
         _frame = 0;
-        _lastSinkTotal = 0;
-        _lastTime = 0;
-        _throughput = 0;
         _dots.Clear();
         _nodeStates.Clear();
-        _busyTime.Clear();
-        _lastBusyChange.Clear();
-        _wasBusy.Clear();
         _speedMs = speedMs;
         _running = true;
         _resumable = true;
@@ -257,14 +245,8 @@ public class SimulationCanvas : Control, ISimulationSurface
         _sim.Build(topology);
         _stepCount = 0;
         _frame = 0;
-        _lastSinkTotal = 0;
-        _lastTime = 0;
-        _throughput = 0;
         _dots.Clear();
         _nodeStates.Clear();
-        _busyTime.Clear();
-        _lastBusyChange.Clear();
-        _wasBusy.Clear();
         _speedMs = speedMs;
         _running = false;
         _resumable = true;
@@ -302,59 +284,18 @@ public class SimulationCanvas : Control, ISimulationSurface
         _frame++;
 
         _nodeStates = _sim.GetNodeStates();
-
-        // Throughput
-        int sinkTotal = _nodeStates.Where(n => n.Type == "sink").Sum(n => n.Count);
-        double dt = _sim.CurrentTime - _lastTime;
-        if (dt >= 1.0)
-        {
-            _throughput = (sinkTotal - _lastSinkTotal) / dt;
-            _lastSinkTotal = sinkTotal;
-            _lastTime = _sim.CurrentTime;
-        }
-
-        UpdateUtilization();
         UpdateDots();
         InvalidateVisual();
         if (finished) RunFinished?.Invoke(this, EventArgs.Empty);
     }
 
-    private void UpdateUtilization()
-    {
-        if (_sim == null) return;
-        double now = _sim.CurrentTime;
-        foreach (var ns in _nodeStates)
-        {
-            if (ns.Type != "server") continue;
-            bool busy = ns.Working;
-            if (!_busyTime.ContainsKey(ns.Id))
-            {
-                _busyTime[ns.Id] = 0;
-                _lastBusyChange[ns.Id] = 0;
-                _wasBusy[ns.Id] = false;
-            }
-            bool was = _wasBusy[ns.Id];
-            if (was && !busy)
-            {
-                _busyTime[ns.Id] += now - _lastBusyChange[ns.Id];
-                _lastBusyChange[ns.Id] = now;
-            }
-            else if (!was && busy)
-            {
-                _lastBusyChange[ns.Id] = now;
-            }
-            _wasBusy[ns.Id] = busy;
-        }
-    }
+    // SIM-92 (SIM-110 G1): every number shown is the engine's measure; null, shown as "–", means
+    // nothing is measured yet.
+    private double? GetUtilization(string nodeId) => _sim?.Measure(nodeId).Utilization;
 
-    private double GetUtilization(string nodeId)
-    {
-        if (_sim == null || _sim.CurrentTime < 0.1) return 0;
-        double busy = _busyTime.GetValueOrDefault(nodeId, 0);
-        if (_wasBusy.GetValueOrDefault(nodeId, false))
-            busy += _sim.CurrentTime - _lastBusyChange.GetValueOrDefault(nodeId, 0);
-        return busy / _sim.CurrentTime;
-    }
+    private static string Percent(double? share) => share is double v ? $"{v * 100:F0}%" : "–";
+
+    private static string Rate(double? rate) => rate is double v ? $"{v:F2}/t" : "–";
 
     public bool ShowStats
     {
@@ -373,28 +314,35 @@ public class SimulationCanvas : Control, ISimulationSurface
     /// </summary>
     public StatsSnapshot GetStatsSnapshot()
     {
-        var snap = new StatsSnapshot { Time = _sim?.CurrentTime ?? 0, Throughput = _throughput };
+        var snap = new StatsSnapshot
+        {
+            Time = _sim?.CurrentTime ?? 0,
+            Throughput = _sim?.Throughput,
+            Bottleneck = _sim?.Bottleneck,
+        };
         foreach (var ns in _nodeStates)
         {
-            if (ns.Type == "server")
+            if (_sim != null && _sim.ServerIds.Contains(ns.Id))
             {
                 var nodeDef = _topology?.Nodes.FirstOrDefault(n => n.Id == ns.Id);
                 snap.Servers.Add(new ServerStat
                 {
+                    Id = ns.Id,
                     Name = nodeDef?.Label?.Split('\n')[0] ?? ns.Id,
                     Utilization = GetUtilization(ns.Id),
                     Working = ns.Working,
                     Damaged = ns.Damaged
                 });
             }
-            else if (ns.Type == "buffer")
+            else if (_sim != null && _sim.BufferIds.Contains(ns.Id))
             {
                 var nodeDef = _topology?.Nodes.FirstOrDefault(n => n.Id == ns.Id);
                 snap.Buffers.Add(new BufferStat
                 {
+                    Id = ns.Id,
                     Name = nodeDef?.Label?.Split('\n')[0] ?? ns.Id,
                     Count = ns.Count,
-                    Capacity = ns.Capacity < int.MaxValue ? ns.Capacity : 100
+                    Capacity = ns.Capacity < int.MaxValue ? ns.Capacity : null
                 });
             }
             else if (ns.Type == "sink")
@@ -527,7 +475,7 @@ public class SimulationCanvas : Control, ISimulationSurface
         // Stats
         int sinkTotal = _nodeStates.Where(n => n.Type == "sink").Sum(n => n.Count);
         int queueTotal = _nodeStates.Where(n => n.Type == "buffer").Sum(n => n.Count);
-        string tput = _throughput > 0 ? $"{_throughput:F1}/t" : "—";
+        string tput = Rate(_sim?.Throughput);
         string stat = $"{(_running ? "RUN" : "END")}  |  Steps: {_stepCount}  |  Queued: {queueTotal}  |  Produced: {sinkTotal}  |  Throughput: {tput}  |  Speed: {_speedMs}ms";
         Txt(ctx, stat, b.Width / 2, b.Height - 25, 11, Dim, false, TfMono);
 
@@ -854,8 +802,8 @@ public class SimulationCanvas : Control, ISimulationSurface
     private void DrawStatsPanel(DrawingContext ctx, Rect bounds)
     {
         // Collect server utilizations
-        var servers = _nodeStates.Where(n => n.Type == "server").ToList();
-        var buffers = _nodeStates.Where(n => n.Type == "buffer").ToList();
+        var servers = _sim?.ServerIds.ToList() ?? new List<string>();
+        var buffers = _nodeStates.Where(n => _sim != null && _sim.BufferIds.Contains(n.Id)).ToList();
         int sinkTotal = _nodeStates.Where(n => n.Type == "sink").Sum(n => n.Count);
 
         int rowCount = servers.Count + buffers.Count + 3; // +3 for headers and throughput
@@ -872,28 +820,23 @@ public class SimulationCanvas : Control, ISimulationSurface
         double barX = px + 90;
         double barW = panelW - 100;
 
-        // Find bottleneck (highest utilization server)
-        string bottleneckId = "";
-        double maxUtil = 0;
-        foreach (var srv in servers)
-        {
-            double u = GetUtilization(srv.Id);
-            if (u > maxUtil) { maxUtil = u; bottleneckId = srv.Id; }
-        }
+        // the engine's bottleneck: the server with the highest measured utilization
+        string? bottleneckId = _sim?.Bottleneck;
+        double maxUtil = bottleneckId != null ? GetUtilization(bottleneckId) ?? 0 : 0;
 
         // Server utilizations
         Txt(ctx, "Utilization", px + panelW / 2, y, 8, Dim, true);
         y += rowH;
 
-        foreach (var srv in servers)
+        foreach (string serverId in servers)
         {
-            double util = GetUtilization(srv.Id);
-            var nodeDef = _topology!.Nodes.FirstOrDefault(n => n.Id == srv.Id);
-            string name = nodeDef?.Label?.Split('\n')[0] ?? srv.Id;
+            double? util = GetUtilization(serverId);
+            var nodeDef = _topology!.Nodes.FirstOrDefault(n => n.Id == serverId);
+            string name = nodeDef?.Label?.Split('\n')[0] ?? serverId;
             if (name.Length > 10) name = name[..10];
 
             // Bottleneck highlight
-            bool isBottleneck = srv.Id == bottleneckId && maxUtil > 0.5;
+            bool isBottleneck = serverId == bottleneckId && maxUtil > 0.5;
             if (isBottleneck)
                 Txt(ctx, "▶", px + 4, y, 7, StatsBarHigh);
 
@@ -901,10 +844,12 @@ public class SimulationCanvas : Control, ISimulationSurface
 
             // Bar
             ctx.DrawRectangle(StatsBarBg, null, new Rect(barX, y - 4, barW, 8), 2, 2);
-            IBrush barClr = util < 0.6 ? StatsBarLow : util < 0.85 ? StatsBarMed : StatsBarHigh;
-            if (util > 0.01)
-                ctx.DrawRectangle(barClr, null, new Rect(barX, y - 4, barW * Math.Min(1, util), 8), 2, 2);
-            Txt(ctx, $"{util * 100:F0}%", barX + barW + 8, y, 7, Dim, false, TfMono, leftAlign: true);
+            if (util is double u && u > 0.01)
+            {
+                IBrush barClr = u < 0.6 ? StatsBarLow : u < 0.85 ? StatsBarMed : StatsBarHigh;
+                ctx.DrawRectangle(barClr, null, new Rect(barX, y - 4, barW * Math.Min(1, u), 8), 2, 2);
+            }
+            Txt(ctx, Percent(util), barX + barW + 8, y, 7, Dim, false, TfMono, leftAlign: true);
 
             y += rowH;
         }
@@ -920,15 +865,17 @@ public class SimulationCanvas : Control, ISimulationSurface
             string name = nodeDef?.Label?.Split('\n')[0] ?? buf.Id;
             if (name.Length > 10) name = name[..10];
 
-            int cap = buf.Capacity < int.MaxValue ? buf.Capacity : 100;
-            double fill = cap > 0 ? (double)buf.Count / cap : 0;
-
             Txt(ctx, name, px + 14, y, 8, Dim, false, leftAlign: true);
 
-            ctx.DrawRectangle(StatsBarBg, null, new Rect(barX, y - 4, barW, 8), 2, 2);
-            IBrush wipClr = fill > 0.8 ? StatsBarHigh : StatsBarWip;
-            if (fill > 0.01)
-                ctx.DrawRectangle(wipClr, null, new Rect(barX, y - 4, barW * Math.Min(1, fill), 8), 2, 2);
+            // SIM-92: an unbounded queue has no capacity to fill, so it shows its count alone
+            if (buf.Capacity < int.MaxValue && buf.Capacity > 0)
+            {
+                double fill = (double)buf.Count / buf.Capacity;
+                ctx.DrawRectangle(StatsBarBg, null, new Rect(barX, y - 4, barW, 8), 2, 2);
+                IBrush wipClr = fill > 0.8 ? StatsBarHigh : StatsBarWip;
+                if (fill > 0.01)
+                    ctx.DrawRectangle(wipClr, null, new Rect(barX, y - 4, barW * Math.Min(1, fill), 8), 2, 2);
+            }
             Txt(ctx, $"{buf.Count}", barX + barW + 8, y, 7, Dim, false, TfMono, leftAlign: true);
 
             y += rowH;
@@ -936,7 +883,7 @@ public class SimulationCanvas : Control, ISimulationSurface
 
         // Throughput
         y += 4;
-        string tputStr = _throughput > 0 ? $"{_throughput:F1}/t" : "—";
+        string tputStr = Rate(_sim?.Throughput);
         Txt(ctx, $"Throughput: {tputStr}  |  Shipped: {sinkTotal}", px + panelW / 2, y, 8, Dim);
     }
 
@@ -1196,7 +1143,7 @@ public class SimulationCanvas : Control, ISimulationSurface
 
         int cnt = state?.Count ?? 0;
         int cap = state?.Capacity ?? 1;
-        if (cap == int.MaxValue) cap = 20;
+        if (cap == int.MaxValue) cap = Math.Max(cnt, 1);   // unbounded: a slot per item, no invented capacity
 
         // Compute grid: aim for ~square slots
         double slotSize = Math.Min(r.Width / 6, r.Height / 8);
@@ -1361,7 +1308,10 @@ public class SimulationCanvas : Control, ISimulationSurface
 public class StatsSnapshot
 {
     public double Time { get; set; }
-    public double Throughput { get; set; }
+    /// <summary>Items finished per unit of time, as the engine counts them; null when not measured.</summary>
+    public double? Throughput { get; set; }
+    /// <summary>The id of the engine's bottleneck server; null when none is measured.</summary>
+    public string? Bottleneck { get; set; }
     public int SinkTotal { get; set; }
     public List<ServerStat> Servers { get; set; } = new();
     public List<BufferStat> Buffers { get; set; } = new();
@@ -1369,15 +1319,19 @@ public class StatsSnapshot
 
 public class ServerStat
 {
+    public string Id { get; set; } = "";
     public string Name { get; set; } = "";
-    public double Utilization { get; set; }
+    /// <summary>The engine's time-average busy share; null when not measured.</summary>
+    public double? Utilization { get; set; }
     public bool Working { get; set; }
     public bool Damaged { get; set; }
 }
 
 public class BufferStat
 {
+    public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public int Count { get; set; }
-    public int Capacity { get; set; }
+    /// <summary>Null for an unbounded queue: it has no capacity to fill.</summary>
+    public int? Capacity { get; set; }
 }

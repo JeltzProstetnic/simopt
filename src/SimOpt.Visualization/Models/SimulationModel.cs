@@ -5,6 +5,7 @@ using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
 using SimOpt.Simulation.Enum;
 using SimOpt.Simulation.Interfaces;
+using SimOpt.Simulation.Statistics;
 using SimOpt.Simulation.Templates;
 using SimOpt.Mathematics.Stochastics.Distributions;
 
@@ -22,6 +23,13 @@ public class SimulationModel
     private readonly List<SimpleSource> _sources = new();
     private int _productCounter;
 
+    // SIM-92 (SIM-110 G1): the engine measures and the viewer displays. Collectors are attached by
+    // template type when the model is built, keyed by node id.
+    private readonly Dictionary<string, TimeWeightedCollector> _utilization = new();
+    private readonly Dictionary<string, TimeWeightedCollector> _queueLength = new();
+    private readonly Dictionary<string, TallyCollector> _wait = new();
+    private readonly Dictionary<string, CountCollector> _arrivals = new();
+
     public VizTopology Topology { get; private set; } = null!;
     public double EndTime { get; set; } = 200.0;
     public bool IsFinished => _model.CurrentTime >= EndTime;
@@ -34,6 +42,10 @@ public class SimulationModel
         _entities.Clear();
         _nodeDefinitions.Clear();
         _sources.Clear();
+        _utilization.Clear();
+        _queueLength.Clear();
+        _wait.Clear();
+        _arrivals.Clear();
 
         _model = new Model(topology.Name, topology.Seed, DateTime.MinValue);
 
@@ -43,6 +55,7 @@ public class SimulationModel
             _nodeDefinitions[node.Id] = node;
             var entity = CreateEntity(node);
             _entities[node.Id] = entity;
+            Observe(node.Id, entity);
         }
 
         // Wire connections
@@ -95,6 +108,74 @@ public class SimulationModel
         }
         return states;
     }
+
+    /// <summary>
+    /// What the engine has measured at a node so far; null where nothing is measured (no time has
+    /// passed, no item has left the queue, the node is not of that kind), which the viewer shows as "–".
+    /// </summary>
+    public NodeMeasures Measure(string nodeId)
+    {
+        double now = _model.CurrentTime;
+        int? capacity = null;
+        if (_entities.GetValueOrDefault(nodeId) is SimpleBuffer buffer && buffer.MaxCapacity < int.MaxValue)
+            capacity = buffer.MaxCapacity;
+        return new NodeMeasures(
+            Utilization: Known(_utilization.GetValueOrDefault(nodeId)?.TimeAverage(now)),
+            MeanQueueLength: Known(_queueLength.GetValueOrDefault(nodeId)?.TimeAverage(now)),
+            MeanWait: Known(_wait.GetValueOrDefault(nodeId)?.Mean),
+            Count: _arrivals.TryGetValue(nodeId, out var arrivals) ? (int)arrivals.Count : null,
+            Capacity: capacity);
+    }
+
+    /// <summary>The nodes whose busy share the engine measures (every server template, the Roland printer included).</summary>
+    public IReadOnlyCollection<string> ServerIds => _utilization.Keys;
+
+    /// <summary>The nodes that hold a queue.</summary>
+    public IReadOnlyCollection<string> BufferIds => _queueLength.Keys;
+
+    /// <summary>Items that reached any sink per unit of time since the start; null at t = 0.</summary>
+    public double? Throughput
+    {
+        get
+        {
+            double now = _model.CurrentTime;
+            if (_arrivals.Count == 0 || now <= 0) return null;
+            return _arrivals.Values.Sum(c => (double)c.Count) / now;
+        }
+    }
+
+    /// <summary>The id of the server with the highest measured utilization (the first on a tie); null when none is measured.</summary>
+    public string? Bottleneck
+    {
+        get
+        {
+            string? best = null;
+            double bestUtilization = double.NegativeInfinity;
+            foreach (string id in _utilization.Keys)
+                if (Measure(id).Utilization is double u && u > bestUtilization) { best = id; bestUtilization = u; }
+            return best;
+        }
+    }
+
+    private void Observe(string nodeId, object entity)
+    {
+        switch (entity)
+        {
+            case SimpleServer server:   // the reject server and the Roland printer too
+                _utilization[nodeId] = Instrumentation.ObserveUtilization(server);
+                break;
+            case SimpleBuffer buffer:
+                _queueLength[nodeId] = Instrumentation.ObserveQueueLength(buffer);
+                _wait[nodeId] = Instrumentation.ObserveWaitingTime(buffer);
+                break;
+            case SimpleSink sink:
+                _arrivals[nodeId] = Instrumentation.ObserveCount(sink);
+                break;
+        }
+    }
+
+    private static double? Known(double? value) =>
+        value is double v && !double.IsNaN(v) && !double.IsInfinity(v) ? v : null;
 
     private object CreateEntity(VizNode node)
     {
@@ -225,6 +306,11 @@ public class SimulationModel
         return new SimpleEntity(_model, $"E{_productCounter}", $"Entity {_productCounter}");
     }
 }
+
+/// <summary>
+/// SIM-92: a node's measures as the engine's collectors hold them; null means not measured.
+/// </summary>
+public sealed record NodeMeasures(double? Utilization, double? MeanQueueLength, double? MeanWait, int? Count, int? Capacity);
 
 /// <summary>
 /// Snapshot of a single node's state for rendering.

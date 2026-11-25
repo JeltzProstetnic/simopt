@@ -52,25 +52,23 @@ public class StatsPanel : Control
         Txt(ctx, "Server Utilization", b.Width / 2, y, 11, White, true);
         y += rowH;
 
-        // Find bottleneck
-        double maxUtil = 0;
-        string bottleneck = "";
-        foreach (var s in _snap.Servers)
-            if (s.Utilization > maxUtil) { maxUtil = s.Utilization; bottleneck = s.Name; }
-
+        // SIM-92: the engine's bottleneck, by id; two servers sharing a label cannot both be marked
         foreach (var srv in _snap.Servers)
         {
             string name = srv.Name.Length > 12 ? srv.Name[..12] : srv.Name;
-            bool isBn = srv.Name == bottleneck && maxUtil > 0.5;
+            bool isBn = srv.Id == _snap.Bottleneck && (srv.Utilization ?? 0) > 0.5;
 
             if (isBn) Txt(ctx, "▶", 6, y, 8, BottleneckClr);
             Txt(ctx, name, 16, y, 9, Dim, false, leftAlign: true);
 
             ctx.DrawRectangle(BarBg, null, new Rect(barX, y - 5, barW, 10), 3, 3);
-            IBrush clr = srv.Utilization < 0.6 ? BarLow : srv.Utilization < 0.85 ? BarMed : BarHigh;
-            if (srv.Utilization > 0.01)
-                ctx.DrawRectangle(clr, null, new Rect(barX, y - 5, barW * Math.Min(1, srv.Utilization), 10), 3, 3);
-            Txt(ctx, $"{srv.Utilization * 100:F0}%", barX + barW + 6, y, 8, Dim, false, TfMono, leftAlign: true);
+            if (srv.Utilization is double u && u > 0.01)
+            {
+                IBrush clr = u < 0.6 ? BarLow : u < 0.85 ? BarMed : BarHigh;
+                ctx.DrawRectangle(clr, null, new Rect(barX, y - 5, barW * Math.Min(1, u), 10), 3, 3);
+            }
+            string util = srv.Utilization is double v ? $"{v * 100:F0}%" : "–";
+            Txt(ctx, util, barX + barW + 6, y, 8, Dim, false, TfMono, leftAlign: true);
 
             y += rowH;
         }
@@ -82,21 +80,24 @@ public class StatsPanel : Control
         foreach (var buf in _snap.Buffers)
         {
             string name = buf.Name.Length > 12 ? buf.Name[..12] : buf.Name;
-            double fill = buf.Capacity > 0 ? (double)buf.Count / buf.Capacity : 0;
-
             Txt(ctx, name, 16, y, 9, Dim, false, leftAlign: true);
 
-            ctx.DrawRectangle(BarBg, null, new Rect(barX, y - 5, barW, 10), 3, 3);
-            IBrush wipClr = fill > 0.8 ? BarHigh : BarWip;
-            if (fill > 0.01)
-                ctx.DrawRectangle(wipClr, null, new Rect(barX, y - 5, barW * Math.Min(1, fill), 10), 3, 3);
+            // SIM-92: an unbounded queue has no capacity to fill, so it shows its count alone
+            if (buf.Capacity is int cap && cap > 0)
+            {
+                double fill = (double)buf.Count / cap;
+                ctx.DrawRectangle(BarBg, null, new Rect(barX, y - 5, barW, 10), 3, 3);
+                IBrush wipClr = fill > 0.8 ? BarHigh : BarWip;
+                if (fill > 0.01)
+                    ctx.DrawRectangle(wipClr, null, new Rect(barX, y - 5, barW * Math.Min(1, fill), 10), 3, 3);
+            }
             Txt(ctx, $"{buf.Count}", barX + barW + 6, y, 8, Dim, false, TfMono, leftAlign: true);
 
             y += rowH;
         }
 
         y += 12;
-        string tput = _snap.Throughput > 0 ? $"{_snap.Throughput:F1}/t" : "—";
+        string tput = _snap.Throughput is double t ? $"{t:F2}/t" : "–";
         Txt(ctx, $"Throughput: {tput}", b.Width / 2, y, 10, Dim);
         y += rowH;
         Txt(ctx, $"Shipped: {_snap.SinkTotal}", b.Width / 2, y, 10, Dim);
