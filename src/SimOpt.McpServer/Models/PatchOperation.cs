@@ -45,6 +45,11 @@ namespace SimOpt.McpServer.Models
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? Weight { get; set; }
 
+        [Description("set_connection, remove_connection: the process outlet the connection leaves by; none for the normal exit")]
+        [JsonPropertyName("outlet")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Outlet { get; set; }
+
         [Description("remove_metric: the metric's id")]
         [JsonPropertyName("id")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

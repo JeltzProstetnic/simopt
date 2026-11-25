@@ -49,6 +49,28 @@ namespace SimOpt.Simulation.Statistics
         /// <summary>SIM-65 step 5: time from an item's creation at a source to its arrival at a sink.</summary>
         public const string CycleTime = "cycle_time";
 
+        /// <summary>SIM-126: the share of the items reaching any sink that reach this one.</summary>
+        public const string Share = "share";
+
+        /// <summary>
+        /// SIM-126: the share of the items reaching any of <paramref name="sinks"/> after the warm-up that
+        /// reach <paramref name="at"/>, which is one of them.
+        /// </summary>
+        public static ShareCollector ObserveShare<T>(Sink<T> at, IEnumerable<Sink<T>> sinks, double warmup = 0d)
+        {
+            var collector = new ShareCollector(at.Model, Share,
+                id: at.Identifier + ".stat." + Share,
+                name: at.EntityName + " share")
+            { WarmupTime = warmup };
+
+            foreach (Sink<T> sink in sinks)
+            {
+                bool here = ReferenceEquals(sink, at);
+                sink.ItemReceived.AddHandler((_, _) => collector.Record(here));
+            }
+            return collector;
+        }
+
         /// <summary>
         /// Records a stock's level as a time-persistent statistic (SIM-127).
         /// </summary>

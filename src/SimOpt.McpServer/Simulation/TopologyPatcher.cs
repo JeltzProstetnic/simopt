@@ -204,24 +204,27 @@ namespace SimOpt.McpServer.Simulation
         {
             NodeDefinition from = NodeNamed(t, op.From, "from");
             NodeDefinition to = NodeNamed(t, op.To, "to");
-            ConnectionDefinition? existing = t.Connections.FirstOrDefault(c => c.From == from.Id && c.To == to.Id);
+            // SIM-126: a process's outlet connection is another connection than its normal exit to the same node
+            ConnectionDefinition? existing = t.Connections.FirstOrDefault(c => c.From == from.Id && c.To == to.Id && c.Outlet == op.Outlet);
             string weight = op.Weight is double w ? $" (weight {w.ToString(CultureInfo.InvariantCulture)})" : "";
+            string outlet = op.Outlet == null ? "" : $" by outlet '{op.Outlet}'";
             if (existing != null)
             {
                 existing.Weight = op.Weight;
-                return $"connection '{from.Id}' → '{to.Id}'{weight} kept, weight set";
+                return $"connection '{from.Id}' → '{to.Id}'{outlet}{weight} kept, weight set";
             }
-            t.Connections.Add(new ConnectionDefinition { From = from.Id, To = to.Id, Weight = op.Weight });
-            return $"added connection '{from.Id}' → '{to.Id}'{weight}";
+            t.Connections.Add(new ConnectionDefinition { From = from.Id, To = to.Id, Weight = op.Weight, Outlet = op.Outlet });
+            return $"added connection '{from.Id}' → '{to.Id}'{outlet}{weight}";
         }
 
         private static string RemoveConnection(TopologyDefinition t, PatchOperation op)
         {
-            ConnectionDefinition? existing = t.Connections.FirstOrDefault(c => c.From == op.From && c.To == op.To);
+            ConnectionDefinition? existing = t.Connections.FirstOrDefault(c => c.From == op.From && c.To == op.To && c.Outlet == op.Outlet);
+            string outlet = op.Outlet == null ? "" : $" by outlet '{op.Outlet}'";
             if (existing == null)
-                throw Fault("PATCH_NO_SUCH_CONNECTION", op.From, $"there is no connection '{op.From}' → '{op.To}'.");
+                throw Fault("PATCH_NO_SUCH_CONNECTION", op.From, $"there is no connection '{op.From}' → '{op.To}'{outlet}.");
             t.Connections.Remove(existing);
-            return $"removed connection '{op.From}' → '{op.To}'";
+            return $"removed connection '{op.From}' → '{op.To}'{outlet}";
         }
 
         // ── metrics ─────────────────────────────────────────────────────────

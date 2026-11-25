@@ -28,7 +28,7 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("nodes")]
         public List<NodeDefinition> Nodes { get; set; } = new();
 
-        [Description("Directed connections between nodes: {from, to, weight?}, or [from, to] or [from, to, weight]")]
+        [Description("Directed connections between nodes: {from, to, weight?, outlet?}, or [from, to] or [from, to, weight]")]
         [JsonPropertyName("connections")]
         public List<ConnectionDefinition> Connections { get; set; } = new();
 
@@ -113,6 +113,15 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("weight")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public double? Weight { get; set; }
+
+        /// <summary>
+        /// SIM-126 (rule 3): the outlet of a process this connection leaves by, the exit of the items that
+        /// gave up at a step naming it; null for the process's normal exit and on every other node.
+        /// </summary>
+        [Description("Optional: the outlet of a process this connection leaves by (the items that gave up at a step naming it)")]
+        [JsonPropertyName("outlet")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Outlet { get; set; }
     }
 
     /// <summary>Reads a connection as an object or an array, and writes it as an object.</summary>
@@ -164,6 +173,11 @@ namespace SimOpt.McpServer.Models
                     else if (reader.TokenType == JsonTokenType.Number) connection.Weight = reader.GetDouble();
                     else throw new JsonException("A connection's weight is a number.");
                 }
+                else if (property.Equals("outlet", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (reader.TokenType == JsonTokenType.Null) connection.Outlet = null;
+                    else connection.Outlet = Text(ref reader, "outlet");
+                }
                 else reader.Skip();
             }
             if (!from || !to) throw new JsonException("A connection names its from and its to node.");
@@ -181,6 +195,7 @@ namespace SimOpt.McpServer.Models
             writer.WriteString("from", value.From);
             writer.WriteString("to", value.To);
             if (value.Weight is double weight) writer.WriteNumber("weight", weight);
+            if (value.Outlet != null) writer.WriteString("outlet", value.Outlet);
             writer.WriteEndObject();
         }
     }

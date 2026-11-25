@@ -428,16 +428,25 @@ namespace SimOpt.McpServer.Simulation
                 });
             }
 
-            var wired = new HashSet<(string, string)>();
+            var wired = new HashSet<(string, string, string?)>();
             foreach (ConnectionDefinition conn in topology.Connections)
             {
                 // a connection at a node that failed would only repeat that node's error as "not found"
                 if (failed.Contains(conn.From ?? string.Empty) || failed.Contains(conn.To ?? string.Empty)) continue;
                 // a repeated connection is DUPLICATE_CONNECTION (TopologyLint); wiring it again would
                 // subscribe the same handler twice, which the engine refuses with an exception
-                if (!wired.Add((conn.From ?? string.Empty, conn.To ?? string.Empty))) continue;
+                if (!wired.Add((conn.From ?? string.Empty, conn.To ?? string.Empty, conn.Outlet))) continue;
                 Check(conn.From, "INVALID_CONNECTION", () => Wire(conn), failsNode: false);
             }
+
+            // SIM-126 (rule 3): every outlet a process names leads somewhere
+            foreach (var (processId, process) in processes)
+                foreach (string outlet in process.Outlets)
+                    if (!topology.Connections.Any(c => c.From == processId && c.Outlet == outlet))
+                        Fail(new ValidationIssue("OUTLET_NOT_CONNECTED",
+                            $"Process '{processId}': no connection leaves by its outlet '{outlet}', so the items that give up would vanish.",
+                            processId, $"Add {{\"from\": \"{processId}\", \"to\": <node>, \"outlet\": \"{outlet}\"}}, to a sink for instance."),
+                            null);
 
             void Wire(ConnectionDefinition conn)
             {
@@ -445,6 +454,32 @@ namespace SimOpt.McpServer.Simulation
                 string to = conn.To;
 
                 bool connected = false;
+
+                // SIM-126 (rule 3): an outlet is an exit of a process, leading where the connection says
+                if (conn.Outlet != null)
+                {
+                    if (!processes.TryGetValue(from, out ProcessNode? withOutlets))
+                        throw new TopologyException("OUTLET_NOT_READ", from,
+                            $"Connection '{from}' → '{to}' names outlet '{conn.Outlet}', and only a process has outlets.",
+                            "Remove the outlet, or connect from the process whose step names it.");
+                    if (conn.Weight is double outletWeight)
+                        throw new TopologyException("WEIGHT_NOT_READ", from,
+                            $"Connection '{from}' → '{to}': weight {outletWeight} is read only on a connection leaving a router, not on an outlet.",
+                            "Remove the weight.");
+                    if (!withOutlets.Outlets.Contains(conn.Outlet))
+                    {
+                        List<string> named = withOutlets.Outlets.ToList();
+                        throw new TopologyException("UNKNOWN_OUTLET", from,
+                            $"Connection '{from}' → '{to}': no step of process '{from}' names the outlet '{conn.Outlet}'.",
+                            named.Count > 0 ? $"Its outlets are {string.Join(", ", named.Select(o => $"'{o}'"))}."
+                                            : "Give a seize or take step patience and this outlet, or remove the outlet here.");
+                    }
+                    if (!Push(withOutlets.Outlet(conn.Outlet), from, to))
+                        throw new TopologyException("UNKNOWN_NODE", from,
+                            $"Connection '{from}' → '{to}': destination '{to}' not found or connection type is unsupported.",
+                            "See get_schema for what a process feeds.");
+                    return;
+                }
 
                 // SIM-126: a resource or a stock is used by process steps; an item is never passed to one
                 foreach (string end in new[] { from, to })
@@ -830,6 +865,13 @@ namespace SimOpt.McpServer.Simulation
                         }
                         break;
                     }
+                    case Instrumentation.Share:
+                    {
+                        SimpleSink sink = At(sinks, "sink");
+                        key = $"{sink.Identifier}.stat.{kind}";
+                        if (attached.Add(key)) Instrumentation.ObserveShare(sink, sinks.Values);
+                        break;
+                    }
                     case Instrumentation.CycleTime:
                     {
                         // without a node: from any source to any sink
@@ -974,12 +1016,13 @@ namespace SimOpt.McpServer.Simulation
                     case "release":
                     {
                         string? name = step.NodeId("resource", resources.Keys, "resource", failed, ref blocked);
-                        if (name == null) break;
+                        var (patience, outlet, patient) = type == "seize" ? step.Patience() : (null, null, true);
+                        if (name == null || !patient) break;
                         Resource resource = resources[name];
                         if (type == "seize")
                         {
                             held[name] = held.GetValueOrDefault(name) + 1;
-                            steps.Add(new SeizeStep(id, resource));
+                            steps.Add(new SeizeStep(id, resource, patience, outlet));
                         }
                         else if (held.GetValueOrDefault(name) == 0)
                         {
@@ -999,11 +1042,14 @@ namespace SimOpt.McpServer.Simulation
                     case "put":
                     {
                         string? name = step.NodeId("stock", stocks.Keys, "stock", failed, ref blocked);
-                        if (name == null) break;
+                        var (patience, outlet, patient) = type == "take" ? step.Patience() : (null, null, true);
+                        if (name == null || !patient) break;
                         Stock stock = stocks[name];
                         if (step.Amount(stock) is not { } amount) break;
                         if (type == "take")
-                            steps.Add(amount.Fixed is double fixedTake ? new TakeStep(id, stock, fixedTake) : new TakeStep(id, stock, amount.Drawn!));
+                            steps.Add(amount.Fixed is double fixedTake
+                                ? new TakeStep(id, stock, fixedTake, patience, outlet)
+                                : new TakeStep(id, stock, amount.Drawn!, patience, outlet));
                         else
                             steps.Add(amount.Fixed is double fixedPut ? new PutStep(id, stock, fixedPut) : new PutStep(id, stock, amount.Drawn!));
                         break;
@@ -1126,6 +1172,35 @@ namespace SimOpt.McpServer.Simulation
                     return null;
                 }
                 return distribution;
+            }
+
+            /// <summary>
+            /// Slice 3: a seize's or take's patience and outlet, which come together or not at all; false
+            /// (with a fault) when only one is given or either is faulty.
+            /// </summary>
+            public (IDistribution<double>? Patience, string? Outlet, bool Ok) Patience()
+            {
+                bool hasPatience = step.Fields.ContainsKey("patience"), hasOutlet = step.Fields.ContainsKey("outlet");
+                if (!hasPatience && !hasOutlet) return (null, null, true);
+                if (hasPatience && !hasOutlet)
+                {
+                    Fault("PATIENCE_WITHOUT_OUTLET", "it has a patience and no outlet, so an item that gives up would have nowhere to go.",
+                        "Give outlet, a name such as \"gave_up\", and a connection {\"from\": \"" + node + "\", \"to\": <node>, \"outlet\": <name>}.");
+                    return (null, null, false);
+                }
+                if (!hasPatience)
+                {
+                    Fault("OUTLET_WITHOUT_PATIENCE", "it has an outlet and no patience, so no item would ever leave by it.",
+                        "Give patience, a distribution of how long an item waits here, or remove the outlet.");
+                    return (null, null, false);
+                }
+                IDistribution<double>? patience = Distribution("patience", atMost: double.PositiveInfinity, of: null);
+                if (step.Fields["outlet"].Text is not string outlet || outlet.Trim().Length == 0)
+                {
+                    Fault("INVALID_STEP_FIELD", $"outlet must be a name, a string, not {step.Fields["outlet"]}.");
+                    return (null, null, false);
+                }
+                return patience == null ? (null, null, false) : (patience, outlet.Trim(), true);
             }
 
             /// <summary>A take or put amount: a positive number within the stock's capacity, or a distribution that stays within it.</summary>

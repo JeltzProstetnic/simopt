@@ -27,14 +27,17 @@ namespace SimOpt.McpServer.Simulation
             var outs = order.ToDictionary(id => id, _ => new List<string>());
             var ins = order.ToDictionary(id => id, _ => new List<string>());
 
-            var wired = new HashSet<(string, string)>();
-            var twice = new HashSet<(string, string)>();
+            var wired = new HashSet<(string, string, string?)>();
+            var twice = new HashSet<(string, string, string?)>();
+            // SIM-126 (rule 3): a process's outlets are distinct exits; by outlet, null for the normal exit
+            var exits = order.ToDictionary(id => id, _ => new Dictionary<string, List<string>>());
+            var normalOuts = order.ToDictionary(id => id, _ => 0);
             foreach (ConnectionDefinition c in topology.Connections)
             {
                 if (c.From == null || c.To == null || !types.ContainsKey(c.From) || !types.ContainsKey(c.To)) continue;
-                if (!wired.Add((c.From, c.To)))
+                if (!wired.Add((c.From, c.To, c.Outlet)))
                 {
-                    if (twice.Add((c.From, c.To)))
+                    if (twice.Add((c.From, c.To, c.Outlet)))
                         report.Errors.Add(new ValidationIssue("DUPLICATE_CONNECTION",
                             $"Connection '{c.From}' → '{c.To}' is listed more than once; every item would be passed on once per listing.",
                             c.From, "Remove the repeated connection."));
@@ -42,6 +45,10 @@ namespace SimOpt.McpServer.Simulation
                 }
                 outs[c.From].Add(c.To);
                 ins[c.To].Add(c.From);
+                string exit = c.Outlet ?? string.Empty;
+                if (!exits[c.From].TryGetValue(exit, out List<string>? by)) exits[c.From][exit] = by = new List<string>();
+                by.Add(c.To);
+                if (c.Outlet == null) normalOuts[c.From]++;
             }
 
             List<string> sources = order.Where(id => types[id] == "source").ToList();
@@ -51,14 +58,16 @@ namespace SimOpt.McpServer.Simulation
                 report.Errors.Add(new ValidationIssue("NO_SOURCE", "The model has no source, so no item ever enters it.",
                     Suggestion: "Add a source and connect it to the first queue."));
 
-            foreach (string id in order.Where(id => PushTypes.Contains(types[id]) && outs[id].Count > 1))
-            {
-                string targets = string.Join(", ", outs[id].Select(t => $"'{t}'"));
-                report.Errors.Add(new ValidationIssue("FAN_OUT_WITHOUT_ROUTER",
-                    $"{Capital(types[id])} '{id}' has {outs[id].Count} connections leaving it ({targets}); every item " +
-                    "would be put into each of them, duplicated.",
-                    id, $"Connect '{id}' to a router (policy probabilistic or shortest_queue) and the router to {targets}."));
-            }
+            foreach (string id in order.Where(id => PushTypes.Contains(types[id])))
+                foreach (var (exit, targetsOf) in exits[id].Where(e => e.Value.Count > 1))
+                {
+                    string targets = string.Join(", ", targetsOf.Select(t => $"'{t}'"));
+                    string by = exit.Length == 0 ? "" : $" by its outlet '{exit}'";
+                    report.Errors.Add(new ValidationIssue("FAN_OUT_WITHOUT_ROUTER",
+                        $"{Capital(types[id])} '{id}' has {targetsOf.Count} connections leaving it{by} ({targets}); every item " +
+                        "would be put into each of them, duplicated.",
+                        id, $"Connect '{id}'{by} to a router (policy probabilistic or shortest_queue) and the router to {targets}."));
+                }
 
             var unconnected = order.Where(id => outs[id].Count == 0 && ins[id].Count == 0).ToHashSet();
             foreach (string id in order.Where(unconnected.Contains))
@@ -79,6 +88,15 @@ namespace SimOpt.McpServer.Simulation
             if (sinks.Count == 0) return;     // NO_SINK already says where every item ends up
 
             var stops = new List<string>();
+            // a process whose only connections are outlets loses the items that finish its steps
+            foreach (string id in order.Where(id => reached.Contains(id) && types[id] == "process" && outs[id].Count > 0
+                                                    && normalOuts[id] == 0))
+            {
+                stops.Add(id);
+                report.Warnings.Add(new ValidationIssue("DEAD_END",
+                    $"Process '{id}' has only outlet connections, so the items that finish its steps stop there.",
+                    id, $"Connect '{id}' onward without an outlet, toward a sink."));
+            }
             foreach (string id in order.Where(id => reached.Contains(id) && types[id] != "sink" && outs[id].Count == 0
                                                     && !unconnected.Contains(id)))
             {

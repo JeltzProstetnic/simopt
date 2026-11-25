@@ -131,6 +131,15 @@ namespace SimOpt.McpServer.Models
                 "A positive number, or a distribution drawn when the item enters that cannot go below 0 or beyond the " +
                 "stock's capacity; a draw of 0 moves nothing.");
 
+        private static readonly ParameterSpec PatienceField =
+            new ParameterSpec("patience", "distribution", false, "none (waits for ever)",
+                "How long an item waits at this step before it gives up, drawn when it enters; it cannot go below 0. Needs outlet.");
+
+        private static readonly ParameterSpec OutletField =
+            new ParameterSpec("outlet", "string", false, null,
+                "With patience: the name of the exit an item that gave up leaves by, holding nothing; a connection " +
+                "{\"from\": <process>, \"to\": <node>, \"outlet\": <name>} carries it.");
+
         /// <summary>SIM-126: the closed list of steps a process node's <c>steps</c> may use (Q-PROC-SCHEMA).</summary>
         public static IReadOnlyList<StepTypeSpec> StepTypes { get; } = new[]
         {
@@ -138,12 +147,13 @@ namespace SimOpt.McpServer.Models
                 new[] { new ParameterSpec("duration", "distribution", true, null, "How long; it cannot go below 0.") }),
             new StepTypeSpec("seize",
                 "Waits for a unit of the resource, first come, first served, and holds it until a release step or until " +
-                "the item leaves the process.",
-                new[] { ResourceField }),
+                "the item leaves the process; with patience, for at most that long.",
+                new[] { ResourceField, PatienceField, OutletField }),
             new StepTypeSpec("release", "Frees one unit of a resource the item holds, before it leaves the process.",
                 new[] { ResourceField }),
-            new StepTypeSpec("take", "Takes the amount out of the stock, waiting until the whole amount is there.",
-                new[] { StockField, AmountField }),
+            new StepTypeSpec("take",
+                "Takes the amount out of the stock, waiting until the whole amount is there; with patience, for at most that long.",
+                new[] { StockField, AmountField, PatienceField, OutletField }),
             new StepTypeSpec("put", "Puts the amount into the stock, waiting while it would overfill the stock.",
                 new[] { StockField, AmountField }),
         };
@@ -159,6 +169,8 @@ namespace SimOpt.McpServer.Models
             new MetricKindSpec("throughput", "a sink", "Items that reached the sink per unit of time after the warm-up."),
             new MetricKindSpec("cycle_time", "a sink, or every sink without a node",
                 "Mean time from an item's creation at a source to its arrival at the sink."),
+            new MetricKindSpec("share", "a sink",
+                "Share of the items reaching any sink after the warm-up that reach this one (the share who gave up, a scrap rate)."),
             new MetricKindSpec(LevelKind, "a stock", "Time-average level of the stock."),
             new MetricKindSpec(EmptyShareKind, "a stock", "Share of time the stock stood empty."),
         };
@@ -175,7 +187,7 @@ namespace SimOpt.McpServer.Models
             "All items are alike: no item types, attributes or priorities; a queue serves first in first out or last in first out, and a router never looks at the item.",
             "A station's servers are identical and serve one item at a time each, and a station shares nothing with another; what activities share (staff, bays) is a resource that process steps seize, one unit per step.",
             "A process has no loops or conditions, and an item holds a unit only within one process node; it frees every unit it still holds when it leaves.",
-            "An item waits in its queue until served and never leaves early; an item a full queue refuses is lost, and counted.",
+            "An item waits in its queue until served and never leaves early, except at a seize or take step with a patience; an item a full queue refuses is lost, and counted.",
             "Every replication starts empty and idle; only the warm-up keeps that start out of the figures.",
         };
 
@@ -291,6 +303,7 @@ namespace SimOpt.McpServer.Models
                             ["from"] = new JsonObject { ["type"] = "string" },
                             ["to"] = new JsonObject { ["type"] = "string" },
                             ["weight"] = new JsonObject { ["type"] = "number", ["exclusiveMinimum"] = 0 },
+                            ["outlet"] = new JsonObject { ["type"] = "string", ["description"] = "The process outlet this connection leaves by." },
                         },
                     },
                     new JsonObject

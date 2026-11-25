@@ -19,6 +19,28 @@ namespace SimOpt.Simulation.Processes
 
         /// <summary>Names the step in its node; its random streams are keyed to it.</summary>
         public string Id { get; }
+
+        /// <summary>
+        /// Slice 3: patience and its outlet come together or not at all; an outlet without patience
+        /// would never be used, and patience without one would leave the item nowhere to go.
+        /// </summary>
+        protected static void CheckPatience(IDistribution<double> patience, string outlet)
+        {
+            if (patience != null && string.IsNullOrWhiteSpace(outlet))
+                throw new ArgumentException("A step with patience names the outlet an item that gives up leaves by.", nameof(outlet));
+            if (patience == null && !string.IsNullOrWhiteSpace(outlet))
+                throw new ArgumentException("A step with an outlet has a patience after which an item gives up.", nameof(patience));
+        }
+    }
+
+    /// <summary>A step an item may give up waiting at: after its patience it leaves by its outlet.</summary>
+    public interface IPatientStep
+    {
+        /// <summary>How long an item waits at the step before it gives up, drawn on entry; null when it waits for ever.</summary>
+        IDistribution<double> Patience { get; }
+
+        /// <summary>The outlet an item that gave up leaves by; null without patience.</summary>
+        string Outlet { get; }
     }
 
     /// <summary>Holds the item for a duration drawn when the item enters the node.</summary>
@@ -34,16 +56,24 @@ namespace SimOpt.Simulation.Processes
         public IDistribution<double> Duration { get; }
     }
 
-    /// <summary>Waits for a unit of a resource, first come, first served, and holds it.</summary>
+    /// <summary>
+    /// Waits for a unit of a resource, first come, first served, and holds it; with patience, for at
+    /// most that long.
+    /// </summary>
     [Serializable]
-    public sealed class SeizeStep : ProcessStep
+    public sealed class SeizeStep : ProcessStep, IPatientStep
     {
-        public SeizeStep(string id, Resource resource) : base(id)
+        public SeizeStep(string id, Resource resource, IDistribution<double> patience = null, string outlet = null) : base(id)
         {
             Resource = resource ?? throw new ArgumentNullException(nameof(resource));
+            CheckPatience(patience, outlet);
+            Patience = patience;
+            Outlet = patience == null ? null : outlet;
         }
 
         public Resource Resource { get; }
+        public IDistribution<double> Patience { get; }
+        public string Outlet { get; }
     }
 
     /// <summary>Frees one unit of a resource the item holds, before the item leaves the node.</summary>
@@ -88,12 +118,31 @@ namespace SimOpt.Simulation.Processes
         public IDistribution<double> RandomAmount { get; }
     }
 
-    /// <summary>Takes an amount out of a stock, waiting until the whole amount is there.</summary>
+    /// <summary>
+    /// Takes an amount out of a stock, waiting until the whole amount is there; with patience, for at
+    /// most that long.
+    /// </summary>
     [Serializable]
-    public sealed class TakeStep : StockStep
+    public sealed class TakeStep : StockStep, IPatientStep
     {
-        public TakeStep(string id, Stock stock, double amount) : base(id, stock, amount) { }
-        public TakeStep(string id, Stock stock, IDistribution<double> amount) : base(id, stock, amount) { }
+        public TakeStep(string id, Stock stock, double amount, IDistribution<double> patience = null, string outlet = null)
+            : base(id, stock, amount)
+        {
+            CheckPatience(patience, outlet);
+            Patience = patience;
+            Outlet = patience == null ? null : outlet;
+        }
+
+        public TakeStep(string id, Stock stock, IDistribution<double> amount, IDistribution<double> patience = null, string outlet = null)
+            : base(id, stock, amount)
+        {
+            CheckPatience(patience, outlet);
+            Patience = patience;
+            Outlet = patience == null ? null : outlet;
+        }
+
+        public IDistribution<double> Patience { get; }
+        public string Outlet { get; }
     }
 
     /// <summary>Puts an amount into a stock, waiting while it would overfill it.</summary>

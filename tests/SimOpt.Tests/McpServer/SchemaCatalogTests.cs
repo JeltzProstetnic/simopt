@@ -88,7 +88,7 @@ public class SchemaCatalogTests
     {
         SchemaCatalog.MetricKinds.Select(k => k.Name).Should().BeEquivalentTo(
             Instrumentation.WaitTime, Instrumentation.QueueLength, Instrumentation.Utilization,
-            Instrumentation.ItemCount, Instrumentation.Throughput, Instrumentation.CycleTime,
+            Instrumentation.ItemCount, Instrumentation.Throughput, Instrumentation.CycleTime, Instrumentation.Share,
             SchemaCatalog.LevelKind, SchemaCatalog.EmptyShareKind);   // SIM-126: a stock's, on the engine's stock_level and stock_empty
         SchemaCatalog.DistributionTypes.Should().Equal(DistributionFactory.KnownTypes);
     }

@@ -52,8 +52,10 @@ namespace SimOpt.McpServer.Simulation
 
             var outs = order.ToDictionary(id => id, _ => new List<ConnectionDefinition>());
             var wired = new HashSet<(string, string)>();
+            // SIM-126: the share of items that give up is not known before a run, so a process's flow is
+            // counted through its normal exit; loads behind an outlet are not reached by it
             foreach (ConnectionDefinition c in topology.Connections)
-                if (wired.Add((c.From, c.To))) outs[c.From].Add(c);
+                if (c.Outlet == null && wired.Add((c.From, c.To))) outs[c.From].Add(c);
 
             var servers = order.Where(id => type[id] == "station").ToDictionary(id => id, id => Servers(nodes[id]));
             var service = order.Where(id => type[id] == "station")

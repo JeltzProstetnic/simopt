@@ -34,7 +34,9 @@ namespace SimOpt.Simulation.Processes
         private readonly ProcessStep[] steps;
         private readonly string[] fieldKeys;              // "<step id>.<field>", in step order
         private readonly Random<double>[] fieldStreams;
-        private readonly int[] fieldOfStep;               // index into the fields, or -1 for a step without one
+        private readonly int[] fieldOfStep;               // the step's duration or amount, or -1
+        private readonly int[] patienceOfStep;            // slice 3: the step's patience, or -1
+        private readonly Dictionary<string, OutletSource> outlets = new Dictionary<string, OutletSource>();
         private readonly bool seizes;
         private readonly BinaryEvent<IEntity, SimpleEntity> itemReleased;
         private readonly BinaryEvent<ProcessNode, IReadOnlyDictionary<string, double>> itemEntered;
@@ -55,14 +57,25 @@ namespace SimOpt.Simulation.Processes
             var keys = new List<string>();
             var distributions = new List<IDistribution<double>>();
             fieldOfStep = new int[this.steps.Length];
+            patienceOfStep = new int[this.steps.Length];
+            int Field(ProcessStep step, string field, IDistribution<double> distribution)
+            {
+                if (distribution == null) return -1;
+                keys.Add(step.Id + "." + field);
+                distributions.Add(distribution);
+                return keys.Count - 1;
+            }
             for (int i = 0; i < this.steps.Length; i++)
             {
-                fieldOfStep[i] = -1;
                 (string field, IDistribution<double> distribution) = RandomField(this.steps[i]);
-                if (distribution == null) continue;
-                fieldOfStep[i] = keys.Count;
-                keys.Add(this.steps[i].Id + "." + field);
-                distributions.Add(distribution);
+                fieldOfStep[i] = Field(this.steps[i], field, distribution);
+                patienceOfStep[i] = -1;
+                if (this.steps[i] is IPatientStep patient && patient.Patience != null)
+                {
+                    patienceOfStep[i] = Field(this.steps[i], "patience", patient.Patience);
+                    if (!outlets.ContainsKey(patient.Outlet))
+                        outlets.Add(patient.Outlet, new OutletSource(EntityName + "." + patient.Outlet));
+                }
             }
             fieldKeys = keys.ToArray();
             fieldStreams = new Random<double>[fieldKeys.Length];
@@ -87,6 +100,19 @@ namespace SimOpt.Simulation.Processes
 
         /// <summary>Raised with every item that has run through all the steps, as it is pushed on.</summary>
         public BinaryEvent<IEntity, SimpleEntity> EntityCreatedEvent { get { return itemReleased; } }
+
+        /// <summary>Slice 3: the outlets the steps name, in step order.</summary>
+        public IEnumerable<string> Outlets { get { return outlets.Keys; } }
+
+        /// <summary>
+        /// Slice 3: the exit of the items that gave up at a step naming <paramref name="name"/>, as an item
+        /// source to connect a downstream node to.
+        /// </summary>
+        public IItemSource<SimpleEntity> Outlet(string name)
+        {
+            if (name != null && outlets.TryGetValue(name, out OutletSource outlet)) return outlet;
+            throw new ArgumentException("Process '" + EntityName + "' has no step with the outlet '" + name + "'.", nameof(name));
+        }
 
         /// <summary>
         /// Raised as an item enters, with the values drawn for it by <c>"&lt;step id&gt;.&lt;field&gt;"</c>
@@ -119,9 +145,18 @@ namespace SimOpt.Simulation.Processes
                         yield return p.Timeout(draws[fieldOfStep[i]]);
                         break;
                     case SeizeStep seize:
-                        yield return seize.Resource.Request();
+                    {
+                        Wait request = seize.Resource.Request();
+                        if (patienceOfStep[i] < 0) yield return request;
+                        else
+                        {
+                            AnyOfWait patient = Wait.AnyOf(request, p.Timeout(draws[patienceOfStep[i]]));
+                            yield return patient;
+                            if (patient.Winner != request) { GiveUp(held, item, seize.Outlet); yield break; }
+                        }
                         held.Add(seize.Resource);
                         break;
+                    }
                     case ReleaseStep release:
                         held.Remove(release.Resource);
                         release.Resource.Release();
@@ -129,7 +164,15 @@ namespace SimOpt.Simulation.Processes
                     case TakeStep take:
                     {
                         double amount = Amount(take, i, draws);
-                        if (amount > 0d) yield return take.Stock.TakeWait(amount);
+                        if (!(amount > 0d)) break;
+                        Wait taken = take.Stock.TakeWait(amount);
+                        if (patienceOfStep[i] < 0) yield return taken;
+                        else
+                        {
+                            AnyOfWait patient = Wait.AnyOf(taken, p.Timeout(draws[patienceOfStep[i]]));
+                            yield return patient;
+                            if (patient.Winner != taken) { GiveUp(held, item, take.Outlet); yield break; }
+                        }
                         break;
                     }
                     case PutStep put:
@@ -144,6 +187,15 @@ namespace SimOpt.Simulation.Processes
                 foreach (Resource unit in held) unit.Release();
             count--;
             itemReleased.Raise(this, item);
+        }
+
+        /// <summary>An item that gave up frees what it holds and leaves by the outlet.</summary>
+        private void GiveUp(List<Resource> held, SimpleEntity item, string outlet)
+        {
+            if (held != null)
+                foreach (Resource unit in held) unit.Release();
+            count--;
+            outlets[outlet].Raise(this, item);
         }
 
         private double Amount(StockStep step, int index, double[] draws) =>
@@ -215,6 +267,25 @@ namespace SimOpt.Simulation.Processes
         }
 
         #endregion
+
+        /// <summary>Slice 3: an outlet as an item source, so a downstream node connects to it as to any other.</summary>
+        [Serializable]
+        private sealed class OutletSource : IItemSource<SimpleEntity>
+        {
+            private readonly BinaryEvent<IEntity, SimpleEntity> released;
+
+            public OutletSource(string name) { released = new BinaryEvent<IEntity, SimpleEntity>(name); }
+
+            public BinaryEvent<IEntity, SimpleEntity> EntityCreatedEvent { get { return released; } }
+
+            public void Raise(IEntity sender, SimpleEntity item) => released.Raise(sender, item);
+
+            public bool ConnectTo(IItemSink<SimpleEntity> sink)
+            {
+                released.AddHandler((_, item) => sink.Put(item), new Priority(type: PriorityType.SimWorldBeforeOthers));
+                return true;
+            }
+        }
 
         /// <summary>The values drawn for one item, read by key without a dictionary per item.</summary>
         private sealed class Draws : IReadOnlyDictionary<string, double>
