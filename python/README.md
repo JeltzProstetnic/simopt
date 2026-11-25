@@ -48,7 +48,43 @@ with Server() as server:
 ```
 
 A topology is a plain dict in the SIM-65 schema; `Topology` only saves typing, and `server.schema()`
-returns the node types, parameters, metric kinds and distributions with a JSON Schema.
+returns the node types, parameters, step types, metric kinds and distributions with a JSON Schema.
+
+## Processes: what activities share (SIM-126)
+
+A `resource` (units: bays, nurses) and a `stock` (a level: soap, parts) sit beside the item flow. A `process`
+runs every item it receives through a closed list of steps and passes it on; an item leaving frees every unit
+it holds, and every random step value is drawn when it enters. A process nothing feeds repeats its steps beside
+the flow (a supplier, a breakdown). There are no loops or conditions: route between nodes.
+
+```python
+from simopt import Server, Topology, exponential, steps, uniform
+
+wash = (Topology("car wash")
+        .source("arrivals", arrival=exponential(3))
+        .resource("bays", capacity=2)
+        .stock("soap", initial=40, capacity=40)
+        .process("wash", [steps.seize("bays", patience=uniform(5, 20), outlet="gave_up"),
+                          steps.take("soap", 1),
+                          steps.delay(uniform(4, 6), id="washing")])
+        .process("supplier", [steps.wait_until("soap", at_most=5, id="low"),
+                              steps.delay(uniform(30, 60)),
+                              steps.put("soap", up_to=40)])
+        .sink("washed").sink("left")
+        .connect("arrivals", "wash", "washed")
+        .connect("wash", "left", outlet="gave_up")        # drivers who gave up
+        .metric("gave-up", "share", "left")
+        .metric("soap-empty", "empty_share", "soap"))
+with Server() as server:
+    print(server.validate(wash)["warnings"])            # STOCK_RUNS_OUT: 15 used per delivery, reorder level 5
+    model = server.create_model(wash)
+    found = model.optimize(variables=[{"path": "bays.capacity", "type": "integer", "min": 2, "max": 3},
+                                      {"path": "supplier.steps.low.at_most", "type": "integer", "min": 5, "max": 25, "step": 10}],
+                           objective={"metric": "gave-up", "direction": "min"}, duration=600, warmup=0)
+```
+
+A step is named by its `id`, or `<type>#<n>` (the n-th step of its type), so `supplier.steps.put#1.up_to` is a
+patch path and a decision variable like `bays.capacity`.
 
 ## What there is
 
@@ -58,7 +94,8 @@ returns the node types, parameters, metric kinds and distributions with a JSON S
 | `Model` | `patch(operations)` (a new version), `run_experiment(..., record=path)` and `optimize(..., record=path)` (`record` writes a run record),  `save(path)` and `export()` (the topology as a file or a dict, which `load_model` reopens in any later server), `run(duration)`; keyword arguments carry the MCP tools' own names |
 | `Experiment` | `raw` (the tool's answer), `provenance` (everything but the figures: `model_sha256`, seed, warm-up, `assumed`, ...), `rows()`, `frame()` (provenance in `attrs["provenance"]`), `errors`, `summary` |
 | `Optimization` | `raw`, `best`, `rows()` (one per ranked point), `frame()`, `summary` |
-| `Topology` | `source`, `queue`, `station`, `delay`, `router`, `sink`, `node`, `connect(*path, weight=None)`, `metric` |
+| `Topology` | `source`, `queue`, `station`, `delay`, `router`, `sink`, `resource`, `stock`, `process(id, steps)`, `node`, `connect(*path, weight=None, outlet=None)`, `metric` |
+| `steps` | `delay`, `seize`, `release`, `take`, `put`, `wait_until`: one dict per step of a process |
 | distributions | `exponential`, `triangular`, `uniform`, `lognormal`, `gamma`, `constant`, `empirical` |
 
 A refusal raises `SimOptError`, with `.message` and `.validation` (the model's report); a server that cannot

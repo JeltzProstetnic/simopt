@@ -30,6 +30,7 @@ namespace SimOpt.Benchmarks
         public static readonly IReadOnlyList<string> Names = new[]
         {
             "mm1", "md1", "mg1u", "mmc", "jackson", "mg1-breakdowns", "process-mm1", "process-stock", "mm1-overload",
+            "process-node-mmc",
         };
 
         /// <summary>Runs one case.</summary>
@@ -47,6 +48,7 @@ namespace SimOpt.Benchmarks
                 "process-mm1" => ProcessMM1(scale, replications, baseSeed),
                 "process-stock" => ProcessStock(scale, replications, baseSeed),
                 "mm1-overload" => MM1Overload(scale, replications, baseSeed),
+                "process-node-mmc" => ProcessNodeMMc(scale, replications, baseSeed),
                 _ => throw new ArgumentException($"Unknown case '{name}'.", nameof(name)),
             };
         }
@@ -180,6 +182,29 @@ namespace SimOpt.Benchmarks
             Instrumentation.ObserveWaitingTime(buffer);
             foreach (SimpleServer s in pool) Instrumentation.ObserveUtilization(s);
             return Replicate("mmc", model, 21_000d * scale, 1_000d * scale, replications, baseSeed);
+        }
+
+        /// <summary>
+        /// SIM-126 schema, slice 6: the mmc case written as a topology's process node, a resource of 3 units
+        /// and one delay step, so the cost of a process node per event stands beside the station pool's.
+        /// </summary>
+        private static CaseOutcome ProcessNodeMMc(double scale, int replications, int baseSeed)
+        {
+            var model = new Model("process-node-mmc", 1, 0d);
+            SimpleSource source = PoissonArrivals(model, 2.4, "pnmmc");
+            var staff = new Resource(model, capacity: 3, id: "staff", name: "staff");
+            var serve = new ProcessNode(model, StableHash.Of("serve"), new ProcessStep[]
+            {
+                new SeizeStep("seize#1", staff),
+                new DelayStep("delay#1", Exponential(1.0)),
+            }, id: "serve", name: "serve");
+            var sink = new SimpleSink(model, id: "snk", name: "snk");
+            serve.ConnectTo(source);
+            sink.ConnectTo(serve);
+            Instrumentation.ObserveResourceQueueLength(staff);
+            Instrumentation.ObserveResourceWaitingTime(staff);
+            Instrumentation.ObserveResourceUtilization(staff);
+            return Replicate("process-node-mmc", model, 21_000d * scale, 1_000d * scale, replications, baseSeed);
         }
 
         private static CaseOutcome Jackson(double scale, int replications, int baseSeed)

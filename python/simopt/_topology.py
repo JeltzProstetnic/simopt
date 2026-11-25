@@ -75,14 +75,30 @@ class Topology(dict):
     def sink(self, id):
         return self.node(id, "sink")
 
-    def connect(self, *path, weight=None):
-        """Connects each node of the path to the next; a weight belongs to a single connection."""
+    def resource(self, id, capacity=None):
+        """SIM-126: units processes seize (bays, nurses); beside the item flow, connected to nothing."""
+        return self.node(id, "resource", capacity=capacity)
+
+    def stock(self, id, initial=None, capacity=None):
+        """SIM-126: a level processes take from and put into; beside the item flow, connected to nothing."""
+        return self.node(id, "stock", initial=initial, capacity=capacity)
+
+    def process(self, id, steps):
+        """SIM-126: runs every item it receives through its steps (see simopt.steps); fed by nothing, it repeats them."""
+        self["nodes"].append({"id": id, "type": "process", "steps": list(steps)})
+        return self
+
+    def connect(self, *path, weight=None, outlet=None):
+        """Connects each node of the path to the next; a weight, or the process outlet a connection leaves
+        by, belongs to a single connection."""
         if len(path) < 2:
             raise ValueError("connect needs at least two node ids.")
         if weight is not None and len(path) != 2:
             raise ValueError("A weight belongs to one connection: connect(from, to, weight=...).")
+        if outlet is not None and len(path) != 2:
+            raise ValueError("An outlet belongs to one connection: connect(process, to, outlet=...).")
         for source, target in zip(path, path[1:]):
-            self["connections"].append(_given(**{"from": source, "to": target, "weight": weight}))
+            self["connections"].append(_given(**{"from": source, "to": target, "weight": weight, "outlet": outlet}))
         return self
 
     def metric(self, id, kind, node=None):

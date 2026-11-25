@@ -41,7 +41,7 @@
 | `src/SimOpt.FMT` | Empty scaffold (FMT logic lives in crucible) |
 | `src/SimOpt.Logging` | Cross-platform simulation logging |
 | `src/SimOpt.Logging.Desktop` | Desktop logging sink |
-| `tests/SimOpt.Tests` | xUnit test project (1331 passing, 1 skipped, 2026-11-25) |
+| `tests/SimOpt.Tests` | xUnit test project (1565 passing, 4 skipped, 2026-11-25) |
 | `python/` | The `simopt` Python package (SIM-130): drives the MCP server, results as pandas frames; pytest in `python/tests` |
 | `benchmarks/SimOpt.Benchmarks` | Speed harness (SIM-129): time and bytes per event, results fingerprints pinned by `EngineFingerprintTests` |
 | `examples/` | Complete runnable models (SQSS, ED, SupplyChain, Warehouse, CarWash as processes, etc.) |

@@ -109,9 +109,11 @@ namespace SimOpt.McpServer.Tools
             "Changes an existing model by a list of operations, applied in order to a copy of its latest version, all or none. " +
             "Operations: {op:\"set\", path, value} where path is \"name\", \"seed\", \"<node>.<param>\" (value a number, a string " +
             "or a distribution object; null removes it) or \"<node>.<param>.<field>\" (one field of a distribution, e.g. " +
-            "{\"op\":\"set\",\"path\":\"arrivals.arrival.mean\",\"value\":2.5}); {op:\"add_node\", value:{id,type,params}}; " +
-            "{op:\"remove_node\", node} (its connections and metrics go with it); {op:\"set_connection\", from, to, weight?} " +
-            "(adds it, or sets its weight); {op:\"remove_connection\", from, to}; {op:\"set_metric\", value:{id,kind,node?}}; " +
+            "{\"op\":\"set\",\"path\":\"arrivals.arrival.mean\",\"value\":2.5}); a process's step field is " +
+            "\"<process>.steps.<step id>.<field>[.<distribution field>]\" (a step without an id is <type>#<n>, e.g. " +
+            "\"supplier.steps.put#1.up_to\"); {op:\"add_node\", value:{id,type,params}}; " +
+            "{op:\"remove_node\", node} (its connections and metrics go with it); {op:\"set_connection\", from, to, weight?, outlet?} " +
+            "(adds it, or sets its weight); {op:\"remove_connection\", from, to, outlet?}; {op:\"set_metric\", value:{id,kind,node?}}; " +
             "{op:\"remove_metric\", id}. The result is validated like create_model. If an operation is faulty or the result has " +
             "errors, nothing changes and every fault is returned; otherwise it becomes the next version, earlier versions stay " +
             "available to run_experiment. Returns {model_id, version, changes, validation}.")]

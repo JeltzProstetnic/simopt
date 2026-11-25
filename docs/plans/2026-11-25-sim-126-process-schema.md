@@ -1,7 +1,7 @@
 # SIM-126, last part: processes in the topology schema
 
-2026-11-25 (restart #5, unattended), WSL. Design brief only; nothing is built until MG answers
-**Q-PROC-SCHEMA** (`docs/pending-sim-122-continuation.md`). Builds on SIM-126 slices 1-6
+2026-11-25 (restart #5, unattended), WSL. Design brief; MG chose the recommended option of
+**Q-PROC-SCHEMA** on 2026-11-25 (morning), and all six slices were built the same morning (§ Built). Builds on SIM-126 slices 1-6
 (`docs/plans/2026-11-25-sim-126-process-modelling.md`) and SIM-65 (`docs/plans/2026-08-26-sim-65-topology-schema-v1.md`).
 
 ## Goal
@@ -200,6 +200,25 @@ lists (Law and Kelton). The differences themselves agree across variants (2.02 a
    template models).
 
 Size L. No template result moves; `EngineFingerprintTests` stays as it is.
+
+## Built (2026-11-25, morning)
+
+Six commits, test-first: `120ed99` (slice 1), `9ad8890` (2), `6295e50` (3), `9d47545` (4), `b12c848` (5) and the
+slice 6 commit. On the way, `69476ff` fixed SIM-142: no topology with two sources could be created. Measured:
+
+| check | result |
+|---|---|
+| M/M/3 as a process (resource of 3, one delay), 20 x 21,000 | Wq 1.098 +- 0.023 against Erlang-C 1.079 (the station 1.121 +- 0.031); Lq 2.636 +- 0.055 against 2.589 |
+| patience 0 on 3 lines at a = 2.4, 20 x 10,000 | lost 0.26711 +- 0.00116 against Erlang B 0.26841 |
+| the car-wash document above against `examples/SimOpt.Examples.CarWash`, 20 days | every difference inside its 99 % interval: gave up 0.1637 vs 0.1696, wait for a bay 3.33 vs 3.24, bays busy 0.838 vs 0.836, soap empty 0.179 vs 0.186 |
+| the stock warning, kept after measuring | reorder level 5 (warned, 15 used per delivery): tank empty 0.199 of the day; 20 (not warned): 0.0046 |
+| `optimize` over `bays.capacity` 2-3 and `supplier.steps.low.at_most` 5-25 (grid, 10 replications) | 3 bays and 25: 0.0009 gave up against 0.160 for 2 and 5 |
+| cost per event (`benchmarks`, scale 0.3, 10 replications, best of 3) | process node M/M/3 234 ns, 392 bytes; the station pool `mmc` 205 ns, 193 bytes; a C# process M/M/1 231 ns |
+
+Two choices the brief did not settle. A step's `amount` has no default, so no step field is ever "assumed". A
+node nothing feeds that repeats its steps 100,000 times at one instant stops the run naming itself
+(`ProcessNode.MaxCyclesPerInstant`), so `validate_model` reports `TRIAL_FAILED` instead of the server hanging; rule
+4's "a step that can wait" holds for every valid list, so it could not prevent the loop on its own.
 
 ## Not in this version
 

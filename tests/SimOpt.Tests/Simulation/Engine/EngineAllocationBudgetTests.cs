@@ -26,6 +26,7 @@ public class EngineAllocationBudgetTests
     [InlineData("mm1-overload", 260)]
     [InlineData("process-mm1", 520)]
     [InlineData("process-stock", 480)]
+    [InlineData("process-node-mmc", 440)]   // SIM-126 schema slice 6: 392 measured when added
     public void BytesAllocatedPerEvent_StayWithinBudget(string name, int budget)
     {
         BenchmarkCases.Run(name, 0.05, 2, 1);   // first-call caches

@@ -15,7 +15,8 @@ searches through the SimOpt MCP server, and get the results as plain data ready 
 from ._client import Server, ServerError, SimOptError
 from ._results import Experiment, Model, Optimization
 from ._topology import Topology, constant, empirical, exponential, gamma, lognormal, triangular, uniform
+from . import steps
 
-__all__ = ["Server", "ServerError", "SimOptError", "Model", "Experiment", "Optimization", "Topology",
+__all__ = ["Server", "ServerError", "SimOptError", "Model", "Experiment", "Optimization", "Topology", "steps",
            "exponential", "triangular", "uniform", "lognormal", "gamma", "constant", "empirical"]
 __version__ = "0.1.0"
