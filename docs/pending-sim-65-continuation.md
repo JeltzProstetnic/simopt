@@ -41,6 +41,22 @@ queue/station/sink), and reads `duration` with `TimeDistribution(node, label, "d
 Connection `weight` (a `double?` on `ConnectionDefinition`) can land in the same step; only the router
 (step 4) reads it.
 
+## Status 2026-11-25 (late night, unattended)
+
+Steps 2b, 3 and 4 are done; suite **1163 passed, 1 skipped**. Commits: `e1c9899` SIM-132 (`Delay<T>`
+capacity), `63806e0` step 2b (`delay` node, connection `weight`), `7d8f789` step 3 (multi-server
+stations; D3 corrected by SIM-135), `c60ddd2` step 4 (`router`). On the way: SIM-133 (entity auto-ids
+raced across threads, `fa1fba8`) and SIM-134 (the logger's dispatcher thread killed the test host,
+`b2a065e`). Open from the same hunt: SIM-137 (battery fixture NRE, 1 in 60) and SIM-138 (allocation
+tests, about 1 in 30). **A single red run is not a regression signal until SIM-137/138 are fixed;
+re-run before concluding.**
+
+**Resume at step 5 (declared metrics), below.** What the builder now knows that step 5 needs: a
+station is a pool `stations[nodeId]` of `SimpleServer`s (`<id>#k` for c > 1), so a station's
+`utilization` is the pool's busy count over c; `queue_length` and `wait_time` attach to
+`buffers[queueId]` (`Instrumentation.ObserveQueueLength`/`ObserveWaitingTime`); `count`/`throughput`
+read a sink. ActiveModel has `Delays` and `Routers` besides the old four.
+
 ## What is left in SIM-65, in order
 
 1. ~~**`ParamValue`**~~ **done 2026-11-25** — `NodeDefinition.Params` is `Dictionary<string, double>` and cannot hold
@@ -48,17 +64,17 @@ Connection `weight` (a `double?` on `ConnectionDefinition`) can land in the same
    is number | string | `DistributionSpec`, with a `JsonConverter` and **implicit conversions from
    `double`, `int` and `string`** so the six existing `ModelRegistrySmokeTests` compile untouched.
    That is the point: they are the only thing that can tell you this change broke nothing.
-2. **Node vocabulary** — `queue`, `station`, `router`, `delay`, `sink`, `source`; `buffer` and
+2. ~~**Node vocabulary**~~ **done 2026-11-25 (steps 2a, 2b, 4)** — `queue`, `station`, `router`, `delay`, `sink`, `source`; `buffer` and
    `server` kept as accepted aliases (D1). Router weights go on the **connection**, not the node
    (`{"from":"r","to":"a","weight":0.7}`) — the weight belongs to the edge, and it keeps `ParamValue`
    free of maps.
-3. **Multi-capacity `station(servers: c)`** — fan-out of c `SimpleServer`s behind a shortest-idle
+3. ~~**Multi-capacity `station(servers: c)`**~~ **done 2026-11-25 (step 3)** — fan-out of c `SimpleServer`s behind a shortest-idle
    dispatcher on the upstream queue's `ItemReceivedEvent`. Copy `AnalyticBatteryTests.RunMMc`
    (`tests/SimOpt.Tests/Simulation/Statistics/AnalyticBatteryTests.cs:176`) — **that exact
    construction is already validated against Erlang-C on both Wq and Lq**, which is the whole reason
    D2 chose it over a c-channel `Server`. `servers > 1` without an upstream queue is a refusal with
    a named fix (D3).
-4. **`SimpleRouter`** — new template in `SimOpt.Simulation/Templates/`, a `StochasticEntity`
+4. ~~**`SimpleRouter`**~~ **done 2026-11-25 (step 4)** — new template in `SimOpt.Simulation/Templates/`, a `StochasticEntity`
    implementing `IItemSink<SimpleEntity>`, with `probabilistic` and `shortest_queue` policies. Build
    it on `StochasticEntity(model, seedID, id, name)` so its stream is a function of (model seed,
    node id) and resets with the model. **Do not extend `SimpleRejectServer`** — SIM-99 is exactly
