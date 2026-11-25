@@ -45,10 +45,15 @@ parameters, distribution parameters, connection ends, wiring rules and metrics.
 | `NO_SOURCE` | error | no source: nothing ever enters |
 | `NO_SINK` | warning | no sink: items stay in the system (the run still works) |
 | `FAN_OUT_WITHOUT_ROUTER` | error | a source, station or delay has more than one connection leaving it. Every node downstream subscribes to the upstream node's release, so each item is put into all of them, duplicated. A router chooses one. |
+| `DUPLICATE_CONNECTION` | error | the same connection is listed twice. Wiring it again subscribes the same handler twice, which the engine refused with an exception that reached the client as a crash. |
 | `UNREACHABLE` | warning | no path from any source reaches the node |
-| `DEAD_END` | warning | the node is reached, but no path leads from it to a sink. Items pile up there. |
-| `UNCONNECTED` | warning | the node has no connections |
+| `DEAD_END` | warning | the node is reached and no connection leaves it, so items stop there. Reported where they stop, not at every node of the branch before it. |
+| `UNCONNECTED` | warning | the node has no connections (and nothing else is reported for it) |
 | `QUEUE_NOT_TAKEN` | warning | a queue feeds no station, so it only fills |
+| `LOOP_WITHOUT_EXIT` | warning | items go round a loop of reached nodes that has no way out to a sink; the message names the loop's nodes |
+
+One fault gives one issue. Measured while building this: a source wired to two sinks puts every item into
+both (`TopologyLintTests`, an engine-level test).
 
 **D5. Offered load is solved from the traffic equations, not walked.** The external arrival rate of a source
 is 1 / mean of its arrival distribution. The rate into each node is `λ = γ + λP`, where `P` is the

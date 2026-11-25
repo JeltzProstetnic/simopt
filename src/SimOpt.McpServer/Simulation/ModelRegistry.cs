@@ -99,6 +99,7 @@ namespace SimOpt.McpServer.Simulation
             }
 
             CheckNodeIds(topology, Fail);
+            TopologyLint.Check(topology, report);   // SIM-66 step 2 (D4): structure, from the graph alone
 
             // SIM-89: built at a deliberately different seed, then reset to the real one at the end
             // of this method. Model.Reset sets seedChange only when the seed actually differs
@@ -329,10 +330,14 @@ namespace SimOpt.McpServer.Simulation
                 });
             }
 
+            var wired = new HashSet<(string, string)>();
             foreach (ConnectionDefinition conn in topology.Connections)
             {
                 // a connection at a node that failed would only repeat that node's error as "not found"
                 if (failed.Contains(conn.From ?? string.Empty) || failed.Contains(conn.To ?? string.Empty)) continue;
+                // a repeated connection is DUPLICATE_CONNECTION (TopologyLint); wiring it again would
+                // subscribe the same handler twice, which the engine refuses with an exception
+                if (!wired.Add((conn.From ?? string.Empty, conn.To ?? string.Empty))) continue;
                 Check(conn.From, "INVALID_CONNECTION", () => Wire(conn), failsNode: false);
             }
 
