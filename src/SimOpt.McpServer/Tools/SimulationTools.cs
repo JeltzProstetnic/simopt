@@ -61,8 +61,11 @@ namespace SimOpt.McpServer.Tools
         {
             try
             {
-                var report = new ValidationReport();
-                string modelId = _registry.Create(topology, report);
+                // SIM-66 (D7): the same checks as validate_model; nothing is registered on an error
+                ValidationReport report = ModelValidator.Validate(topology, out ActiveModel? built);
+                if (built == null)
+                    return JsonSerializer.Serialize(new { error = string.Join("\n", report.Errors.Select(e => e.Line)), validation = report });
+                string modelId = _registry.Register(built);
                 return JsonSerializer.Serialize(new
                 {
                     model_id = modelId,
@@ -73,10 +76,29 @@ namespace SimOpt.McpServer.Tools
                     validation = report,
                 });
             }
-            catch (ModelValidationException ex)
+            catch (Exception ex)
             {
-                // SIM-66 (D7): every error at once, as text and as the structured report
-                return JsonSerializer.Serialize(new { error = ex.Message, validation = ex.Report });
+                return JsonSerializer.Serialize(new { error = ex.Message });
+            }
+        }
+
+        // ── validate_model ────────────────────────────────────────────────────
+
+        [McpServerTool]
+        [Description(
+            "Checks a topology without creating a model, and reports every problem at once. " +
+            "Errors (each with code, node, message and suggested fix) stop a model from being built; warnings do not: " +
+            "structure (no source or sink, unreachable nodes, dead ends, a node wired to two nodes without a router), " +
+            "stations whose offered load is near or above 1, and what a short trial run saw (items refused, none finished). " +
+            "Info lists every station's offered load and the trial's counts. create_model runs the same checks. " +
+            "Returns {valid, errors, warnings, info}.")]
+        public string ValidateModel(
+            [Description("Topology JSON, as for create_model")]
+            TopologyDefinition topology)
+        {
+            try
+            {
+                return JsonSerializer.Serialize(ModelValidator.Validate(topology));
             }
             catch (Exception ex)
             {

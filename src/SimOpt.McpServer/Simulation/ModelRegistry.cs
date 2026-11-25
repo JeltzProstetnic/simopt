@@ -40,6 +40,14 @@ namespace SimOpt.McpServer.Simulation
             return id;
         }
 
+        /// <summary>SIM-66: registers a model already built (by <see cref="ModelValidator"/>) and returns its id.</summary>
+        public string Register(ActiveModel active)
+        {
+            string id = Guid.NewGuid().ToString("N");
+            _models[id] = active;
+            return id;
+        }
+
         /// <summary>
         /// Returns the active model for the given id, or throws if not found.
         /// </summary>

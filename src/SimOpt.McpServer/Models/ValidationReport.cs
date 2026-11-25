@@ -29,12 +29,12 @@ namespace SimOpt.McpServer.Models
         public bool Valid => Errors.Count == 0;
 
         [JsonPropertyName("errors")]
-        public List<ValidationIssue> Errors { get; } = new();
+        public List<ValidationIssue> Errors { get; init; } = new();
 
         [JsonPropertyName("warnings")]
-        public List<ValidationIssue> Warnings { get; } = new();
+        public List<ValidationIssue> Warnings { get; init; } = new();
 
         [JsonPropertyName("info")]
-        public List<ValidationIssue> Info { get; } = new();
+        public List<ValidationIssue> Info { get; init; } = new();
     }
 }

@@ -76,8 +76,10 @@ included since SIM-102.
 interarrival times of the busiest source, so about 500 arrivals there, run in ten chunks with a 1 s
 wall-clock limit (it stops early and says so). It reports info `TRIAL` with created, finished, still in
 the system and refused counts, plus warnings: `NOTHING_FINISHED` (no item reached a sink) and `REFUSED`
-(a full queue, a delay or a router refused items). A queue's refusals are counted through
-`NotifyItemNotAccepted`, attached by the builder; today such items vanish without a trace.
+(a full queue, a delay or a router refused items). The trial runs on a copy built for it, so the
+model `create_model` registers is untouched. A queue's refusals are counted through
+`NotifyItemNotAccepted` on that copy; in the engine such items vanish without a trace. An exception
+during the trial is the error `TRIAL_FAILED`: a model the builder accepts but the engine cannot run.
 
 **D7. `create_model` validates too and keeps its shape.** It returns `model_id` plus `validation` (errors
 empty) when the model builds. When it does not, it returns `error` (every error message, one per line) and

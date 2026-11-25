@@ -175,8 +175,11 @@ namespace SimOpt.McpServer.Simulation
             return lambda;
         }
 
-        /// <summary>The mean of a time given as a distribution object or as the older exponential mean (default 1).</summary>
-        private static double MeanTime(NodeDefinition node, string distName, string meanName)
+        /// <summary>
+        /// The mean of a time given as a distribution object (<paramref name="distName"/>) or as the older
+        /// exponential mean (<paramref name="meanName"/>, default 1), shift included. The node must have built.
+        /// </summary>
+        public static double MeanTime(NodeDefinition node, string distName, string meanName)
         {
             if (node.Params.TryGetValue(distName, out ParamValue? given) && given?.Distribution != null)
                 return DistributionFactory.Create(given.Distribution, $"node '{node.Id}', parameter '{distName}'").Mean;
