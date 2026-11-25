@@ -39,9 +39,9 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
 
-        [Description("Node-specific parameters (e.g. mean_interval, service_time, capacity)")]
+        [Description("Node-specific parameters, each a number, a string or a distribution object (e.g. mean_interval, service_time, capacity)")]
         [JsonPropertyName("params")]
-        public Dictionary<string, double> Params { get; set; } = new();
+        public Dictionary<string, ParamValue> Params { get; set; } = new();
     }
 
     /// <summary>

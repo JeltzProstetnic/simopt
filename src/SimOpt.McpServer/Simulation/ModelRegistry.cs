@@ -75,7 +75,7 @@ namespace SimOpt.McpServer.Simulation
                 {
                     case "source":
                     {
-                        double meanInterval = node.Params.TryGetValue("mean_interval", out double mi) ? mi : 1.0;
+                        double meanInterval = TryGetNumber(node, "Source", "mean_interval", out double mi) ? mi : 1.0;
                         if (meanInterval <= 0)
                             throw new InvalidOperationException($"Source '{node.Id}': mean_interval must be positive.");
 
@@ -107,7 +107,7 @@ namespace SimOpt.McpServer.Simulation
 
                     case "buffer":
                     {
-                        int capacity = node.Params.TryGetValue("capacity", out double cap)
+                        int capacity = TryGetNumber(node, "Buffer", "capacity", out double cap)
                             ? (int)cap
                             : int.MaxValue;
                         var buffer = new SimpleBuffer(
@@ -122,7 +122,7 @@ namespace SimOpt.McpServer.Simulation
 
                     case "server":
                     {
-                        double serviceTime = node.Params.TryGetValue("service_time", out double st) ? st : 1.0;
+                        double serviceTime = TryGetNumber(node, "Server", "service_time", out double st) ? st : 1.0;
                         if (serviceTime <= 0)
                             throw new InvalidOperationException($"Server '{node.Id}': service_time must be positive.");
 
@@ -303,6 +303,23 @@ namespace SimOpt.McpServer.Simulation
             var dist = new NegExponentialDistribution();
             dist.ConfigureMean(mean);
             return dist;
+        }
+
+        /// <summary>
+        /// SIM-65: reads a parameter that must be a number. False when it is absent; a string or a
+        /// distribution where a number belongs is refused with the node and the parameter named.
+        /// </summary>
+        private static bool TryGetNumber(NodeDefinition node, string kind, string name, out double value)
+        {
+            value = 0d;
+            if (!node.Params.TryGetValue(name, out ParamValue? param)) return false;
+            if (param?.Number is double number)
+            {
+                value = number;
+                return true;
+            }
+            throw new InvalidOperationException(
+                $"{kind} '{node.Id}': {name} must be a number, not {param?.ToString() ?? "null"}.");
         }
     }
 }

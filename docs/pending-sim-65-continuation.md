@@ -22,9 +22,13 @@ Full design brief, all decisions (D1–D7) and every measured number:
 `docs/plans/2026-08-26-sim-65-topology-schema-v1.md`. **Read it before continuing** — the decisions
 are what make the remaining work mechanical rather than open.
 
+## Status 2026-11-25 (night)
+
+Step 1 (`ParamValue`) is done, commit "SIM-65 step 1"; suite 1091 passed, 1 skipped. Resume at step 2.
+
 ## What is left in SIM-65, in order
 
-1. **`ParamValue`** — `NodeDefinition.Params` is `Dictionary<string, double>` and cannot hold
+1. ~~**`ParamValue`**~~ **done 2026-11-25** — `NodeDefinition.Params` is `Dictionary<string, double>` and cannot hold
    `service: {type: "triangular", ...}`. Make it `Dictionary<string, ParamValue>` where `ParamValue`
    is number | string | `DistributionSpec`, with a `JsonConverter` and **implicit conversions from
    `double`, `int` and `string`** so the six existing `ModelRegistrySmokeTests` compile untouched.
