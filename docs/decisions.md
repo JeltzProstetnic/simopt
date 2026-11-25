@@ -576,3 +576,23 @@ SIM-129, with SIM-130 following SIM-65/66.
 - **SIM-65 before SIM-110.** The handover listed SIM-65 step 1 and then SIM-110; SIM-65 continued past
   step 1 because it is P0 and SIM-130 (P0, the Python way in) depends on it, while SIM-110 is P1.
   Unattended choice by the session; MG may reorder.
+
+## 2026-11-25 (night, restart #3) — validation, experiments and the optimiser (SIM-66, SIM-68, SIM-69)
+
+- **One rule set: the builder collects faults instead of throwing.** `validate_model` does not repeat the
+  builder's checks; the builder reports every fault per node, connection, router and metric, and
+  `create_model` registers only a clean build. Why: two rule sets drift, and a client fixing a model one
+  fault per call wastes rounds (UN-008). Evidence: `docs/plans/2026-11-25-sim-66-validate-patch-experiment.md`.
+- **A node wired to two nodes without a router is refused.** A source, station or delay pushes each item
+  into every node connected after it, so such a model duplicated every item (shown by an engine-level
+  test). A router chooses one branch.
+- **Scenarios run at common random numbers, compared replication by replication.** `run_experiment`
+  gives every scenario the same base seed, so a node a patch leaves alone draws the same numbers, and
+  `significant` comes from the paired 95 % interval of the differences (UN-013).
+- **An optimiser constraint is kept only when the metric's whole 95 % interval keeps it.** Measured on
+  the clinic (mean exam wait under 15 minutes, one 8-hour day): on the mean, 5 replications passed 6 rooms
+  (12.3 ± 8.0) that 20 replications failed (19.7 ± 6.6); on the interval both give 7. Evidence:
+  `docs/plans/2026-11-25-sim-68-69-topology-problem-optimize.md`. Unattended choice; MG may prefer the
+  mean as an option.
+- **`optimize` offers auto, grid and random only until SIM-59 lands.** SA, EA and PSO carry SIM-59's
+  defects (unguarded temperature loop, missing clones, PSO's reflection), so they are not exposed yet.
