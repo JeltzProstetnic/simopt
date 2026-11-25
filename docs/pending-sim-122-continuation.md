@@ -130,6 +130,9 @@ the private hand-off (see *Private material*).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
+- **Q-SIM142-PRIO (open, 2026-11-25):** SIM-142 (no topology with two sources could be created; fixed in `69476ff`) was
+  filed at **P1 (recommended)**; the alternative is P2. It is done either way, so the answer only sets its record.
+
 - **Q-ENGINE-MOVES: DECIDED 2026-11-25 by MG at the console:** after his SIM-122 results arrive (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-PROV-REPORT: DECIDED 2026-11-25 by MG at the console:** a Markdown appendix via `report_run`, English or German; SIM-86 slice C is unblocked (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-STORE: DECIDED 2026-11-25 by MG at the console:** not now; revisit with SIM-71 (`docs/decisions.md`, 2026-11-25 morning).
