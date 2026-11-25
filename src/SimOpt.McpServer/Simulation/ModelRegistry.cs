@@ -347,13 +347,18 @@ namespace SimOpt.McpServer.Simulation
             }
 
             // SIM-126: every fault in a process's steps is reported, not only the first
+            var fed = topology.Connections.Select(c => c.To).ToHashSet();
             foreach (NodeDefinition node in topology.Nodes)
             {
                 if (string.IsNullOrWhiteSpace(node.Id) || failed.Contains(node.Id) || CanonicalType(node) != "process") continue;
                 var faults = new List<ValidationIssue>();
                 ProcessNode? process = BuildProcess(model, node, resources, stocks, failed, faults);
                 foreach (ValidationIssue fault in faults) Fail(fault, node.Id);
-                if (process != null && faults.Count == 0) processes[node.Id] = process;
+                if (process != null && faults.Count == 0)
+                {
+                    processes[node.Id] = process;
+                    if (!fed.Contains(node.Id)) process.Repeat();   // rule 4: beside the flow, one instance
+                }
                 else failed.Add(node.Id);
             }
 
@@ -440,7 +445,7 @@ namespace SimOpt.McpServer.Simulation
             }
 
             // SIM-126 (rule 3): every outlet a process names leads somewhere
-            foreach (var (processId, process) in processes)
+            foreach (var (processId, process) in processes.Where(p => !p.Value.Repeats))   // a repeating one carries no item
                 foreach (string outlet in process.Outlets)
                     if (!topology.Connections.Any(c => c.From == processId && c.Outlet == outlet))
                         Fail(new ValidationIssue("OUTLET_NOT_CONNECTED",
@@ -1038,6 +1043,22 @@ namespace SimOpt.McpServer.Simulation
                         }
                         break;
                     }
+                    case "wait_until":
+                    {
+                        string? name = step.NodeId("stock", stocks.Keys, "stock", failed, ref blocked);
+                        var (atMost, atLeast, bounded) = step.Bound();
+                        if (name == null || !bounded) break;
+                        steps.Add(new WaitUntilStep(id, stocks[name], atMost, atLeast));
+                        break;
+                    }
+                    case "put" when definition.Fields.ContainsKey("up_to") || !definition.Fields.ContainsKey("amount"):
+                    {
+                        string? name = step.NodeId("stock", stocks.Keys, "stock", failed, ref blocked);
+                        double? level = step.UpTo(name == null ? null : stocks[name]);
+                        if (name == null || level == null) break;
+                        steps.Add(PutStep.UpTo(id, stocks[name], level.Value));
+                        break;
+                    }
                     case "take":
                     case "put":
                     {
@@ -1201,6 +1222,62 @@ namespace SimOpt.McpServer.Simulation
                     return (null, null, false);
                 }
                 return patience == null ? (null, null, false) : (patience, outlet.Trim(), true);
+            }
+
+            /// <summary>Slice 4: a wait_until's bound, at_most or at_least, exactly one of them and a number.</summary>
+            public (double? AtMost, double? AtLeast, bool Ok) Bound()
+            {
+                bool most = step.Fields.ContainsKey("at_most"), least = step.Fields.ContainsKey("at_least");
+                if (most == least)
+                {
+                    if (most)
+                        Fault("CONFLICTING_STEP_FIELDS", "give 'at_most' or 'at_least', not both.", "Remove one of them.");
+                    else
+                        Fault("MISSING_STEP_FIELD", "a wait_until step needs 'at_most' or 'at_least'.",
+                            "Give at_most, the level to wait for at or below (a reorder point), or at_least.");
+                    return (null, null, false);
+                }
+                string field = most ? "at_most" : "at_least";
+                if (step.Fields[field].Number is not double bound || double.IsInfinity(bound))
+                {
+                    Fault("INVALID_STEP_FIELD", $"{field} must be a number, not {step.Fields[field]}.");
+                    return (null, null, false);
+                }
+                return most ? (bound, null, true) : (null, bound, true);
+            }
+
+            /// <summary>
+            /// Slice 4: a put's up_to, a level above 0 within <paramref name="stock"/>'s capacity, given
+            /// instead of an amount; null with a fault otherwise.
+            /// </summary>
+            public double? UpTo(Stock? stock)
+            {
+                bool upTo = step.Fields.ContainsKey("up_to"), amount = step.Fields.ContainsKey("amount");
+                if (upTo && amount)
+                {
+                    Fault("CONFLICTING_STEP_FIELDS", "give 'amount' or 'up_to', not both.", "Remove one of them.");
+                    return null;
+                }
+                if (!upTo)
+                {
+                    Fault("MISSING_STEP_FIELD", "a put step needs 'amount' or 'up_to'.",
+                        "Give amount, what each put adds, or up_to, the level it fills the stock to.");
+                    return null;
+                }
+                if (step.Fields["up_to"].Number is not double level || !(level > 0d) || double.IsInfinity(level))
+                {
+                    Fault("INVALID_STEP_FIELD", $"up_to must be a level above 0, not {step.Fields["up_to"]}.");
+                    return null;
+                }
+                if (stock == null) return null;
+                if (level > stock.Capacity)
+                {
+                    Fault("INVALID_STEP_FIELD",
+                        $"up_to {Fmt(level)} is more than the capacity {Fmt(stock.Capacity)} of stock '{stock.Identifier}'.",
+                        "Lower it to the capacity, or raise the capacity.");
+                    return null;
+                }
+                return level;
             }
 
             /// <summary>A take or put amount: a positive number within the stock's capacity, or a distribution that stays within it.</summary>

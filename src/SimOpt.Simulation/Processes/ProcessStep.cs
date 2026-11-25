@@ -106,6 +106,12 @@ namespace SimOpt.Simulation.Processes
             RandomAmount = amount ?? throw new ArgumentNullException(nameof(amount));
         }
 
+        /// <summary>Slice 4: a step whose amount follows from the stock's level when it starts.</summary>
+        protected StockStep(string id, Stock stock) : base(id)
+        {
+            Stock = stock ?? throw new ArgumentNullException(nameof(stock));
+        }
+
         public Stock Stock { get; }
 
         /// <summary>The amount, when it is fixed.</summary>
@@ -151,5 +157,47 @@ namespace SimOpt.Simulation.Processes
     {
         public PutStep(string id, Stock stock, double amount) : base(id, stock, amount) { }
         public PutStep(string id, Stock stock, IDistribution<double> amount) : base(id, stock, amount) { }
+
+        private PutStep(string id, Stock stock, double upTo, bool _) : base(id, stock)
+        {
+            if (double.IsNaN(upTo) || upTo <= 0d || upTo > stock.Capacity)
+                throw new ArgumentOutOfRangeException(nameof(upTo), "The level to fill up to lies above 0 and within the stock's capacity.");
+            UpToLevel = upTo;
+        }
+
+        /// <summary>
+        /// Slice 4: puts what fills <paramref name="stock"/> up to <paramref name="level"/>, reckoned when the
+        /// step starts; nothing when the stock already holds that much.
+        /// </summary>
+        public static PutStep UpTo(string id, Stock stock, double level) => new PutStep(id, stock, level, true);
+
+        /// <summary>The level this step fills the stock up to, or null when it puts an amount.</summary>
+        public double? UpToLevel { get; }
+    }
+
+    /// <summary>
+    /// Slice 4: waits until a stock's level is at most or at least a figure (exactly one of the two); passes
+    /// at once when it already is.
+    /// </summary>
+    [Serializable]
+    public sealed class WaitUntilStep : ProcessStep
+    {
+        public WaitUntilStep(string id, Stock stock, double? atMost = null, double? atLeast = null) : base(id)
+        {
+            Stock = stock ?? throw new ArgumentNullException(nameof(stock));
+            if (atMost.HasValue == atLeast.HasValue)
+                throw new ArgumentException("A wait_until step names one bound: at most or at least.");
+            if (double.IsNaN(atMost ?? atLeast.Value))
+                throw new ArgumentException("The bound of a wait_until step is a number.");
+            AtMost = atMost;
+            AtLeast = atLeast;
+        }
+
+        public Stock Stock { get; }
+        public double? AtMost { get; }
+        public double? AtLeast { get; }
+
+        /// <summary>Whether <paramref name="level"/> meets the step's bound.</summary>
+        public bool Met(double level) => AtMost.HasValue ? level <= AtMost.Value : level >= AtLeast.Value;
     }
 }

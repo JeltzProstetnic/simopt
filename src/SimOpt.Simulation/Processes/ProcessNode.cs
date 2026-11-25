@@ -41,6 +41,13 @@ namespace SimOpt.Simulation.Processes
         private readonly BinaryEvent<IEntity, SimpleEntity> itemReleased;
         private readonly BinaryEvent<ProcessNode, IReadOnlyDictionary<string, double>> itemEntered;
         private int count;
+        private Process repeating;
+
+        /// <summary>
+        /// Slice 4: cycles of an unfed node in one instant after which it is taken to repeat for ever; a
+        /// legitimate model passes this only with an absurdly large stock drained at one instant.
+        /// </summary>
+        public const int MaxCyclesPerInstant = 100_000;
 
         #endregion
         #region ctor
@@ -115,8 +122,8 @@ namespace SimOpt.Simulation.Processes
         }
 
         /// <summary>
-        /// Raised as an item enters, with the values drawn for it by <c>"&lt;step id&gt;.&lt;field&gt;"</c>
-        /// (<c>"washing.duration"</c>).
+        /// Raised as an item enters, or an unfed node starts a cycle, with the values drawn for it by
+        /// <c>"&lt;step id&gt;.&lt;field&gt;"</c> (<c>"washing.duration"</c>).
         /// </summary>
         public BinaryEvent<ProcessNode, IReadOnlyDictionary<string, double>> ItemEnteredEvent { get { return itemEntered; } }
 
@@ -126,15 +133,71 @@ namespace SimOpt.Simulation.Processes
         /// <summary>Takes the item, draws its step values and starts its steps; never refuses.</summary>
         public bool Put(SimpleEntity item)
         {
-            var draws = new double[fieldStreams.Length];
-            for (int f = 0; f < draws.Length; f++) draws[f] = fieldStreams[f].Next();
+            double[] draws = Draw();
             count++;
-            itemEntered.Raise(this, new Draws(fieldKeys, draws));
-            Model.StartProcess(p => Run(p, item, draws));
+            Model.StartProcess(p => Run(p, draws, outlet => Leave(item, outlet)));
             return true;
         }
 
-        private IEnumerable<Wait> Run(Process p, SimpleEntity item, double[] draws)
+        /// <summary>
+        /// Slice 4: makes this node one that nothing feeds: one instance runs its steps over and over from
+        /// the start of every run to its end, beside the item flow, with no item. Call it while the model
+        /// is stopped, once.
+        /// </summary>
+        public void Repeat()
+        {
+            if (repeating != null) throw new InvalidOperationException("Process '" + EntityName + "' already repeats.");
+            if (Model.IsRunning) throw new InvalidOperationException("A process node starts repeating while the model is stopped.");
+            repeating = Model.StartProcess(Cycles);
+        }
+
+        /// <summary>True when the node repeats its steps instead of running items through them.</summary>
+        public bool Repeats { get { return repeating != null; } }
+
+        private IEnumerable<Wait> Cycles(Process p)
+        {
+            double instant = double.NaN;
+            int cycles = 0;
+            while (true)
+            {
+                if (p.Now == instant)
+                {
+                    if (++cycles > MaxCyclesPerInstant)
+                        throw new InvalidOperationException("Process '" + EntityName + "' repeated its steps " + MaxCyclesPerInstant +
+                            " times at one instant (" + p.Now + "), so it would repeat them there for ever: none of its steps waited. " +
+                            "Give it a delay, or a step that waits for something the cycle itself does not undo.");
+                }
+                else
+                {
+                    instant = p.Now;
+                    cycles = 0;
+                }
+                foreach (Wait wait in Run(p, Draw(), _ => { })) yield return wait;
+            }
+        }
+
+        /// <summary>Draws an item's or a cycle's step values, in step order, and announces them.</summary>
+        private double[] Draw()
+        {
+            var draws = new double[fieldStreams.Length];
+            for (int f = 0; f < draws.Length; f++) draws[f] = fieldStreams[f].Next();
+            itemEntered.Raise(this, new Draws(fieldKeys, draws));
+            return draws;
+        }
+
+        /// <summary>An item leaves by the normal exit (outlet null) or by the outlet it gave up at.</summary>
+        private void Leave(SimpleEntity item, string outlet)
+        {
+            count--;
+            if (outlet == null) itemReleased.Raise(this, item);
+            else outlets[outlet].Raise(this, item);
+        }
+
+        /// <summary>
+        /// Runs the steps once, then frees what is still held and calls <paramref name="done"/> with the
+        /// outlet given up at, or null.
+        /// </summary>
+        private IEnumerable<Wait> Run(Process p, double[] draws, Action<string> done)
         {
             List<Resource> held = seizes ? new List<Resource>(2) : null;
             for (int i = 0; i < steps.Length; i++)
@@ -152,7 +215,7 @@ namespace SimOpt.Simulation.Processes
                         {
                             AnyOfWait patient = Wait.AnyOf(request, p.Timeout(draws[patienceOfStep[i]]));
                             yield return patient;
-                            if (patient.Winner != request) { GiveUp(held, item, seize.Outlet); yield break; }
+                            if (patient.Winner != request) { Free(held); done(seize.Outlet); yield break; }
                         }
                         held.Add(seize.Resource);
                         break;
@@ -171,31 +234,30 @@ namespace SimOpt.Simulation.Processes
                         {
                             AnyOfWait patient = Wait.AnyOf(taken, p.Timeout(draws[patienceOfStep[i]]));
                             yield return patient;
-                            if (patient.Winner != taken) { GiveUp(held, item, take.Outlet); yield break; }
+                            if (patient.Winner != taken) { Free(held); done(take.Outlet); yield break; }
                         }
                         break;
                     }
                     case PutStep put:
                     {
-                        double amount = Amount(put, i, draws);
+                        double amount = put.UpToLevel is double level ? level - put.Stock.Level : Amount(put, i, draws);
                         if (amount > 0d) yield return put.Stock.PutWait(amount);
                         break;
                     }
+                    case WaitUntilStep until:
+                        if (!until.Met(until.Stock.Level))
+                            yield return Wait.Next(until.Stock.LevelChangedEvent, (_, level) => until.Met(level));
+                        break;
                 }
             }
-            if (held != null)
-                foreach (Resource unit in held) unit.Release();
-            count--;
-            itemReleased.Raise(this, item);
+            Free(held);
+            done(null);
         }
 
-        /// <summary>An item that gave up frees what it holds and leaves by the outlet.</summary>
-        private void GiveUp(List<Resource> held, SimpleEntity item, string outlet)
+        private static void Free(List<Resource> held)
         {
-            if (held != null)
-                foreach (Resource unit in held) unit.Release();
-            count--;
-            outlets[outlet].Raise(this, item);
+            if (held == null) return;
+            foreach (Resource unit in held) unit.Release();
         }
 
         private double Amount(StockStep step, int index, double[] draws) =>

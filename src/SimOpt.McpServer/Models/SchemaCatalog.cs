@@ -97,9 +97,11 @@ namespace SimOpt.McpServer.Models
             new NodeTypeSpec("process", None,
                 "Runs every item it receives through its steps, in order, any number of items at once, then passes it on " +
                 "(an exam that needs a nurse, a wash that needs a bay and soap). An item leaving frees every unit it still " +
-                "holds. Every random step value is drawn when the item enters. No loops or conditions: route between nodes.",
+                "holds. Every random step value is drawn when the item enters. No loops or conditions: route between nodes. " +
+                "A process nothing feeds carries no item: one instance repeats its steps beside the flow from the start of " +
+                "every run to its end (a supplier, a breakdown), drawing its values anew each time round.",
                 System.Array.Empty<ParameterSpec>(),
-                FedBy: "a source, station, delay, router or process (not a queue: it waits at its seize step)",
+                FedBy: "a source, station, delay, router or process (not a queue: it waits at its seize step), or nothing",
                 Feeds: "a queue, delay, router, sink or process"),
             new NodeTypeSpec("resource", None,
                 "Units an item holds while a process works on it (bays, nurses, forklifts), first come, first served. " +
@@ -140,6 +142,15 @@ namespace SimOpt.McpServer.Models
                 "With patience: the name of the exit an item that gave up leaves by, holding nothing; a connection " +
                 "{\"from\": <process>, \"to\": <node>, \"outlet\": <name>} carries it.");
 
+        private static readonly ParameterSpec PutAmountField =
+            new ParameterSpec("amount", "number or distribution", false, null,
+                "As for take; or give up_to instead.");
+
+        private static readonly ParameterSpec UpToField =
+            new ParameterSpec("up_to", "number", false, null,
+                "Instead of amount: puts what fills the stock to this level when the step starts, nothing when it is already there; " +
+                "above 0 and within the stock's capacity.");
+
         /// <summary>SIM-126: the closed list of steps a process node's <c>steps</c> may use (Q-PROC-SCHEMA).</summary>
         public static IReadOnlyList<StepTypeSpec> StepTypes { get; } = new[]
         {
@@ -155,7 +166,15 @@ namespace SimOpt.McpServer.Models
                 "Takes the amount out of the stock, waiting until the whole amount is there; with patience, for at most that long.",
                 new[] { StockField, AmountField, PatienceField, OutletField }),
             new StepTypeSpec("put", "Puts the amount into the stock, waiting while it would overfill the stock.",
-                new[] { StockField, AmountField }),
+                new[] { StockField, PutAmountField, UpToField }),
+            new StepTypeSpec("wait_until",
+                "Waits until the stock's level is at most or at least a figure (one of the two); passes at once when it already is.",
+                new[]
+                {
+                    StockField,
+                    new ParameterSpec("at_most", "number", false, null, "Wait until the level is this or less (a reorder point)."),
+                    new ParameterSpec("at_least", "number", false, null, "Wait until the level is this or more."),
+                }),
         };
 
         public static IReadOnlyList<MetricKindSpec> MetricKinds { get; } = new[]

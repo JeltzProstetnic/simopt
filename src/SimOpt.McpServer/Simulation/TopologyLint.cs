@@ -69,7 +69,15 @@ namespace SimOpt.McpServer.Simulation
                         id, $"Connect '{id}'{by} to a router (policy probabilistic or shortest_queue) and the router to {targets}."));
                 }
 
-            var unconnected = order.Where(id => outs[id].Count == 0 && ins[id].Count == 0).ToHashSet();
+            // SIM-126 (rule 4): a process nothing feeds repeats beside the flow; reachability means nothing to it
+            var unfed = order.Where(id => types[id] == "process" && ins[id].Count == 0).ToHashSet();
+            foreach (string id in order.Where(id => unfed.Contains(id) && outs[id].Count > 0))
+                report.Warnings.Add(new ValidationIssue("PROCESS_NOT_FED",
+                    $"Process '{id}' is fed by nothing, so it repeats its steps beside the flow and passes no item on; " +
+                    "the connections leaving it carry nothing.",
+                    id, $"Connect the node that feeds it to '{id}', or remove the connections leaving it."));
+
+            var unconnected = order.Where(id => outs[id].Count == 0 && ins[id].Count == 0 && !unfed.Contains(id)).ToHashSet();
             foreach (string id in order.Where(unconnected.Contains))
                 report.Warnings.Add(new ValidationIssue("UNCONNECTED", $"{Capital(types[id])} '{id}' has no connections.",
                     id, "Connect it, or remove it."));
@@ -81,7 +89,7 @@ namespace SimOpt.McpServer.Simulation
             if (sources.Count == 0) return;   // reachability means nothing without a way in
 
             HashSet<string> reached = Walk(sources, outs);
-            foreach (string id in order.Where(id => !reached.Contains(id) && !unconnected.Contains(id)))
+            foreach (string id in order.Where(id => !reached.Contains(id) && !unconnected.Contains(id) && !unfed.Contains(id)))
                 report.Warnings.Add(new ValidationIssue("UNREACHABLE",
                     $"{Capital(types[id])} '{id}' cannot be reached from any source, so no item ever gets there.",
                     id, $"Connect a node that items pass through to '{id}', or remove it."));
