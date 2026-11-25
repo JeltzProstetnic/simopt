@@ -18,12 +18,13 @@ namespace SimOpt.Visualization.Controls;
 /// </summary>
 public enum RenderMode { Schematic, Realistic }
 
-public class SimulationCanvas : Control
+public class SimulationCanvas : Control, ISimulationSurface
 {
     private SimulationModel? _sim;
     private VizTopology? _topology;
     private Dictionary<string, Point> _positions = new();
     private DispatcherTimer? _timer;
+    private bool _resumable;   // SIM-107: false once the run is stopped or finished
     private bool _running;
     private int _stepCount;
     private int _frame;
@@ -185,6 +186,7 @@ public class SimulationCanvas : Control
     /// </summary>
     public void StartSimulation(VizTopology topology, double duration = 200.0, int speedMs = 30)
     {
+        _timer?.Stop();   // a second start must not leave the first run's timer ticking
         _topology = topology;
         _sim = new SimulationModel { EndTime = duration };
         _sim.Build(topology);
@@ -200,6 +202,7 @@ public class SimulationCanvas : Control
         _wasBusy.Clear();
         _speedMs = speedMs;
         _running = true;
+        _resumable = true;
 
         // Compute layout
         _positions = AutoLayout.Compute(topology, Bounds.Width > 0 ? Bounds.Width : 960, Bounds.Height > 0 ? Bounds.Height - 60 : 460);
@@ -219,11 +222,27 @@ public class SimulationCanvas : Control
         StartSimulation(VizTopology.Sqss(seed), duration, speedMs);
     }
 
+    /// <summary>SIM-107: ends the run. The model stays on screen; the next start builds it afresh.</summary>
     public void StopSimulation()
     {
         _running = false;
+        _resumable = false;
         _timer?.Stop();
     }
+
+    /// <summary>SIM-107: stops the clock and keeps the model, its time and its statistics.</summary>
+    public void PauseSimulation()
+    {
+        _running = false;
+        _timer?.Stop();
+        InvalidateVisual();
+    }
+
+    /// <summary>A run is loaded, paused and not finished.</summary>
+    public bool CanResume => _sim != null && !_running && _resumable && !_sim.IsFinished;
+
+    /// <summary>Raised when a run reaches its end time.</summary>
+    public event EventHandler? RunFinished;
 
     /// <summary>
     /// Build and layout a topology without starting the tick timer. Used by
@@ -232,6 +251,7 @@ public class SimulationCanvas : Control
     /// </summary>
     public void LoadTopologyPaused(VizTopology topology, double duration = 200.0, int speedMs = 30)
     {
+        _timer?.Stop();
         _topology = topology;
         _sim = new SimulationModel { EndTime = duration };
         _sim.Build(topology);
@@ -247,6 +267,7 @@ public class SimulationCanvas : Control
         _wasBusy.Clear();
         _speedMs = speedMs;
         _running = false;
+        _resumable = true;
 
         _positions = AutoLayout.Compute(topology, Bounds.Width > 0 ? Bounds.Width : 960, Bounds.Height > 0 ? Bounds.Height - 60 : 460);
         _sim.Start();
@@ -254,11 +275,12 @@ public class SimulationCanvas : Control
         InvalidateVisual();
     }
 
-    /// <summary>Resume a paused simulation (loaded via LoadTopologyPaused).</summary>
+    /// <summary>Continues a paused run, or one loaded by <see cref="LoadTopologyPaused"/>.</summary>
     public bool ResumeSimulation()
     {
-        if (_sim == null || _running) return false;
+        if (!CanResume) return false;
         _running = true;
+        _timer?.Stop();
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_speedMs) };
         _timer.Tick += (_, _) => Tick();
         _timer.Start();
@@ -269,9 +291,11 @@ public class SimulationCanvas : Control
     {
         if (_sim == null || !_running) return;
 
-        if (!_sim.Step())
+        bool finished = !_sim.Step();
+        if (finished)
         {
             _running = false;
+            _resumable = false;
             _timer?.Stop();
         }
         _stepCount++;
@@ -292,6 +316,7 @@ public class SimulationCanvas : Control
         UpdateUtilization();
         UpdateDots();
         InvalidateVisual();
+        if (finished) RunFinished?.Invoke(this, EventArgs.Empty);
     }
 
     private void UpdateUtilization()

@@ -27,8 +27,7 @@ public partial class MainWindow : Window
         switch (e.Key)
         {
             case Key.Space:
-                if (vm.IsRunning) vm.StopCommand.Execute(null);
-                else vm.StartCommand.Execute(null);
+                vm.PlayPauseCommand.Execute(null);   // SIM-107: pause keeps the run
                 e.Handled = true;
                 break;
             case Key.OemMinus or Key.Subtract:

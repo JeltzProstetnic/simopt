@@ -23,7 +23,9 @@ public partial class MainWindowViewModel : ViewModelBase
         Optimization.ApplyToVizRequested += OnApplyToVizRequested;
     }
 
-    private bool _resumePendingFromApply;
+    // SIM-107: the dropdown entry whose model the canvas holds, so Space resumes it only while it is
+    // still the one selected; null when nothing resumable is loaded.
+    private int? _loadedTopology;
 
     private void OnApplyToVizRequested(object? sender, IvotionSolution best)
     {
@@ -33,8 +35,9 @@ public partial class MainWindowViewModel : ViewModelBase
         Stop();
         var parametricTopology = VizTopology.IvotionPacking(best);
         Canvas.LoadTopologyPaused(parametricTopology, duration: 200.0, speedMs: Speed);
-        _resumePendingFromApply = true;
+        _loadedTopology = SelectedTopology;
         IsRunning = false;
+        IsPaused = true;
         StatusText =
             $"Loaded optimized: {best.RolandCount}× Roland, " +
             $"ops {best.OperatorsInspect}/{best.OperatorsPack}/{best.OperatorsLabel}/{best.OperatorsSsb}, " +
@@ -45,7 +48,16 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _statusText = "Ready  |  Space=play/pause  -/+=speed  F=fullscreen  D=detach";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRun))]
     private bool _isRunning;
+
+    /// <summary>SIM-107: a run is loaded and paused; Space or Start continues it.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRun))]
+    private bool _isPaused;
+
+    /// <summary>A run is going or paused, so Stop has something to end.</summary>
+    public bool HasRun => IsRunning || IsPaused;
 
     [ObservableProperty]
     private int _speed = 30;
@@ -65,7 +77,18 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string _renderModeLabel = "Realistic";
 
-    public SimulationCanvas? Canvas { get; set; }
+    private ISimulationSurface? _canvas;
+
+    public ISimulationSurface? Canvas
+    {
+        get => _canvas;
+        set
+        {
+            if (_canvas != null) _canvas.RunFinished -= OnRunFinished;
+            _canvas = value;
+            if (_canvas != null) _canvas.RunFinished += OnRunFinished;
+        }
+    }
     public Window? OwnerWindow { get; set; }
 
     private Window? _controlsWindow;
@@ -96,31 +119,67 @@ public partial class MainWindowViewModel : ViewModelBase
         if (Canvas != null) Canvas.SpeedMs = value;
     }
 
+    partial void OnSelectedTopologyChanged(int value)
+    {
+        if (value != _loadedTopology) _loadedTopology = null;   // another model chosen: start it afresh
+    }
+
+    /// <summary>SIM-107: Space. Pauses a running model, otherwise starts or resumes one.</summary>
+    [RelayCommand]
+    private void PlayPause()
+    {
+        if (IsRunning) Pause();
+        else Start();
+    }
+
+    /// <summary>Resumes the paused run of the selected model, or starts the selected model at t = 0.</summary>
     [RelayCommand]
     private void Start()
     {
         if (Canvas == null) return;
 
-        if (_resumePendingFromApply && Canvas.ResumeSimulation())
+        if (_loadedTopology == SelectedTopology && Canvas.CanResume && Canvas.ResumeSimulation())
         {
-            _resumePendingFromApply = false;
             IsRunning = true;
-            StatusText = "Running optimized Ivotion  |  Space=pause  -/+=speed  F=fullscreen";
+            IsPaused = false;
+            StatusText = "Running  |  Space=pause  -/+=speed  F=fullscreen";
             return;
         }
 
         var topology = GetSelectedTopology();
         Canvas.StartSimulation(topology, duration: 200.0, speedMs: Speed);
+        _loadedTopology = SelectedTopology;
         IsRunning = true;
+        IsPaused = false;
         StatusText = $"Running: {topology.Name}  |  Space=pause  -/+=speed  F=fullscreen";
+    }
+
+    [RelayCommand]
+    private void Pause()
+    {
+        if (Canvas == null || !IsRunning) return;
+        Canvas.PauseSimulation();
+        IsRunning = false;
+        IsPaused = true;
+        StatusText = "Paused  |  Space=resume  Stop=end the run  -/+=speed";
     }
 
     [RelayCommand]
     private void Stop()
     {
         Canvas?.StopSimulation();
+        _loadedTopology = null;
         IsRunning = false;
+        IsPaused = false;
         StatusText = "Stopped  |  Space=start  -/+=speed  F=fullscreen";
+    }
+
+    private void OnRunFinished(object? sender, EventArgs e)
+    {
+        _loadedTopology = null;
+        IsRunning = false;
+        IsPaused = false;
+        StatusText = "Finished  |  Space=run again  -/+=speed  F=fullscreen";
     }
 
     [RelayCommand]
@@ -280,7 +339,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         var stopBtn = new Button { Content = "Stop", Padding = new Avalonia.Thickness(16, 4), FontSize = 12 };
         stopBtn.Bind(Button.CommandProperty, new Avalonia.Data.Binding("StopCommand"));
-        stopBtn.Bind(Button.IsEnabledProperty, new Avalonia.Data.Binding("IsRunning"));
+        stopBtn.Bind(Button.IsEnabledProperty, new Avalonia.Data.Binding("HasRun"));
 
         var fasterBtn = new Button { Content = "-", Padding = new Avalonia.Thickness(6, 4), FontSize = 12 };
         fasterBtn.Bind(Button.CommandProperty, new Avalonia.Data.Binding("FasterCommand"));

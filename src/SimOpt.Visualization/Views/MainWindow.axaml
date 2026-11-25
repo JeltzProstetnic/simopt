@@ -34,7 +34,7 @@
                                 IsEnabled="{Binding !IsRunning}"
                                 Padding="20,6" FontSize="13" FontWeight="SemiBold"/>
                         <Button Content="Stop" Command="{Binding StopCommand}"
-                                IsEnabled="{Binding IsRunning}"
+                                IsEnabled="{Binding HasRun}"
                                 Padding="20,6" FontSize="13"/>
 
                         <Border Width="1" Background="#333345" Margin="4,2"/>
