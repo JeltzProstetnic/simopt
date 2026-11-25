@@ -151,6 +151,32 @@ public class IvotionSolutionTests
     }
 
     [Fact]
+    public void Tweak_IsSeeded_ACloneMovesTheSame()
+    {
+        // SIM-59: Tweak drew from a wall-clock new Random(), so the same search never ran twice
+        var a = new IvotionSolution(new[] { 1, 1, 1, 1, 1, 10 });
+        var b = (IvotionSolution)a.Clone();
+
+        for (int i = 0; i < 50; i++)
+        {
+            a.Tweak();
+            b.Tweak();
+            b.Parameters.Should().Equal(a.Parameters);
+        }
+    }
+
+    [Fact]
+    public void CombineWith_IsSeeded_ACloneBreedsTheSame()
+    {
+        var a = new IvotionSolution(new[] { 1, 1, 1, 1, 1, 10 });
+        var b = (IvotionSolution)a.Clone();
+        var partner = new IvotionSolution(new[] { 2, 3, 3, 2, 2, 20 });
+
+        for (int i = 0; i < 20; i++)
+            ((IvotionSolution)b.CombineWith(partner)).Parameters.Should().Equal(((IvotionSolution)a.CombineWith(partner)).Parameters);
+    }
+
+    [Fact]
     public void CombineWith_WrongType_Throws()
     {
         var sol = new IvotionSolution(ValidSample);

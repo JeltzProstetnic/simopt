@@ -78,6 +78,38 @@ public class IvotionOptimizationEngineTests
     }
 
     [Fact]
+    public async Task RunAsync_Evolutionary_TheSameSeedGivesTheSameSearch()
+    {
+        // SIM-59: the mutation and crossover drew from wall-clock generators
+        var settings = new IvotionOptimizationSettings
+        {
+            Strategy = IvotionStrategyKind.Evolutionary,
+            Objective = IvotionObjective.MaximizeThroughput,
+            Iterations = 3,
+            PopulationSize = 6,
+            SimDurationMinutes = 30.0,
+            Seed = 21,
+        };
+        async Task<List<string>> Search()
+        {
+            var seen = new List<string>();
+            var progress = new SynchronousProgress(s => seen.Add($"{s.BestSoFarFitness}:{string.Join(",", s.BestSoFarSolution.Parameters)}"));
+            var result = await new IvotionOptimizationEngine().RunAsync(settings, progress, CancellationToken.None);
+            seen.Add(string.Join(",", result.BestSolution!.Parameters));
+            return seen;
+        }
+
+        (await Search()).Should().Equal(await Search());
+    }
+
+    private sealed class SynchronousProgress : IProgress<IvotionFitnessSample>
+    {
+        private readonly Action<IvotionFitnessSample> report;
+        public SynchronousProgress(Action<IvotionFitnessSample> report) => this.report = report;
+        public void Report(IvotionFitnessSample value) => report(value);
+    }
+
+    [Fact]
     public async Task RunAsync_Cancellation_StopsEarly()
     {
         var engine = new IvotionOptimizationEngine();

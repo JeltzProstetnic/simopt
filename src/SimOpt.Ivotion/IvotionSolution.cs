@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using SimOpt.Optimization;
 using SimOpt.Optimization.Interfaces;
 using SimOpt.Optimization.Strategies.Evolutionary;
 
@@ -17,6 +18,9 @@ namespace SimOpt.Ivotion;
 ///   3 | operators_label      | {1, 2}
 ///   4 | operators_ssb        | {1, 2}
 ///   5 | roland_batch_size    | {10, 15, 20}
+///
+/// <see cref="Tweak()"/> and <see cref="CombineWith(ISolution)"/> draw from a generator that travels with
+/// the solution, so a search is reproducible from its seed (SIM-59; they used a wall-clock Random).
 /// </summary>
 public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISolution>
 {
@@ -32,6 +36,8 @@ public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISoluti
 
     public const int DimensionCount = 6;
 
+    private SplitMix64 moves;
+
     public int[] Parameters { get; }
     public double Fitness { get; set; } = -double.MaxValue;
     public bool HasFitness { get; set; }
@@ -43,8 +49,10 @@ public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISoluti
     public int OperatorsSsb => Parameters[4];
     public int RolandBatchSize => Parameters[5];
 
-    public IvotionSolution(int[] parameters)
+    /// <param name="seed">Starts the generator the solution's moves draw from.</param>
+    public IvotionSolution(int[] parameters, ulong seed = 0)
     {
+        moves = new SplitMix64(seed);
         if (parameters is null)
             throw new ArgumentNullException(nameof(parameters));
         if (parameters.Length != DimensionCount)
@@ -69,10 +77,19 @@ public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISoluti
         {
             Fitness = this.Fitness,
             HasFitness = this.HasFitness,
+            moves = this.moves,
         };
     }
 
-    public void Tweak() => Tweak(new Random());
+    public void Tweak()
+    {
+        int dim = moves.Below(DimensionCount);
+        int[] allowed = AllowedValues[dim];
+        int pick;
+        do pick = allowed[moves.Below(allowed.Length)]; while (pick == Parameters[dim]);
+        Parameters[dim] = pick;
+        HasFitness = false;
+    }
 
     /// <summary>Deterministic overload for testing.</summary>
     public void Tweak(Random rng)
@@ -93,15 +110,24 @@ public sealed class IvotionSolution : ISolution, ITweakable, ICombinable<ISoluti
         HasFitness = false;
     }
 
-    public ISolution CombineWith(ISolution other) => CombineWith(other, new Random());
+    public ISolution CombineWith(ISolution other)
+    {
+        IvotionSolution b = Partner(other);
+        var childParams = new int[DimensionCount];
+        for (int i = 0; i < DimensionCount; i++)
+            childParams[i] = moves.Below(2) == 0 ? Parameters[i] : b.Parameters[i];
+        return new IvotionSolution(childParams, moves.Next());
+    }
+
+    private static IvotionSolution Partner(ISolution other) =>
+        other as IvotionSolution ?? throw new ArgumentException(
+            $"IvotionSolution can only combine with another IvotionSolution (got {other?.GetType().Name ?? "null"}).",
+            nameof(other));
 
     /// <summary>Deterministic overload for testing.</summary>
     public ISolution CombineWith(ISolution other, Random rng)
     {
-        if (other is not IvotionSolution b)
-            throw new ArgumentException(
-                $"IvotionSolution can only combine with another IvotionSolution (got {other?.GetType().Name ?? "null"}).",
-                nameof(other));
+        IvotionSolution b = Partner(other);
 
         var childParams = new int[DimensionCount];
         for (int i = 0; i < DimensionCount; i++)

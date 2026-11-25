@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using SimOpt.McpServer.Models;
+using SimOpt.Optimization;
 using SimOpt.Optimization.Interfaces;
+using SimOpt.Optimization.Strategies.Evolutionary;
 
 namespace SimOpt.McpServer.Optimization
 {
@@ -13,16 +15,16 @@ namespace SimOpt.McpServer.Optimization
     /// moves exactly as the original would, and a search started from the same seed takes the same path.
     /// The wall-clock <c>new Random()</c> in the Ivotion operators is what broke that (SIM-59).
     /// </remarks>
-    public sealed class TopologySolution : IVectorSolution, ITweakable
+    public sealed class TopologySolution : IVectorSolution, ITweakable, ICombinable<ISolution>
     {
         private readonly IReadOnlyList<DecisionVariable> variables;
-        private ulong state;
+        private SplitMix64 moves;
 
         internal TopologySolution(IReadOnlyList<DecisionVariable> variables, double[] parameters, ulong state)
         {
             this.variables = variables;
             Parameters = parameters;
-            this.state = state;
+            moves = new SplitMix64(state);
         }
 
         /// <summary>The point, one coordinate per decision variable, before quantisation.</summary>
@@ -35,7 +37,7 @@ namespace SimOpt.McpServer.Optimization
         public int CompareTo(ISolution? other) => Fitness.CompareTo(other?.Fitness ?? double.NegativeInfinity);
 
         public object Clone() =>
-            new TopologySolution(variables, (double[])Parameters.Clone(), state) { Fitness = Fitness, HasFitness = HasFitness };
+            new TopologySolution(variables, (double[])Parameters.Clone(), 0) { Fitness = Fitness, HasFitness = HasFitness, moves = moves };
 
         /// <summary>
         /// Moves one coordinate, chosen at random: an integer or stepped variable by one step up or down,
@@ -43,7 +45,7 @@ namespace SimOpt.McpServer.Optimization
         /// </summary>
         public void Tweak()
         {
-            int k = (int)(Next() % (ulong)variables.Count);
+            int k = moves.Below(variables.Count);
             DecisionVariable v = variables[k];
             double move = v.Type == "integer" || v.Step.HasValue
                 ? (Next() % 2 == 0 ? -1d : 1d) * (v.Step ?? 1d)
@@ -52,16 +54,22 @@ namespace SimOpt.McpServer.Optimization
             HasFitness = false;
         }
 
-        /// <summary>SplitMix64: small, fast and fully determined by its 64-bit state.</summary>
-        internal ulong Next()
+        /// <summary>
+        /// SIM-68 step 4, the EA's crossover: each coordinate from either parent at even odds. The child
+        /// starts a generator of its own from this one, and has no fitness.
+        /// </summary>
+        public ISolution CombineWith(ISolution other)
         {
-            ulong z = state += 0x9E3779B97F4A7C15UL;
-            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
-            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
-            return z ^ (z >> 31);
+            if (other is not TopologySolution partner || partner.Parameters.Length != Parameters.Length)
+                throw new ArgumentException("A TopologySolution combines only with one of the same problem.", nameof(other));
+            var child = new double[Parameters.Length];
+            for (int i = 0; i < child.Length; i++) child[i] = moves.Next() % 2 == 0 ? Parameters[i] : partner.Parameters[i];
+            return new TopologySolution(variables, child, moves.Next());
         }
 
+        internal ulong Next() => moves.Next();
+
         /// <summary>A uniform draw on [0, 1).</summary>
-        internal double Uniform() => (Next() >> 11) * (1d / (1UL << 53));
+        internal double Uniform() => moves.Uniform();
     }
 }

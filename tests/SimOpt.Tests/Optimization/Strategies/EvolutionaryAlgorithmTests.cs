@@ -161,6 +161,20 @@ public class EvolutionaryAlgorithmTests
     }
 
     [Fact]
+    public void Solve_TheSameSeedGivesTheSameSearch()
+    {
+        double[] Run()
+        {
+            var ea = new EvolutionaryAlgorithm();
+            ea.Initialize(new EvolutionaryAlgorithmConfiguration(seed: 3, iterations: 20, mu: 5, lambda: 20, keepParentsAlive: true));
+            ea.Solve(new TestProblem()).ToList();
+            return ((TestSolution)ea.BestSolution).Parameters;
+        }
+
+        Run().Should().Equal(Run());
+    }
+
+    [Fact]
     public void Mutation_NeverChangesAParentOrTheBest()
     {
         // a crossover that hands the parents back as children, as one with a crossover rate below 1 does;

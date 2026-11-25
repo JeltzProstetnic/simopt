@@ -117,6 +117,20 @@ public class AnnealingAlgorithmTests
     }
 
     [Fact]
+    public void Solve_TheSameSeedTakesTheSamePath()
+    {
+        // SIM-59: a run is reproducible only when the moves are seeded, too
+        double[] Run()
+        {
+            var strategy = new AnnealingAlgorithm();
+            strategy.Initialize(Geometric(iterations: 200));
+            return ((TestSolution)strategy.Solve(new TestProblem()).Single()).Parameters;
+        }
+
+        Run().Should().Equal(Run());
+    }
+
+    [Fact]
     public void BestSolutionChanged_FiresOnlyOnAStrictImprovement()
     {
         // near 0 K most worse moves are rejected, so the current candidate often is the best one; the

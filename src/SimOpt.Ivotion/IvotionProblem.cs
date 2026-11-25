@@ -77,6 +77,7 @@ public sealed class IvotionProblem : IProblem
     public IEnumerable<ISolution> GenerateCandidates(int seed, int count)
     {
         var rng = new Random(seed);
+        var moves = new SimOpt.Optimization.SplitMix64(unchecked((ulong)seed)); // SIM-59: each candidate's own generator
         for (int i = 0; i < count; i++)
         {
             var parameters = new int[IvotionSolution.DimensionCount];
@@ -85,7 +86,7 @@ public sealed class IvotionProblem : IProblem
                 int[] allowed = IvotionSolution.AllowedValues[d];
                 parameters[d] = allowed[rng.Next(allowed.Length)];
             }
-            yield return new IvotionSolution(parameters);
+            yield return new IvotionSolution(parameters, moves.Next());
         }
     }
 

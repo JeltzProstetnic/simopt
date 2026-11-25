@@ -186,6 +186,23 @@ public class TopologyProblemTests
     }
 
     [Fact]
+    public void Combining_IsSeeded_AndTakesEachCoordinateFromAParent()
+    {
+        // SIM-68 step 4: the EA's crossover; like Tweak it draws from the candidate's own generator (D8)
+        TopologyProblem problem = Problem(new[] { Rooms(), new DecisionVariable { Path = "triage.servers", Type = "integer", Min = 1, Max = 6 } });
+        TopologySolution a = At(problem, 4, 1), b = At(problem, 12, 6);
+        var a2 = (TopologySolution)a.Clone();
+
+        var children = Enumerable.Range(0, 40).Select(_ => (TopologySolution)a.CombineWith(b)).ToList();
+        var again = Enumerable.Range(0, 40).Select(_ => (TopologySolution)a2.CombineWith(b)).ToList();
+
+        again.Select(c => c.Parameters).Should().BeEquivalentTo(children.Select(c => c.Parameters), o => o.WithStrictOrdering());
+        children.Should().OnlyContain(c => (c.Parameters[0] == 4 || c.Parameters[0] == 12) && (c.Parameters[1] == 1 || c.Parameters[1] == 6));
+        children.Select(c => (c.Parameters[0], c.Parameters[1])).Distinct().Should().HaveCount(4, "each coordinate comes from either parent");
+        children.Should().OnlyContain(c => !c.HasFitness);
+    }
+
+    [Fact]
     public void ADiscreteSpace_IsCounted_AndEnumeratedPointByPoint()
     {
         TopologyProblem problem = Problem(new[]
