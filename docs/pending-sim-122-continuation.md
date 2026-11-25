@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=SIM-68 step 4 with SIM-59 (PSO vector contract, SA/EA seeded and fixed), then SIM-130; MG owes Q-SRC-START (blocks SIM-139), Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
-<!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66 and SIM-69 done (2026-11-25 night); next SIM-68 step 4
+<!-- Work: stage=findings-written; status=open; next=SIM-130 (the Python package) then SIM-126 schema part and SIM-110 - MG owes Q-AUTO Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-130 -->
+# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69 and SIM-59 done (2026-11-25 night); next SIM-130
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -23,13 +23,31 @@ the private hand-off (see *Private material*).
 - Inbox drained: the SimPy [work] item became SIM-122, the [rule] item became SIM-123 (Q-PRIV-RULE),
   the [fyi] items were read (main's CI is green) and deleted.
 
+## Session 2026-11-25 night, restart #4 (WSL, unattended, cfg caretaking)
+
+- **SIM-68 step 4 and SIM-59 done** (`3f16519`..`9bb647c`, suite 1325 passed, 1 skipped). PSO reads
+  `IVectorSolution`; SA ends under any schedule; the EA bred from its WORST members (generation sorted
+  ascending) and now breeds from the best; mutation on copies; every solution's moves are seeded
+  (`SplitMix64`), and a clone splits its generator because a copied state froze SA (2 distinct proposals in
+  300). `optimize` runs `sa`, `ea`, `pso`; `Optimizer.Run` has a search seed apart from the replications'.
+- **Measured the four searches** (fixed replications, 15 search seeds, four clinic spaces): SA last on every
+  larger space, the EA best or tied at the default budget (170 points: optimum 12/15 against random 2/15).
+  So "auto" now runs the EA on spaces larger than the budget (D6 had planned SA). Table in the brief.
+- **Filed:** SIM-140 (constraints on decision variables, UN-015's headcount limits); a furkansim inbox
+  item (its Glass EA uses the default configuration, so its results change, and `GlassSolution` has the
+  same wall-clock operators). No comment on his issue #30: his optimiser is his own Python code.
+
 ## Decisions for MG (stable IDs; recommended option first)
+
+- **Q-AUTO** (new 2026-11-25, restart #4): which search "auto" runs when the space is larger than the
+  budget. **Recommended: the EA (built, unattended choice):** best or tied at the default budget with the
+  best worst case. Alternatives: random search (the step-3 behaviour), or SA as D6 planned (measured last).
 
 - **Q-PRIO**: priorities of the items still unset (SIM-124 is done, SIM-125 is P0 since 2026-11-25).
   **Recommended: accept as proposed**: SIM-122 P2, SIM-123 P1 (private material was lost), SIM-132 P2
   (`Delay<T>` drops items; found 2026-11-25 night, done), and from the late-night run: SIM-133 P2 (done),
-  SIM-134 P1 (done), SIM-135 P1 (done), SIM-136 P2, SIM-137 P1, SIM-138 P3, SIM-139 P1. The alternative is to
-  set them yourself.
+  SIM-134 P1 (done), SIM-135 P1 (done), SIM-136 P2, SIM-137 P1, SIM-138 P3, SIM-139 P1, and from restart #4
+  SIM-140 P2 (constraints on decision variables). The alternative is to set them yourself.
 - **Q-PIN-COMMENT: DECIDED and DONE.** MG via Telegram 2026-11-24 (#1660, replying to #1659):
   *"inform him."* The drafted comment was posted unchanged on his issue #30 at 22:14:59 UTC
   (comment id 7145993700). Next: watch #30 for his reply or a pin move.
@@ -116,9 +134,10 @@ the private hand-off (see *Private material*).
    6 rooms that 20 failed, which is why constraints use the interval. Suite 1290 passed, 1 skipped. Brief:
    `docs/plans/2026-11-25-sim-68-69-topology-problem-optimize.md`. SIM-137: a 90-run hunt found nothing (see its
    backlog entry for the count).
-   **Next, in order:** SIM-68 step 4 together with SIM-59 (`IVectorSolution` replacing PSO's reflection; SA and
-   EA through the seeded operators with SIM-59's cloning and temperature fixes; then `sa`, `ea`, `pso` in
-   `optimize`), SIM-130 (the Python package; every tool it needs now exists), SIM-126's schema part, SIM-110.
+   **Restart #4 (same night): SIM-68 step 4 and SIM-59 done**, see the section above.
+   **Next, in order:** SIM-130 (the Python package; every tool it needs now exists), SIM-126's schema part,
+   SIM-110, SIM-140 once Q-PRIO sets it.
+   Older next list (before step 4): SIM-68 step 4 with SIM-59, then SIM-130, SIM-126's schema part, SIM-110.
    SIM-139 waits for **Q-SRC-START**; SIM-137 stays open until it recurs.
    Older next list (before SIM-69): SIM-137, SIM-69, SIM-126's schema part, SIM-110 and SIM-130.
    Older next list, kept: SIM-66, then SIM-137 and SIM-139, SIM-126's schema part, SIM-69, SIM-110 and SIM-130.
