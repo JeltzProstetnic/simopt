@@ -1,6 +1,6 @@
 # SIM-66: `validate_model`, `patch_model`, `run_experiment`
 
-**Status:** in progress, started 2026-11-25 (night, unattended, cfg caretaking).
+**Status:** done 2026-11-25 (night, unattended, cfg caretaking), all six steps.
 **Serves:** UN-003 (refinement, earlier versions addressable), UN-008 (pre-run sanity checking, all
 problems at once, each with a correction), UN-012 (intervals by default), UN-013 (scenario comparison,
 significance stated), UN-023 (compact results for an agent), UN-034 (provenance travels with the result).
@@ -157,3 +157,31 @@ classes without MCP.
 
 The optimiser over the same patches (`optimize`, SIM-69), a lenient binder that collects JSON-level faults
 (D3), persistence of versions to disk (UN-005), and a stored, tamper-evident result record (UN-036).
+
+## Progress and measured numbers
+
+| step | commit | suite (passed, 1 skipped) |
+|---|---|---|
+| 1 builder collects every fault | `1076b00` | 1196 -> 1209 |
+| 2 structural lint | `4f0064f` | 1225 |
+| 3 offered load | `3d86b73` | 1237 |
+| 4 trial run, `validate_model` | `33764e7` | 1245 |
+| 5 versions, `patch_model` | `261555a` | 1255 |
+| 6 `run_experiment` | this commit | 1272 |
+
+Found on the way:
+- A source, station or delay wired to two nodes puts every item into both (engine-level test in
+  `TopologyLintTests`). The MCP builder accepted it without a word; it is now FAN_OUT_WITHOUT_ROUTER.
+- A connection listed twice crashed `create_model` with the engine's `HandlerAlreadyAddedException`.
+- A full queue drops a refused item without a trace: `Buffer.NotifyItemNotAccepted` is a no-op by
+  default. The trial run and `run_experiment` count those refusals on their own copies.
+- SIM-139 is worse than a timing difference: on a fresh model the first release carries an entity the
+  generator never made (recorded in the backlog). MCP models are unaffected; the builder resets.
+
+The clinic walkthrough, measured: `validate_model` reports triage load 0.40 and exam 0.75, and a trial
+in which 470 of 479 patients finish (2 ms). `run_experiment` with 10 replications of 540 minutes after
+60 of warm-up: wait_exam 2.07 [1.11, 3.03], util_exam 0.731 [0.690, 0.772], los 38.2 [37.1, 39.3],
+435 characters. With the `flu` scenario (`arrivals.arrival.mean` -> 2.5): wait_exam +86.2 [78.2, 94.2],
+util_exam +0.269, los +79.4, all significant, exam saturated, 948 characters in all. Tool output is
+written with relaxed JSON escaping (an apostrophe is `'`, not `\u0027`), which a model reads at fewer
+tokens.

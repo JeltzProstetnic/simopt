@@ -126,7 +126,7 @@ namespace SimOpt.McpServer.Simulation
                 report.Info.Add(new ValidationIssue("OFFERED_LOAD",
                     $"Station '{load.Station}': offered load {Fmt(load.Load)} ({Fmt(load.ArrivalRate)} arrivals per time unit, " +
                     $"mean service {Fmt(load.MeanService)}, {load.Servers} server{(load.Servers == 1 ? "" : "s")}{estimate}).",
-                    load.Station, Value: load.Load));
+                    load.Station, Value: Clean(load.Load)));
 
                 int enough = (int)Math.Floor(load.ArrivalRate * load.MeanService / Headroom) + 1;
                 string fix = $"Give '{load.Station}' {enough} servers (offered load {Fmt(load.ArrivalRate * load.MeanService / enough)}), " +
@@ -136,11 +136,11 @@ namespace SimOpt.McpServer.Simulation
                             ? $"Station '{load.Station}' is offered load {Fmt(load.Load)}: more work arrives than it can do, so its queue grows without bound."
                             : $"Station '{load.Station}' is offered load {Fmt(load.Load)}: more work arrives than it can do, so queue " +
                               $"'{load.FiniteQueue}' fills and items are refused there.",
-                        load.Station, fix, load.Load));
+                        load.Station, fix, Clean(load.Load)));
                 else if (load.Load >= Headroom)
                     report.Warnings.Add(new ValidationIssue("NEAR_SATURATION",
                         $"Station '{load.Station}' is offered load {Fmt(load.Load)}: expect long queues, a long warm-up and wide intervals.",
-                        load.Station, fix, load.Load));
+                        load.Station, fix, Clean(load.Load)));
             }
         }
 
@@ -203,5 +203,9 @@ namespace SimOpt.McpServer.Simulation
         }
 
         private static string Fmt(double value) => value.ToString("G4", CultureInfo.InvariantCulture);
+
+        /// <summary>Twelve significant digits: drops floating-point noise such as 0.4000000000000001.</summary>
+        private static double Clean(double value) =>
+            double.Parse(value.ToString("G12", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
     }
 }

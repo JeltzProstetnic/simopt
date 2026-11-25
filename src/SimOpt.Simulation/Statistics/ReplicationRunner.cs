@@ -63,7 +63,13 @@ namespace SimOpt.Simulation.Statistics
         /// replications, on any machine and after any restart — which is what makes a reported
         /// figure reproducible by someone who was not present when it was produced (UN-033).
         /// </param>
-        public ReplicationResult Run(int replications, int baseSeed, double confidenceLevel = 0.95)
+        /// <param name="afterReplication">
+        /// SIM-66: called with each replication's index once it has run and its collectors have been
+        /// read, before the next reset, so a caller can read state no collector holds (items refused,
+        /// items finished). It must not run or reset the model.
+        /// </param>
+        public ReplicationResult Run(int replications, int baseSeed, double confidenceLevel = 0.95,
+                                     Action<int>? afterReplication = null)
         {
             if (replications < 1)
                 throw new ArgumentOutOfRangeException(nameof(replications), "At least one replication is required.");
@@ -98,6 +104,8 @@ namespace SimOpt.Simulation.Statistics
                 // Read before the next Reset — a reset wipes every collector.
                 foreach (IStatisticCollector c in collectors)
                     samples[c.Identifier].Add(c.Estimate(model.CurrentTime));
+
+                afterReplication?.Invoke(r);
             }
 
             var metrics = collectors

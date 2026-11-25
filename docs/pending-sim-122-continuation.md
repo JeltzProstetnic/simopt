@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=SIM-66 (validate_model, patch_model, run_experiment), then SIM-137 and SIM-139, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=SIM-137 (battery fixture NRE), then SIM-69 (optimize), while MG owes Q-SRC-START (blocks SIM-139), Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SimPy-gap section: SIM-124..132 done, SIM-126 slices 1-6 done, SIM-65 done (2026-11-25 late night); next SIM-66
+# SimPy-gap section: SIM-124..132 done, SIM-126 slices 1-6 done, SIM-65 and SIM-66 done (2026-11-25 night); next SIM-137, SIM-69
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -100,9 +100,19 @@ the private hand-off (see *Private material*).
    Filed, open: SIM-136 (suspected item loss in the visualization builder), SIM-137 (battery fixture NRE, 1 in 60),
    SIM-139 (a source's first item at t = 1 fresh, t = 0 after a reset). No comment on his issue #30 needed: no
    template result moved (a one-server station keeps its id and seed; `Delay` keeps capacity 1 by default).
-   **Next, in order:** SIM-66 (P0: `validate_model`, `patch_model`, `run_experiment`; notes at the top of
-   `docs/pending-sim-65-continuation.md`), then SIM-137 and SIM-139 (both P1 proposed, small), SIM-126's schema
-   part, SIM-69 (`optimize`), SIM-110 and SIM-130.
+   **2026-11-25 night (restart #3, unattended): SIM-66 done** in six commits, `1076b00`..(the SIM-66 close commit):
+   `validate_model` (every fault at once with code, node and fix; structural lint; offered load per station from
+   the traffic equations; a trial run on a copy), versions plus `patch_model`, and `run_experiment` (intervals per
+   metric, scenarios at common random numbers with paired significance, flags, provenance; clinic 435 characters,
+   with a flu scenario 948). Suite 1272 passed, 1 skipped. Found on the way: a push node wired to two nodes
+   duplicates every item (now refused), a repeated connection crashed `create_model`, a full queue drops items
+   without a trace, and SIM-139's first item on a fresh model is a phantom the generator never made (backlog).
+   No comment on his issue #30 needed: no template result moved, and his platform does not use the MCP builder.
+   Brief with all numbers: `docs/plans/2026-11-25-sim-66-validate-patch-experiment.md`.
+   **Next, in order:** SIM-137 (P1 proposed, small: the battery fixture's NRE, 1 run in 60), SIM-69 (P0,
+   `optimize` over the same patches; SIM-130's Python package then has every tool it needs), SIM-126's schema
+   part, SIM-110 and SIM-130. SIM-139 waits for **Q-SRC-START**.
+   Older next list, kept: SIM-66, then SIM-137 and SIM-139, SIM-126's schema part, SIM-69, SIM-110 and SIM-130.
    Older next list, kept: SIM-132, then SIM-65 step 2b, then SIM-126's schema part, SIM-110 and SIM-130. Older plan, kept for reference: SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
    process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
    follow, unless MG orders otherwise.

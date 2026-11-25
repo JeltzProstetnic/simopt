@@ -122,6 +122,22 @@ public class ReplicationRunnerTests
     }
 
     [Fact]
+    public void AfterEachReplication_TheCallbackSeesThatReplicationsEndState_BeforeTheNextReset()
+    {
+        // SIM-66: run_experiment reads what no collector holds (items refused, items finished) from
+        // the model's state at the end of each replication; a reset wipes it.
+        var f = BuildDeterministic(interval: 2.0, service: 0.5);
+        Instrumentation.ObserveUtilization(f.Server);
+        var seen = new List<(int Index, double Time, int Finished)>();
+
+        new ReplicationRunner(f.Model, runLength: 20d).Run(3, baseSeed: 5,
+            afterReplication: r => seen.Add((r, f.Model.CurrentTime, f.Sink.Count)));
+
+        seen.Select(s => s.Index).Should().Equal(0, 1, 2);
+        seen.Should().OnlyContain(s => s.Time == 20d && s.Finished == seen[0].Finished && s.Finished > 0);
+    }
+
+    [Fact]
     public void QueueLengthAndWaitingTime_AreZero_WhenNothingEverQueues()
     {
         var f = BuildDeterministic(interval: 2.0, service: 0.5);

@@ -36,7 +36,7 @@ specific to him lives in the gitignored `tmp/` on WSL only (see *Private materia
 ## Next concrete actions, in order
 
 1. Present the four decisions below (Q-SFM9, Q-PRIVHOME, Q-FMT, Q-VALID), after re-verifying each premise; first those in `docs/pending-sim-122-continuation.md`.
-2. SIM-65 step 1, `ParamValue`, exactly as in `docs/pending-sim-65-continuation.md`.
+2. ~~SIM-65 step 1~~ SIM-65 and SIM-66 are done (2026-11-25); their briefs are in `docs/plans/`.
 3. SIM-110 (visualization V1). Its first engine seam is `Instrumentation.ObserveThroughput` /
    `ObserveTimeInSystem`.
 4. SIM-117 (SIM-106 follow-ups), then SIM-118 (empirical bootstrap distribution, multi-item delay),

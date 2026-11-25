@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.ComponentModel;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using ModelContextProtocol.Server;
 using SimOpt.McpServer.Models;
@@ -19,6 +20,12 @@ namespace SimOpt.McpServer.Tools
     public sealed class SimulationTools
     {
         private readonly ModelRegistry _registry;
+
+        /// <summary>
+        /// SIM-66: tool output is read by a language model, not embedded in a web page, so quotes, '+' and
+        /// arrows are written as themselves rather than as \u0027-style escapes that cost tokens.
+        /// </summary>
+        private static readonly JsonSerializerOptions Output = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
         public SimulationTools(ModelRegistry registry)
         {
@@ -64,7 +71,7 @@ namespace SimOpt.McpServer.Tools
                 // SIM-66 (D7): the same checks as validate_model; nothing is registered on an error
                 ValidationReport report = ModelValidator.Validate(topology, out ActiveModel? built);
                 if (built == null)
-                    return JsonSerializer.Serialize(new { error = string.Join("\n", report.Errors.Select(e => e.Line)), validation = report });
+                    return JsonSerializer.Serialize(new { error = string.Join("\n", report.Errors.Select(e => e.Line)), validation = report }, Output);
                 string modelId = _registry.Register(built);
                 return JsonSerializer.Serialize(new
                 {
@@ -74,11 +81,11 @@ namespace SimOpt.McpServer.Tools
                     connection_count = topology.Connections.Count,
                     message = $"Model '{topology.Name}' created with id '{modelId}'.",
                     validation = report,
-                });
+                }, Output);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
             }
         }
 
@@ -116,13 +123,57 @@ namespace SimOpt.McpServer.Tools
                         model_id,
                         version,
                         validation = report,
-                    });
+                    }, Output);
                 int next = _registry.AddVersion(model_id, built, basedOn: version);
-                return JsonSerializer.Serialize(new { model_id, version = next, changes, validation = report });
+                return JsonSerializer.Serialize(new { model_id, version = next, changes, validation = report }, Output);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
+            }
+        }
+
+        // ── run_experiment ────────────────────────────────────────────────────
+
+        [McpServerTool]
+        [Description(
+            "Runs a model with replications and reports each declared metric as a mean with a 95% confidence interval " +
+            "(a model without declared metrics is measured by cycle_time, throughput_<sink>, util_<station> and wait_<queue>). " +
+            "scenarios: variants run in the same call, each {name, patch} with a patch as for patch_model; each is compared " +
+            "with the unpatched \"baseline\" replication by replication (all share the seed, so unchanged parts draw the same " +
+            "random numbers), giving vs_baseline {diff, ci95, significant}. flags say what went wrong: saturated stations, " +
+            "items refused per replication, nothing finished, metrics without data. Returns provenance (version, seed, " +
+            "duration, warmup, replications, confidence, tool) and a one-line summary. Reproducible: the same call gives " +
+            "the same result.")]
+        public string RunExperiment(
+            [Description("The model_id returned by create_model")]
+            string model_id,
+            [Description("Simulated time per replication, warm-up included, in the model's time unit")]
+            double duration,
+            [Description("Replications per scenario, 1 to 1000 (default 10)")]
+            int replications = 10,
+            [Description("Time at the start of each replication excluded from every metric (default a tenth of duration)")]
+            double? warmup = null,
+            [Description("Metric ids to report (default all)")]
+            List<string>? metrics = null,
+            [Description("Variants to compare with the baseline: [{name, patch:[operations as for patch_model]}]")]
+            List<ScenarioDefinition>? scenarios = null,
+            [Description("The model version to run (default the latest)")]
+            int? version = null,
+            [Description("Base seed of the replications (default the model's seed)")]
+            int? seed = null)
+        {
+            try
+            {
+                int run = version ?? _registry.Versions(model_id);
+                TopologyDefinition topology = _registry.Topology(model_id, run);
+                ExperimentResult result = ExperimentRunner.Run(model_id, run, topology, duration, replications, warmup,
+                                                               metrics, scenarios, seed);
+                return JsonSerializer.Serialize(result, Output);
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
             }
         }
 
@@ -142,11 +193,11 @@ namespace SimOpt.McpServer.Tools
         {
             try
             {
-                return JsonSerializer.Serialize(ModelValidator.Validate(topology));
+                return JsonSerializer.Serialize(ModelValidator.Validate(topology), Output);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
             }
         }
 
@@ -167,7 +218,7 @@ namespace SimOpt.McpServer.Tools
             try
             {
                 if (duration <= 0)
-                    return JsonSerializer.Serialize(new { error = "duration must be positive." });
+                    return JsonSerializer.Serialize(new { error = "duration must be positive." }, Output);
 
                 var active = _registry.Get(model_id);
 
@@ -219,11 +270,11 @@ namespace SimOpt.McpServer.Tools
                         routers = routerStats,
                         sources = sourceStats,
                     }
-                });
+                }, Output);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
             }
         }
 
@@ -281,11 +332,11 @@ namespace SimOpt.McpServer.Tools
                     current_time = active.Model.CurrentTime,
                     state = active.Model.CurrentState.ToString(),
                     nodes = nodeStates,
-                });
+                }, Output);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Serialize(new { error = ex.Message });
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
             }
         }
 
@@ -314,7 +365,7 @@ namespace SimOpt.McpServer.Tools
                 }),
                 metric_kinds = SchemaCatalog.MetricKinds.Select(k => new { name = k.Name, measured_at = k.MeasuredAt, description = k.Description }),
                 distributions = SchemaCatalog.DistributionTypes,
-            });
+            }, Output);
         }
 
         private static object Describe(ParameterSpec p) => new
@@ -358,7 +409,7 @@ namespace SimOpt.McpServer.Tools
                 "get_schema returns the whole document schema as JSON Schema.",
             };
 
-            return JsonSerializer.Serialize(new { templates, usage_notes = notes }, new JsonSerializerOptions
+            return JsonSerializer.Serialize(new { templates, usage_notes = notes }, new JsonSerializerOptions(Output)
             {
                 WriteIndented = true
             });
@@ -371,7 +422,7 @@ namespace SimOpt.McpServer.Tools
         public string ListModels()
         {
             var ids = new List<string>(_registry.AllIds());
-            return JsonSerializer.Serialize(new { model_count = ids.Count, model_ids = ids });
+            return JsonSerializer.Serialize(new { model_count = ids.Count, model_ids = ids }, Output);
         }
     }
 }
