@@ -2,6 +2,8 @@ name: Nightly analytic gate
 
 # SIM-96: the checks that cost minutes rather than seconds (AnalyticNightlyTests): the nightly M/M/1
 # design at a 2 % half-width, coverage over 200 seed sets, and Welch's curve against the warm-up.
+# SIM-141: the same networks in Ciw and in SimOpt, where no closed form reaches (python/tests/
+# test_ciw_crosscheck.py). It runs even when the .NET gate fails: the two are independent evidence.
 
 on:
   schedule:
@@ -26,3 +28,23 @@ jobs:
         run: >
           dotnet test tests/SimOpt.Tests/SimOpt.Tests.csproj --configuration Release
           --filter "Category=Nightly" --logger "console;verbosity=detailed"
+
+      - name: Setup Python
+        if: success() || failure()
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Ciw is pinned: the reference moves only by a deliberate change here.
+      - name: Install Ciw
+        if: success() || failure()
+        run: python -m pip install ciw==3.2.7 pytest
+
+      - name: Build the MCP server
+        if: success() || failure()
+        run: dotnet build src/SimOpt.McpServer/SimOpt.McpServer.csproj --configuration Release
+
+      - name: Ciw cross-check
+        if: success() || failure()
+        working-directory: python
+        run: python -m pytest -q -s tests/test_ciw_reference.py tests/test_ciw_crosscheck.py

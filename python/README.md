@@ -147,3 +147,8 @@ cd python && python -m pytest
 
 The client's tests use a stand-in server and need no .NET. The acceptance tests run the clinic against the
 real server, and are skipped when no server is built.
+
+`tests/test_ciw_crosscheck.py` (SIM-141) runs two networks no closed form reaches in
+[Ciw](https://github.com/CiwPython/Ciw) and in SimOpt and compares every metric. It runs in the nightly
+workflow, or by hand with `pip install ciw==3.2.7` and `SIMOPT_NIGHTLY=1 python -m pytest -s
+tests/test_ciw_crosscheck.py` (about two minutes). Without `SIMOPT_NIGHTLY=1` it is skipped.
