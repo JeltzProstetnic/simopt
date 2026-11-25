@@ -235,6 +235,17 @@ namespace SimOpt.McpServer.Simulation
                 t.Metrics.Add(new MetricDefinition { Id = $"util_{station}", Kind = Instrumentation.Utilization, Node = station });
             foreach (string queue in Of("queue"))
                 t.Metrics.Add(new MetricDefinition { Id = $"wait_{queue}", Kind = Instrumentation.WaitTime, Node = queue });
+            // SIM-126: a resource is measured as a station and its queue are, a stock by its level and its empty time
+            foreach (string resource in Of("resource"))
+            {
+                t.Metrics.Add(new MetricDefinition { Id = $"util_{resource}", Kind = Instrumentation.Utilization, Node = resource });
+                t.Metrics.Add(new MetricDefinition { Id = $"wait_{resource}", Kind = Instrumentation.WaitTime, Node = resource });
+            }
+            foreach (string stock in Of("stock"))
+            {
+                t.Metrics.Add(new MetricDefinition { Id = $"level_{stock}", Kind = SchemaCatalog.LevelKind, Node = stock });
+                t.Metrics.Add(new MetricDefinition { Id = $"empty_{stock}", Kind = SchemaCatalog.EmptyShareKind, Node = stock });
+            }
         }
 
         /// <summary>

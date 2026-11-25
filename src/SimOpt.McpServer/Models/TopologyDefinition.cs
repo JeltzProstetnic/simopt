@@ -24,7 +24,7 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("seed")]
         public int Seed { get; set; } = 42;
 
-        [Description("List of simulation nodes (source, queue, station, delay, router, sink)")]
+        [Description("List of simulation nodes (source, queue, station, delay, router, sink; resource and stock beside the item flow)")]
         [JsonPropertyName("nodes")]
         public List<NodeDefinition> Nodes { get; set; } = new();
 
@@ -32,8 +32,9 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("connections")]
         public List<ConnectionDefinition> Connections { get; set; } = new();
 
-        [Description("Declared metrics: [{id, kind, node?}], kind one of wait_time, queue_length (at a queue), " +
-                     "utilization (at a station), count, throughput (at a sink), cycle_time (at a sink, or all sinks without a node)")]
+        [Description("Declared metrics: [{id, kind, node?}], kind one of wait_time, queue_length (at a queue or a resource), " +
+                     "utilization (at a station or a resource), level, empty_share (at a stock), count, throughput (at a sink), " +
+                     "cycle_time (at a sink, or all sinks without a node)")]
         [JsonPropertyName("metrics")]
         public List<MetricDefinition> Metrics { get; set; } = new();
     }
@@ -48,7 +49,7 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
-        [Description("wait_time | queue_length | utilization | count | throughput | cycle_time")]
+        [Description("wait_time | queue_length | utilization | count | throughput | cycle_time | level | empty_share")]
         [JsonPropertyName("kind")]
         public string Kind { get; set; } = string.Empty;
 
@@ -67,7 +68,7 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
-        [Description("Node type: source | queue | station | delay | router | sink (buffer and server are accepted for queue and station)")]
+        [Description("Node type: source | queue | station | delay | router | sink | resource | stock (buffer and server are accepted for queue and station)")]
         [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
 

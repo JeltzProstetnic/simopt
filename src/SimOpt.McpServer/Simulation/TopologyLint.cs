@@ -111,7 +111,9 @@ namespace SimOpt.McpServer.Simulation
             {
                 if (string.IsNullOrWhiteSpace(node.Id) || twins.Contains(node.Id)) continue;
                 string? type = SchemaCatalog.Canonical(node.Type);
-                if (type != null) types[node.Id] = type;
+                // SIM-126: a resource or a stock is used by process steps, not connected; the builder
+                // refuses a connection to one
+                if (type != null && !SchemaCatalog.OffFlowTypes.Contains(type)) types[node.Id] = type;
             }
             return types;
         }

@@ -9,6 +9,7 @@ using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
 using SimOpt.Simulation.Enum;
 using SimOpt.Simulation.Interfaces;
+using SimOpt.Simulation.Processes;
 using SimOpt.Simulation.Statistics;
 using SimOpt.Simulation.Templates;
 using SimOpt.Basics.Utilities;
@@ -177,6 +178,8 @@ namespace SimOpt.McpServer.Simulation
             var delays = new Dictionary<string, SimpleDelay>();
             var routers = new Dictionary<string, SimpleRouter>();
             var sinks = new Dictionary<string, SimpleSink>();
+            var resources = new Dictionary<string, Resource>();   // SIM-126: beside the item flow
+            var stocks = new Dictionary<string, Stock>();
 
             int entityCounter = 0;
 
@@ -312,6 +315,20 @@ namespace SimOpt.McpServer.Simulation
                             break;
                         }
 
+                        case "resource":
+                        {
+                            // SIM-126: no randomness of its own, so no seed ID; a process's seize step uses it
+                            resources[node.Id] = new Resource(model, ResourceCapacity(node, label), id: node.Id, name: node.Id);
+                            break;
+                        }
+
+                        case "stock":
+                        {
+                            var (initial, capacity) = StockLevels(node, label);
+                            stocks[node.Id] = new Stock(model, initial, capacity, id: node.Id, name: node.Id);
+                            break;
+                        }
+
                         default:
                             throw new TopologyException("UNKNOWN_NODE_TYPE", node.Id,
                                 $"Unknown node type '{node.Type}' for node '{node.Id}'.",
@@ -407,6 +424,21 @@ namespace SimOpt.McpServer.Simulation
                 string to = conn.To;
 
                 bool connected = false;
+
+                // SIM-126: a resource or a stock is used by process steps; an item is never passed to one
+                foreach (string end in new[] { from, to })
+                {
+                    if (resources.ContainsKey(end))
+                        throw new TopologyException("NOT_ON_ITEM_FLOW", end,
+                            $"Connection '{from}' → '{to}': resource '{end}' is not on the item flow; items are not passed to " +
+                            "or from it, they hold its units.",
+                            $"Remove the connection, and name '{end}' in the seize step of the process that uses it.");
+                    if (stocks.ContainsKey(end))
+                        throw new TopologyException("NOT_ON_ITEM_FLOW", end,
+                            $"Connection '{from}' → '{to}': stock '{end}' is not on the item flow; items are not passed to " +
+                            "or from it, processes take material from it and put material into it.",
+                            $"Remove the connection, and name '{end}' in the take or put step of the process that uses it.");
+                }
 
                 // SIM-65: a weight is a probabilistic router's share for this edge. Any other node
                 // reads none, and ignoring one would build a different model from the one described.
@@ -554,7 +586,8 @@ namespace SimOpt.McpServer.Simulation
                 }
             }
 
-            IReadOnlyDictionary<string, string> metrics = AttachMetrics(model, topology, sources, buffers, stations, sinks, report, failed);
+            IReadOnlyDictionary<string, string> metrics = AttachMetrics(model, topology, sources, buffers, stations, sinks,
+                resources, stocks, report, failed);
             if (report.Errors.Count > 0) return null;
             OfferedLoad.Check(topology, report);   // SIM-66 step 3 (D5)
 
@@ -563,7 +596,7 @@ namespace SimOpt.McpServer.Simulation
             // node.Id) and survive both a process restart and a reordering of the node list.
             model.Reset(topology.Seed);
 
-            return new ActiveModel(model, sources, buffers, servers, delays, routers, sinks, topology, metrics);
+            return new ActiveModel(model, sources, buffers, servers, delays, routers, sinks, topology, metrics, resources, stocks);
         }
 
         /// <summary>
@@ -656,6 +689,7 @@ namespace SimOpt.McpServer.Simulation
         private static IReadOnlyDictionary<string, string> AttachMetrics(Model model, TopologyDefinition topology,
             Dictionary<string, SimpleSource> sources, Dictionary<string, SimpleBuffer> buffers,
             Dictionary<string, List<SimpleServer>> stations, Dictionary<string, SimpleSink> sinks,
+            Dictionary<string, Resource> resources, Dictionary<string, Stock> stocks,
             ValidationReport report, ISet<string> failed)
         {
             var keys = new Dictionary<string, string>();
@@ -688,7 +722,9 @@ namespace SimOpt.McpServer.Simulation
                 string? node = string.IsNullOrWhiteSpace(metric.Node) ? null : metric.Node.Trim();
                 if (node != null && failed.Contains(node)) return null;
 
-                T At<T>(Dictionary<string, T> nodes, string needs) where T : class
+                // SIM-126: `others` are the nodes of a second type the kind is also measured at (a resource
+                // beside a queue or a station), which the caller has already looked for
+                T At<T>(Dictionary<string, T> nodes, string needs, IEnumerable<string>? others = null) where T : class
                 {
                     if (node == null)
                         throw new TopologyException("INVALID_METRIC", null,
@@ -696,9 +732,11 @@ namespace SimOpt.McpServer.Simulation
                     if (!nodes.TryGetValue(node, out T? found))
                         throw new TopologyException("INVALID_METRIC", null,
                             $"Metric '{id}': {kind} is measured at a {needs}, and '{node}' is not one in this topology.",
-                            $"Measure it at one of: {string.Join(", ", nodes.Keys.Select(k => $"'{k}'"))}.");
+                            $"Measure it at one of: {string.Join(", ", nodes.Keys.Concat(others ?? Enumerable.Empty<string>()).Select(k => $"'{k}'"))}.");
                     return found;
                 }
+
+                Resource? AtResource() => node != null && resources.TryGetValue(node, out Resource? r) ? r : null;
 
                 string key;
                 switch (kind)
@@ -706,7 +744,17 @@ namespace SimOpt.McpServer.Simulation
                     case Instrumentation.WaitTime:
                     case Instrumentation.QueueLength:
                     {
-                        SimpleBuffer queue = At(buffers, "queue");
+                        if (AtResource() is Resource resource)
+                        {
+                            key = $"{resource.Identifier}.stat.{kind}";
+                            if (attached.Add(key))
+                            {
+                                if (kind == Instrumentation.WaitTime) Instrumentation.ObserveResourceWaitingTime(resource);
+                                else Instrumentation.ObserveResourceQueueLength(resource);
+                            }
+                            break;
+                        }
+                        SimpleBuffer queue = At(buffers, "queue or a resource", resources.Keys);
                         key = $"{queue.Identifier}.stat.{kind}";
                         if (attached.Add(key))
                         {
@@ -717,7 +765,13 @@ namespace SimOpt.McpServer.Simulation
                     }
                     case Instrumentation.Utilization:
                     {
-                        List<SimpleServer> pool = At(stations, "station");
+                        if (AtResource() is Resource resource)
+                        {
+                            key = $"{resource.Identifier}.stat.{kind}";
+                            if (attached.Add(key)) Instrumentation.ObserveResourceUtilization(resource);
+                            break;
+                        }
+                        List<SimpleServer> pool = At(stations, "station or a resource", resources.Keys);
                         key = $"{node}.stat.{kind}";
                         if (attached.Add(key)) Instrumentation.ObservePoolUtilization(pool, node!);
                         break;
@@ -742,6 +796,20 @@ namespace SimOpt.McpServer.Simulation
                         key = $"{owner}.stat.{kind}";
                         if (attached.Add(key))
                             Instrumentation.ObserveCycleTime(model, owner, sources.Values.Cast<IItemSource<SimpleEntity>>(), at);
+                        break;
+                    }
+                    case SchemaCatalog.LevelKind:
+                    case SchemaCatalog.EmptyShareKind:
+                    {
+                        // SIM-126: the collectors keep the engine's statistic names
+                        Stock stock = At(stocks, "stock");
+                        bool level = kind == SchemaCatalog.LevelKind;
+                        key = $"{stock.Identifier}.stat.{(level ? Instrumentation.StockLevel : Instrumentation.StockEmpty)}";
+                        if (attached.Add(key))
+                        {
+                            if (level) Instrumentation.ObserveStockLevel(stock);
+                            else Instrumentation.ObserveStockEmpty(stock);
+                        }
                         break;
                     }
                     default:
@@ -809,6 +877,42 @@ namespace SimOpt.McpServer.Simulation
                     $"{label} '{node.Id}': capacity must be a whole number of at least 1, not {capacity}.",
                     "Leave it out for an unlimited queue.");
             return (int)capacity;
+        }
+
+        /// <summary>SIM-126: a resource's <c>capacity</c>, a whole number from 1 (the default) to 10,000.</summary>
+        private static int ResourceCapacity(NodeDefinition node, string label)
+        {
+            if (!TryGetNumber(node, label, "capacity", out double capacity)) return 1;
+            if (capacity < 1 || capacity > MaxServers || capacity != Math.Floor(capacity))
+                throw new TopologyException("INVALID_PARAMETER", node.Id,
+                    $"{label} '{node.Id}': capacity must be a whole number of units from 1 to {MaxServers:N0}, not {capacity}.");
+            return (int)capacity;
+        }
+
+        /// <summary>
+        /// SIM-126: a stock's <c>initial</c> level (default 0) and <c>capacity</c> (default unlimited): the
+        /// capacity positive, the initial level from 0 to the capacity.
+        /// </summary>
+        private static (double Initial, double Capacity) StockLevels(NodeDefinition node, string label)
+        {
+            double capacity = double.PositiveInfinity;
+            if (TryGetNumber(node, label, "capacity", out double given))
+            {
+                if (!(given > 0d) || double.IsInfinity(given))
+                    throw new TopologyException("INVALID_PARAMETER", node.Id,
+                        $"{label} '{node.Id}': capacity must be a positive number, not {given}.",
+                        "Leave it out for an unlimited stock.");
+                capacity = given;
+            }
+            if (!TryGetNumber(node, label, "initial", out double initial)) return (0d, capacity);
+            if (!(initial >= 0d) || double.IsInfinity(initial))
+                throw new TopologyException("INVALID_PARAMETER", node.Id,
+                    $"{label} '{node.Id}': initial must be a number of at least 0, not {initial}.");
+            if (initial > capacity)
+                throw new TopologyException("INVALID_PARAMETER", node.Id,
+                    $"{label} '{node.Id}': initial {initial} is more than the capacity {capacity}.",
+                    "Lower the initial level, or raise the capacity.");
+            return (initial, capacity);
         }
 
         /// <summary>

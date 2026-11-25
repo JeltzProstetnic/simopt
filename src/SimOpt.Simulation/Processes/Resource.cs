@@ -21,6 +21,8 @@ namespace SimOpt.Simulation.Processes
         private int inUse;
         private readonly LinkedList<RequestWait> waiting = new LinkedList<RequestWait>();
         private readonly BinaryEvent<Resource, int> inUseChangedEvent;
+        private readonly BinaryEvent<Resource, int> waitingChangedEvent;
+        private readonly BinaryEvent<Resource, double> grantedEvent;
 
         #endregion
         #region ctor
@@ -31,6 +33,8 @@ namespace SimOpt.Simulation.Processes
             if (capacity < 1) throw new ArgumentOutOfRangeException(nameof(capacity), "The capacity must be at least 1.");
             this.capacity = capacity;
             inUseChangedEvent = new BinaryEvent<Resource, int>(EntityName + ".InUseChanged");
+            waitingChangedEvent = new BinaryEvent<Resource, int>(EntityName + ".WaitingChanged");
+            grantedEvent = new BinaryEvent<Resource, double>(EntityName + ".Granted");
         }
 
         #endregion
@@ -46,6 +50,15 @@ namespace SimOpt.Simulation.Processes
 
         /// <summary>Raised with the new number of units in use whenever it changes.</summary>
         public BinaryEvent<Resource, int> InUseChangedEvent { get { return inUseChangedEvent; } }
+
+        /// <summary>Raised with the new number of waiting requests whenever it changes during a run.</summary>
+        public BinaryEvent<Resource, int> WaitingChangedEvent { get { return waitingChangedEvent; } }
+
+        /// <summary>
+        /// Raised when a granted unit reaches its process, with the time the request waited for it. A
+        /// request withdrawn before then (a lost any-of, an interrupt) is not reported.
+        /// </summary>
+        public BinaryEvent<Resource, double> GrantedEvent { get { return grantedEvent; } }
 
         #endregion
         #region impl
@@ -68,6 +81,7 @@ namespace SimOpt.Simulation.Processes
                 RequestWait next = waiting.First.Value;
                 waiting.RemoveFirst();
                 next.Node = null;
+                waitingChangedEvent.Raise(this, waiting.Count);
                 Grant(next);
             }
         }
@@ -75,7 +89,11 @@ namespace SimOpt.Simulation.Processes
         private void Acquire(RequestWait request)
         {
             if (inUse < capacity && waiting.Count == 0) Grant(request);
-            else request.Node = waiting.AddLast(request);
+            else
+            {
+                request.Node = waiting.AddLast(request);
+                waitingChangedEvent.Raise(this, waiting.Count);
+            }
         }
 
         private void Grant(RequestWait request)
@@ -97,10 +115,12 @@ namespace SimOpt.Simulation.Processes
 
             public RequestState State { get; set; }
             public LinkedListNode<RequestWait> Node { get; set; }
+            private double requestedAt;
 
             internal override void Subscribe(Process process, Action resume)
             {
                 this.resume = resume;
+                requestedAt = resource.Model.CurrentTime;
                 State = RequestState.Queued;
                 resource.Acquire(this);
             }
@@ -109,6 +129,7 @@ namespace SimOpt.Simulation.Processes
             {
                 if (State != RequestState.Granted) return;
                 State = RequestState.Delivered;
+                resource.grantedEvent.Raise(resource, resource.Model.CurrentTime - requestedAt);
                 resume();
             }
 
@@ -118,6 +139,7 @@ namespace SimOpt.Simulation.Processes
                 {
                     resource.waiting.Remove(Node);
                     Node = null;
+                    resource.waitingChangedEvent.Raise(resource, resource.waiting.Count);
                 }
                 else if (State == RequestState.Granted)
                 {

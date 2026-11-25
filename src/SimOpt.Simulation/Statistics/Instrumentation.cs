@@ -80,6 +80,39 @@ namespace SimOpt.Simulation.Statistics
         }
 
         /// <summary>
+        /// SIM-126: the time each granted request waited for a unit of a process resource, from the
+        /// request to the grant, as an observation-based statistic. Requests withdrawn before their grant
+        /// (an item that gave up) are not observed.
+        /// </summary>
+        public static TallyCollector ObserveResourceWaitingTime(SimOpt.Simulation.Processes.Resource resource, double warmup = 0d)
+        {
+            var collector = new TallyCollector(
+                resource.Model, WaitTime,
+                id: resource.Identifier + ".stat." + WaitTime,
+                name: resource.EntityName + " waiting time")
+            { WarmupTime = warmup };
+
+            resource.GrantedEvent.AddHandler((_, waited) => collector.Observe(waited));
+            return collector;
+        }
+
+        /// <summary>
+        /// SIM-126: the number of requests waiting for a unit of a process resource, time-weighted, as the
+        /// queue length of a buffer is.
+        /// </summary>
+        public static TimeWeightedCollector ObserveResourceQueueLength(SimOpt.Simulation.Processes.Resource resource, double warmup = 0d)
+        {
+            var collector = new TimeWeightedCollector(
+                resource.Model, QueueLength, () => resource.Waiting,
+                id: resource.Identifier + ".stat." + QueueLength,
+                name: resource.EntityName + " queue length")
+            { WarmupTime = warmup };
+
+            resource.WaitingChangedEvent.AddHandler((_, waiting) => collector.Record(waiting));
+            return collector;
+        }
+
+        /// <summary>
         /// Records whether a stock is empty (1) or not (0), so the time average is the share of time
         /// it stood empty (SIM-127).
         /// </summary>

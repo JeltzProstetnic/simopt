@@ -59,8 +59,11 @@ namespace SimOpt.McpServer.Tools
             "or in service at the station it feeds; a tie goes to the connection listed first); " +
             "a router is fed like a delay and feeds a queue, delay, sink or router. " +
             "Sink has no params. " +
-            "Metrics: an optional list [{id, kind, node?}] of what the model measures: wait_time and queue_length at a queue, " +
-            "utilization at a station, count and throughput at a sink, cycle_time at a sink or, without a node, at all sinks. " +
+            "Beside the item flow, connected to nothing: resource (capacity, whole units, default 1), units a process holds; " +
+            "stock (initial, default 0; capacity, default unlimited), a level processes take from and put into. " +
+            "Metrics: an optional list [{id, kind, node?}] of what the model measures: wait_time and queue_length at a queue or " +
+            "a resource, utilization at a station or a resource, level and empty_share at a stock, count and throughput at a " +
+            "sink, cycle_time at a sink or, without a node, at all sinks. " +
             "Example: {\"name\":\"SQSS\",\"seed\":42," +
             "\"nodes\":[{\"id\":\"src\",\"type\":\"source\",\"params\":{\"mean_interval\":2.0}}," +
             "{\"id\":\"buf\",\"type\":\"buffer\",\"params\":{\"capacity\":10}}," +
@@ -446,6 +449,14 @@ namespace SimOpt.McpServer.Tools
                 foreach (var (id, src) in active.Sources)
                     sourceStats[id] = new { running = src.Running };
 
+                var resourceStats = new Dictionary<string, object>();
+                foreach (var (id, res) in active.Resources)
+                    resourceStats[id] = new { capacity = res.Capacity, in_use = res.InUse, waiting = res.Waiting };
+
+                var stockStats = new Dictionary<string, object>();
+                foreach (var (id, stk) in active.Stocks)
+                    stockStats[id] = StockState(stk);
+
                 return JsonSerializer.Serialize(new
                 {
                     model_id,
@@ -460,6 +471,8 @@ namespace SimOpt.McpServer.Tools
                         delays = delayStats,
                         routers = routerStats,
                         sources = sourceStats,
+                        resources = resourceStats,
+                        stocks = stockStats,
                     }
                 }, Output);
             }
@@ -468,6 +481,15 @@ namespace SimOpt.McpServer.Tools
                 return JsonSerializer.Serialize(new { error = ex.Message }, Output);
             }
         }
+
+        /// <summary>SIM-126: a stock's level and capacity (null when unlimited, which JSON cannot hold) and its waiting requests.</summary>
+        private static object StockState(SimOpt.Simulation.Templates.Stock stock) => new
+        {
+            level = stock.Level,
+            capacity = double.IsInfinity(stock.Capacity) ? (double?)null : stock.Capacity,
+            waiting_takes = stock.WaitingTakers,
+            waiting_puts = stock.WaitingPutters,
+        };
 
         /// <summary>SIM-65 step 4: the items a router passed on, by target id.</summary>
         private static Dictionary<string, int> RoutedByTarget(SimpleRouter router)
@@ -515,6 +537,17 @@ namespace SimOpt.McpServer.Tools
 
                 foreach (var (id, snk) in active.Sinks)
                     nodeStates.Add(new { id, type = "sink", total_received = snk.Count });
+
+                foreach (var (id, res) in active.Resources)
+                    nodeStates.Add(new { id, type = "resource", capacity = res.Capacity, in_use = res.InUse, waiting = res.Waiting });
+
+                foreach (var (id, stk) in active.Stocks)
+                    nodeStates.Add(new
+                    {
+                        id, type = "stock", level = stk.Level,
+                        capacity = double.IsInfinity(stk.Capacity) ? (double?)null : stk.Capacity,
+                        waiting_takes = stk.WaitingTakers, waiting_puts = stk.WaitingPutters,
+                    });
 
                 return JsonSerializer.Serialize(new
                 {

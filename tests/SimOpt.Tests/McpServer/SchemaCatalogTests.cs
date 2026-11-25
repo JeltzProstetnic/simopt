@@ -34,7 +34,9 @@ public class SchemaCatalogTests
                    {"id": "s", "type": "station", "params": {"servers": 2, "service": {"type": "constant", "value": 1}}},
                    {"id": "d", "type": "delay", "params": {"duration": {"type": "uniform", "min": 1, "max": 2}}},
                    {"id": "r", "type": "router", "params": {"policy": "probabilistic"}},
-                   {"id": "a", "type": "sink"}, {"id": "b", "type": "sink"}],
+                   {"id": "a", "type": "sink"}, {"id": "b", "type": "sink"},
+                   {"id": "bays", "type": "resource", "params": {"capacity": 2}},
+                   {"id": "soap", "type": "stock", "params": {"initial": 40, "capacity": 40}}],
          "connections": [["arrivals", "q"], ["q", "s"], ["s", "d"], ["d", "r"], ["r", "a", 3], {"from": "r", "to": "b", "weight": 1}]}
         """;
 
@@ -82,7 +84,8 @@ public class SchemaCatalogTests
     {
         SchemaCatalog.MetricKinds.Select(k => k.Name).Should().BeEquivalentTo(
             Instrumentation.WaitTime, Instrumentation.QueueLength, Instrumentation.Utilization,
-            Instrumentation.ItemCount, Instrumentation.Throughput, Instrumentation.CycleTime);
+            Instrumentation.ItemCount, Instrumentation.Throughput, Instrumentation.CycleTime,
+            SchemaCatalog.LevelKind, SchemaCatalog.EmptyShareKind);   // SIM-126: a stock's, on the engine's stock_level and stock_empty
         SchemaCatalog.DistributionTypes.Should().Equal(DistributionFactory.KnownTypes);
     }
 

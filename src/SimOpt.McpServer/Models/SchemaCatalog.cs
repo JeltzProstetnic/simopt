@@ -28,6 +28,15 @@ namespace SimOpt.McpServer.Models
     {
         public const string SchemaVersion = "1";
 
+        /// <summary>SIM-126: the metric kind of a stock's time-average level.</summary>
+        public const string LevelKind = "level";
+
+        /// <summary>SIM-126: the metric kind of the share of time a stock stood empty.</summary>
+        public const string EmptyShareKind = "empty_share";
+
+        /// <summary>SIM-126: node types beside the item flow, which nothing is connected to; process steps use them.</summary>
+        public static IReadOnlyList<string> OffFlowTypes { get; } = new[] { "resource", "stock" };
+
         private static readonly string[] None = System.Array.Empty<string>();
 
         public static IReadOnlyList<NodeTypeSpec> NodeTypes { get; } = new[]
@@ -82,17 +91,38 @@ namespace SimOpt.McpServer.Models
                 "Absorbs and counts finished items.",
                 System.Array.Empty<ParameterSpec>(),
                 FedBy: "a source, station, delay or router", Feeds: "nothing"),
+            new NodeTypeSpec("resource", None,
+                "Units an item holds while a process works on it (bays, nurses, forklifts), first come, first served. " +
+                "Not on the item flow: nothing is connected to it; a process's seize step takes a unit and its release frees it.",
+                new[]
+                {
+                    new ParameterSpec("capacity", "integer", false, "1", "Units, 1 to 10,000."),
+                },
+                FedBy: "nothing (a process seizes it)", Feeds: "nothing"),
+            new NodeTypeSpec("stock", None,
+                "A level of material (soap, parts, kilograms) that processes take from and put into. Not on the item flow: " +
+                "nothing is connected to it; a take waits until the whole amount is there, a put while it would overfill.",
+                new[]
+                {
+                    new ParameterSpec("initial", "number", false, "0", "Level at the start of every replication."),
+                    new ParameterSpec("capacity", "number", false, "unlimited", "Most the stock holds, a positive number."),
+                },
+                FedBy: "nothing (a process takes from it and puts into it)", Feeds: "nothing"),
         };
 
         public static IReadOnlyList<MetricKindSpec> MetricKinds { get; } = new[]
         {
-            new MetricKindSpec("wait_time", "a queue", "Mean time an item waits in the queue."),
-            new MetricKindSpec("queue_length", "a queue", "Time-average number of items waiting."),
-            new MetricKindSpec("utilization", "a station", "Time-average busy share of the station's servers."),
+            new MetricKindSpec("wait_time", "a queue or a resource",
+                "Mean time an item waits in the queue, or for a unit of the resource (over the items granted one)."),
+            new MetricKindSpec("queue_length", "a queue or a resource", "Time-average number of items waiting."),
+            new MetricKindSpec("utilization", "a station or a resource",
+                "Time-average busy share of the station's servers or of the resource's units."),
             new MetricKindSpec("count", "a sink", "Items that reached the sink after the warm-up."),
             new MetricKindSpec("throughput", "a sink", "Items that reached the sink per unit of time after the warm-up."),
             new MetricKindSpec("cycle_time", "a sink, or every sink without a node",
                 "Mean time from an item's creation at a source to its arrival at the sink."),
+            new MetricKindSpec(LevelKind, "a stock", "Time-average level of the stock."),
+            new MetricKindSpec(EmptyShareKind, "a stock", "Share of time the stock stood empty."),
         };
 
         /// <summary>
