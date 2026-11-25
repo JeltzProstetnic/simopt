@@ -16,6 +16,7 @@ namespace SimOpt.McpServer.Simulation
             Dictionary<string, SimpleSource> sources,
             Dictionary<string, SimpleBuffer> buffers,
             Dictionary<string, SimpleServer> servers,
+            Dictionary<string, SimpleDelay> delays,
             Dictionary<string, SimpleSink> sinks,
             TopologyDefinition topology)
         {
@@ -23,6 +24,7 @@ namespace SimOpt.McpServer.Simulation
             Sources = sources;
             Buffers = buffers;
             Servers = servers;
+            Delays = delays;
             Sinks = sinks;
             Topology = topology;
         }
@@ -31,6 +33,7 @@ namespace SimOpt.McpServer.Simulation
         public Dictionary<string, SimpleSource> Sources { get; }
         public Dictionary<string, SimpleBuffer> Buffers { get; }
         public Dictionary<string, SimpleServer> Servers { get; }
+        public Dictionary<string, SimpleDelay> Delays { get; }
         public Dictionary<string, SimpleSink> Sinks { get; }
         public TopologyDefinition Topology { get; }
     }

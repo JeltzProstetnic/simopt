@@ -64,6 +64,7 @@ namespace SimOpt.McpServer.Simulation
             var sources = new Dictionary<string, SimpleSource>();
             var buffers = new Dictionary<string, SimpleBuffer>();
             var servers = new Dictionary<string, SimpleServer>();
+            var delays = new Dictionary<string, SimpleDelay>();
             var sinks = new Dictionary<string, SimpleSink>();
 
             int entityCounter = 0;
@@ -144,6 +145,29 @@ namespace SimOpt.McpServer.Simulation
                         break;
                     }
 
+                    case "delay":
+                    {
+                        if (!node.Params.ContainsKey("duration") && !node.Params.ContainsKey("delay_time"))
+                            throw new InvalidOperationException(
+                                $"{label} '{node.Id}': give duration, a distribution object such as " +
+                                "{\"type\": \"constant\", \"value\": 5}, or delay_time, an exponential mean.");
+                        var dist = TimeDistribution(node, label, "duration", "delay_time");
+                        // SIM-65/SIM-132: the schema's delay gives every item its own timer, so it has
+                        // no capacity limit; with one place it would refuse every item that arrives
+                        // while another is inside.
+                        var delay = new SimpleDelay(
+                            model,
+                            dist,
+                            StableHash.Of(node.Id),   // see the source case above
+                            id: node.Id,
+                            name: node.Id)
+                        {
+                            Capacity = int.MaxValue,
+                        };
+                        delays[node.Id] = delay;
+                        break;
+                    }
+
                     case "sink":
                     {
                         var sink = new SimpleSink(model, id: node.Id, name: node.Id);
@@ -153,7 +177,7 @@ namespace SimOpt.McpServer.Simulation
 
                     default:
                         throw new InvalidOperationException(
-                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: source, queue, station, sink " +
+                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: source, queue, station, delay, sink " +
                             "(buffer and server are accepted for queue and station).");
                 }
             }
@@ -168,9 +192,12 @@ namespace SimOpt.McpServer.Simulation
             //   Buffer  → Server  : server.ConnectTo(buffer)    buffer is IItemBuffer<SimpleEntity>
             //   Server  → Sink    : sink.ConnectTo(server)      server is IItemSource<SimpleEntity>
             //   Server  → Server  : server.ConnectTo(source)    server is IItemSource<SimpleEntity>
+            //   Source, Server or Delay → Delay : delay.ConnectTo(upstream)   pushed, one timer per item
+            //   Delay   → Buffer, Server, Delay or Sink : downstream.ConnectTo(delay)
             //
             // Buffer → Sink directly is not supported (Buffer is IItemBuffer, Sink needs IItemSource).
-            // Use Buffer → Server → Sink instead.
+            // Use Buffer → Server → Sink instead. Buffer → Delay is refused: a delay takes every item at
+            // once, so the queue would stay empty.
 
             foreach (ConnectionDefinition conn in topology.Connections)
             {
@@ -178,6 +205,14 @@ namespace SimOpt.McpServer.Simulation
                 string to = conn.To;
 
                 bool connected = false;
+
+                // SIM-65: a weight is a router's share for this edge. Routers arrive with step 4;
+                // until then no node reads a weight, and ignoring one would build a different model
+                // from the one described.
+                if (conn.Weight is double weight)
+                    throw new InvalidOperationException(
+                        $"Connection '{from}' → '{to}': weight {weight} is read only on a connection leaving a router, " +
+                        $"and '{from}' is not a router. Remove the weight.");
 
                 // ── from=Source ──────────────────────────────────────────────
                 if (sources.TryGetValue(from, out SimpleSource? upSrc))
@@ -195,6 +230,11 @@ namespace SimOpt.McpServer.Simulation
                     else if (sinks.TryGetValue(to, out SimpleSink? downSnk))
                     {
                         downSnk.ConnectTo(upSrc);
+                        connected = true;
+                    }
+                    else if (delays.TryGetValue(to, out SimpleDelay? downDly))
+                    {
+                        downDly.ConnectTo((IItemSource<SimpleEntity>)upSrc);
                         connected = true;
                     }
                 }
@@ -230,6 +270,13 @@ namespace SimOpt.McpServer.Simulation
                         throw new InvalidOperationException(
                             $"Connection '{from}' → '{to}': Buffer cannot connect to another Buffer.");
                     }
+                    else if (delays.ContainsKey(to))
+                    {
+                        throw new InvalidOperationException(
+                            $"Connection '{from}' → '{to}': a queue cannot feed a delay. A delay takes every item " +
+                            $"at once, so the queue would stay empty. Connect the node that feeds '{from}' to '{to}' " +
+                            $"directly, or put a station between '{from}' and '{to}'.");
+                    }
                 }
                 // ── from=Server ──────────────────────────────────────────────
                 else if (servers.TryGetValue(from, out SimpleServer? upSrv))
@@ -247,6 +294,36 @@ namespace SimOpt.McpServer.Simulation
                     else if (buffers.TryGetValue(to, out SimpleBuffer? downBuf2))
                     {
                         downBuf2.ConnectTo(upSrv);
+                        connected = true;
+                    }
+                    else if (delays.TryGetValue(to, out SimpleDelay? downDly2))
+                    {
+                        downDly2.ConnectTo((IItemSource<SimpleEntity>)upSrv);
+                        connected = true;
+                    }
+                }
+                // ── from=Delay ───────────────────────────────────────────────
+                else if (delays.TryGetValue(from, out SimpleDelay? upDly))
+                {
+                    var released = (IItemSource<SimpleEntity>)upDly;
+                    if (sinks.TryGetValue(to, out SimpleSink? downSnk3))
+                    {
+                        downSnk3.ConnectTo(released);
+                        connected = true;
+                    }
+                    else if (buffers.TryGetValue(to, out SimpleBuffer? downBuf3))
+                    {
+                        downBuf3.ConnectTo(released);
+                        connected = true;
+                    }
+                    else if (servers.TryGetValue(to, out SimpleServer? downSrv3))
+                    {
+                        downSrv3.ConnectTo(released);
+                        connected = true;
+                    }
+                    else if (delays.TryGetValue(to, out SimpleDelay? downDly3))
+                    {
+                        downDly3.ConnectTo(released);
                         connected = true;
                     }
                 }
@@ -279,7 +356,7 @@ namespace SimOpt.McpServer.Simulation
             // node.Id) and survive both a process restart and a reordering of the node list.
             model.Reset(topology.Seed);
 
-            return new ActiveModel(model, sources, buffers, servers, sinks, topology);
+            return new ActiveModel(model, sources, buffers, servers, delays, sinks, topology);
         }
 
         /// <summary>

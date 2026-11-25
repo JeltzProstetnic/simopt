@@ -17,7 +17,7 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("seed")]
         public int Seed { get; set; } = 42;
 
-        [Description("List of simulation nodes (source, buffer, server, sink)")]
+        [Description("List of simulation nodes (source, queue, station, delay, sink)")]
         [JsonPropertyName("nodes")]
         public List<NodeDefinition> Nodes { get; set; } = new();
 
@@ -35,7 +35,7 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
-        [Description("Node type: source | buffer | server | sink")]
+        [Description("Node type: source | queue | station | delay | sink (buffer and server are accepted for queue and station)")]
         [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
 
@@ -56,5 +56,14 @@ namespace SimOpt.McpServer.Models
         [Description("Destination node id")]
         [JsonPropertyName("to")]
         public string To { get; set; } = string.Empty;
+
+        /// <summary>
+        /// SIM-65: the edge's share of a router's traffic. The weight belongs to the edge, not to the
+        /// router node, which keeps <see cref="ParamValue"/> free of maps. Only a router reads it.
+        /// </summary>
+        [Description("Optional routing weight of this connection, read only on connections leaving a router")]
+        [JsonPropertyName("weight")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public double? Weight { get; set; }
     }
 }

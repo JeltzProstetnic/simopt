@@ -30,13 +30,15 @@ namespace SimOpt.McpServer.Tools
         [Description(
             "Creates a new simulation model from a JSON topology description. " +
             "Returns a model_id to be used in subsequent calls. " +
-            "Nodes may have types: source, queue, station, sink (buffer and server are accepted for queue and station). " +
+            "Nodes may have types: source, queue, station, delay, sink (buffer and server are accepted for queue and station). " +
             "Connections flow from source nodes toward sink nodes. " +
             "Source params: arrival, a distribution object such as {\"type\":\"exponential\",\"mean\":2} " +
             "(types: exponential, triangular, uniform, lognormal, gamma, constant, empirical), " +
             "or mean_interval, an exponential mean (default 1.0). " +
             "Queue params: capacity (default unlimited), discipline \"fifo\" (default) or \"lifo\". " +
             "Station params: service, a distribution object, or service_time, an exponential mean (default 1.0); one server. " +
+            "Delay params: duration, a distribution object, or delay_time, an exponential mean; every item gets its own timer, " +
+            "so a delay holds any number of items (it is fed by a source, station or delay, not by a queue). " +
             "Sink has no params. " +
             "Example: {\"name\":\"SQSS\",\"seed\":42," +
             "\"nodes\":[{\"id\":\"src\",\"type\":\"source\",\"params\":{\"mean_interval\":2.0}}," +
@@ -108,6 +110,10 @@ namespace SimOpt.McpServer.Tools
                 foreach (var (id, srv) in active.Servers)
                     serverStats[id] = new { busy = srv.Busy, idle = srv.Idle, stopped = srv.Stopped };
 
+                var delayStats = new Dictionary<string, object>();
+                foreach (var (id, dly) in active.Delays)
+                    delayStats[id] = new { in_flight = dly.Count, refused = dly.RefusedCount };
+
                 var sourceStats = new Dictionary<string, object>();
                 foreach (var (id, src) in active.Sources)
                     sourceStats[id] = new { running = src.Running };
@@ -123,6 +129,7 @@ namespace SimOpt.McpServer.Tools
                         sinks = sinkStats,
                         buffers = bufferStats,
                         servers = serverStats,
+                        delays = delayStats,
                         sources = sourceStats,
                     }
                 });
@@ -158,6 +165,9 @@ namespace SimOpt.McpServer.Tools
 
                 foreach (var (id, srv) in active.Servers)
                     nodeStates.Add(new { id, type = "server", busy = srv.Busy, idle = srv.Idle, stopped = srv.Stopped });
+
+                foreach (var (id, dly) in active.Delays)
+                    nodeStates.Add(new { id, type = "delay", in_flight = dly.Count, refused = dly.RefusedCount });
 
                 foreach (var (id, snk) in active.Sinks)
                     nodeStates.Add(new { id, type = "sink", total_received = snk.Count });
