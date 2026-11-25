@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next=SIM-110 step 4 (canvas on the schema builder via VizSchema, SimulationModel deleted, File-Open with validation on the nodes, layout block, warm-up state; look at it on screen with MG), then step 5 and SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=SIM-110 step 4 (canvas on the schema builder via VizSchema, SimulationModel deleted, File-Open with validation on the nodes, layout block, warm-up state, look at it on screen with MG), then step 5 and SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 

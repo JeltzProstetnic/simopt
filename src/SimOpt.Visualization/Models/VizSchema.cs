@@ -93,6 +93,48 @@ public static class VizSchema
         return new VizDocument(t, layout);
     }
 
+    /// <summary>
+    /// SIM-110 step 4: what the viewer draws for a document: each of its nodes once, under the viewer's name
+    /// for its kind (a queue is drawn as a buffer, a station as a server, an unknown kind as given), where its
+    /// layout puts it, and each connection between two drawn nodes. A node the layout leaves out, such as a
+    /// queue or router the conversion inserted, is placed by <see cref="AutoLayout"/>; on a floor plan it is
+    /// drawn small, so it sits on the belt between the machines it joins rather than covering them.
+    /// </summary>
+    public static VizTopology Drawing(VizDocument document)
+    {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        TopologyDefinition t = document.Topology;
+        bool plan = document.Layout.Values.Any(l => l.X.HasValue && l.Y.HasValue);
+        var drawing = new VizTopology { Name = t.Name, Seed = t.Seed };
+        var drawn = new HashSet<string>();
+        foreach (NodeDefinition node in t.Nodes)
+        {
+            if (string.IsNullOrWhiteSpace(node.Id) || !drawn.Add(node.Id)) continue;
+            string kind = SchemaCatalog.Canonical(node.Type) switch
+            {
+                "queue" => "buffer",
+                "station" => "server",
+                string canonical => canonical,
+                null => node.Type?.Trim() ?? string.Empty,
+            };
+            var shown = new VizNode { Id = node.Id, Type = kind };
+            if (document.Layout.TryGetValue(node.Id, out NodeLayout? layout))
+            {
+                (shown.X, shown.Y, shown.Width, shown.Height) = (layout.X, layout.Y, layout.Width, layout.Height);
+                (shown.Label, shown.Color) = (layout.Label, layout.Color);
+            }
+            else if (plan)
+            {
+                (shown.Width, shown.Height) = kind switch { "buffer" => (2d, 1.5d), "router" => (1.2d, 1.2d), _ => (3d, 2d) };
+            }
+            drawing.Nodes.Add(shown);
+        }
+        foreach (ConnectionDefinition c in t.Connections)
+            if (c.From != null && c.To != null && drawn.Contains(c.From) && drawn.Contains(c.To))
+                drawing.Connections.Add(new VizConnection { From = c.From, To = c.To });
+        return drawing;
+    }
+
     private static NodeDefinition Convert(VizNode node)
     {
         var p = node.Params;

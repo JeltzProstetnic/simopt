@@ -92,12 +92,32 @@ public static class AutoLayout
             }
         }
 
-        // Fallback: any node without physical position gets placed at origin
-        foreach (var n in topology.Nodes.Where(n => !n.HasPhysicalPosition))
+        // SIM-110 step 4: a node without a place on the plan (a queue the schema puts between two
+        // machines) sits at the mean of the placed nodes it is connected to, found in rounds so a chain of
+        // such nodes is placed from its ends inwards; one connected to nothing placed sits in the middle
+        var unplaced = topology.Nodes.Where(n => !positions.ContainsKey(n.Id)).Select(n => n.Id).ToHashSet();
+        while (unplaced.Count > 0)
         {
-            if (!positions.ContainsKey(n.Id))
-                positions[n.Id] = new Point(cw / 2, ch / 2);
+            var round = new Dictionary<string, Point>();
+            foreach (string id in unplaced)
+            {
+                var placed = topology.Connections
+                    .Select(c => c.From == id ? c.To : c.To == id ? c.From : null)
+                    .Where(other => other != null && positions.ContainsKey(other))
+                    .Select(other => positions[other!])
+                    .ToList();
+                if (placed.Count > 0)
+                    round[id] = new Point(placed.Average(p => p.X), placed.Average(p => p.Y));
+            }
+            if (round.Count == 0) break;
+            foreach (var (id, at) in round)
+            {
+                positions[id] = at;
+                unplaced.Remove(id);
+            }
         }
+        foreach (string id in unplaced)
+            positions[id] = new Point(cw / 2, ch / 2);
     }
 
     private static void ComputeTopological(VizTopology topology, double cw, double ch,

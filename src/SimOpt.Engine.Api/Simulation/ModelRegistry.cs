@@ -546,7 +546,7 @@ namespace SimOpt.Engine.Api.Simulation
                         // half the wiring — an idle server has nothing telling it that work has
                         // arrived. Without this handler the buffer fills and never drains, the run
                         // completes "successfully", and every sink reports zero. Every other
-                        // builder in the repository does this (SimulationModel.cs:197,
+                        // builder in the repository did this (the viewer's SimulationModel, deleted in SIM-110,
                         // IvotionTopologyBuilder.cs:106, and both example programs); ModelRegistry
                         // was the only one that did not, which is why no MCP-built model has ever
                         // produced throughput.

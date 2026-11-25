@@ -6,7 +6,6 @@ using SimOpt.Engine.Api.Models;
 using SimOpt.Engine.Api.Simulation;
 using SimOpt.Visualization.Models;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace SimOpt.Tests.Visualization;
 
@@ -16,15 +15,13 @@ namespace SimOpt.Tests.Visualization;
 /// schema builder. <c>buffer</c> becomes a queue, <c>server</c> a station with a constant service, a
 /// source's Gaussian arrivals the <c>normal</c> family, <c>reject_rate</c> a station followed by a
 /// probabilistic router, <c>roland</c> a batch station, and a direct push into a server a queue between
-/// them, as the schema requires. Each preset runs under both paths here, before the old one is deleted,
-/// and the test reports where the numbers differ and why.
+/// them, as the schema requires. Step 3 ran each preset under both paths before step 4 deleted the old
+/// builder: SQSS, Parallel Servers and Production Line agreed within 2 %; the factory's waste moved
+/// (276 -> 241 at t = 2000) because the reject now follows the seed; the Ivotion line shipped about 15 times
+/// as many (24 -> 354) because the old Roland printer passed one item of every batch of 15 on.
 /// </summary>
 public class VizSchemaTests
 {
-    private readonly ITestOutputHelper output;
-
-    public VizSchemaTests(ITestOutputHelper output) { this.output = output; }
-
     private static NodeDefinition Node(VizDocument doc, string id) => doc.Topology.Nodes.Single(n => n.Id == id);
 
     public static IEnumerable<object[]> Presets() => new[]
@@ -118,59 +115,5 @@ public class VizSchemaTests
                 .Should().Be((node.X, node.Y, node.Width, node.Height, node.Label, node.Color));
         }
         doc.Layout.Keys.Should().BeEquivalentTo(viz.Nodes.Select(n => n.Id), "inserted queues and routers are laid out automatically");
-    }
-
-    // ── both paths, side by side ──────────────────────────────────────────────
-
-    private const double Until = 2_000;
-
-    private static Dictionary<string, int> OldPath(VizTopology viz)
-    {
-        var sim = new SimulationModel { EndTime = Until };
-        sim.Build(viz);
-        sim.Start();
-        while (sim.Step(1.0)) { }
-        return sim.GetNodeStates().Where(s => s.Type == "sink").ToDictionary(s => s.Id, s => s.Count);
-    }
-
-    private static Dictionary<string, int> NewPath(VizTopology viz)
-    {
-        var registry = new ModelRegistry();
-        ActiveModel active = registry.Get(registry.Create(VizSchema.ToSchema(viz).Topology));
-        active.Model.Run(Until);
-        return active.Sinks.ToDictionary(s => s.Key, s => s.Value.Count);
-    }
-
-    [Theory]
-    [MemberData(nameof(Presets))]
-    public void EachPreset_UnderBothPaths(string preset)
-    {
-        VizTopology viz = Preset(preset);
-        Dictionary<string, int> before = OldPath(viz), after = NewPath(viz);
-        output.WriteLine($"{preset}, sinks at t = {Until}: " +
-                         string.Join(", ", before.Keys.Select(k => $"{k} {before[k]} -> {after[k]}")));
-
-        before.Keys.Should().BeEquivalentTo(after.Keys);
-        switch (preset)
-        {
-            case "Ivoclar Ivotion Packing Line":
-                // the Roland printer passed one item per batch of 15 on and lost the rest; the batch station
-                // passes all 15, so the line ships about 15 times as many
-                ((double)after["shipped"] / before["shipped"]).Should().BeInRange(12, 16);
-                break;
-            case "Electronics Assembly Factory":
-                // the reject now follows the model's seed (a router) instead of System.Random, and qc no
-                // longer pushes straight into packing: the shipped count stays within 3 %, the waste share
-                // near the 5 % reject rate on both paths
-                after["shipping"].Should().BeCloseTo(before["shipping"], (uint)(0.03 * before["shipping"]));
-                ((double)after["waste"] / (after["waste"] + after["shipping"])).Should().BeApproximately(0.05, 0.015);
-                ((double)before["waste"] / (before["waste"] + before["shipping"])).Should().BeApproximately(0.05, 0.015);
-                break;
-            default:
-                // same structure, new streams: the counts agree within 2 %
-                foreach (string sink in before.Keys)
-                    after[sink].Should().BeCloseTo(before[sink], (uint)Math.Max(2, 0.02 * before[sink]));
-                break;
-        }
     }
 }

@@ -239,7 +239,7 @@ public class FactoryModelTests
         var shipping = new SimpleSink(model, name: "shipping");
         var waste = new SimpleSink(model, name: "waste");
 
-        // === Wire connections (same patterns as SimulationModel.Connect) ===
+        // === Wire connections (the patterns the viewer's old builder, SimulationModel, used) ===
 
         // Source → Buffer
         dockA.ConnectTo(incoming);

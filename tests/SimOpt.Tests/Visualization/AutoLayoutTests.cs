@@ -85,6 +85,31 @@ public class AutoLayoutTests
         }
     }
 
+    [Fact]
+    public void On_a_floor_plan_a_node_without_a_place_sits_between_the_nodes_it_joins()
+    {
+        // SIM-110 step 4: the queue the schema puts between two stations has no place on the plan; it used
+        // to land in the middle of the canvas, far from both
+        var plan = new VizTopology
+        {
+            Name = "plan",
+            Nodes = new List<VizNode>
+            {
+                new() { Id = "qc", Type = "server", X = 0, Y = 0, Width = 4, Height = 2 },
+                new() { Id = "qc_to_packing", Type = "buffer" },
+                new() { Id = "packing", Type = "server", X = 20, Y = 10, Width = 4, Height = 2 },
+                new() { Id = "loose", Type = "router" },
+            },
+            Connections = new List<VizConnection> { new() { From = "qc", To = "qc_to_packing" }, new() { From = "qc_to_packing", To = "packing" } },
+        };
+
+        var at = AutoLayout.Compute(plan, 2000, 1000);
+
+        at["qc_to_packing"].X.Should().BeApproximately((at["qc"].X + at["packing"].X) / 2, 1e-9);
+        at["qc_to_packing"].Y.Should().BeApproximately((at["qc"].Y + at["packing"].Y) / 2, 1e-9);
+        at["loose"].Should().Be(new Avalonia.Point(1000, 500), "a node joined to nothing placed stays in the middle");
+    }
+
     /// <summary>The layering of AutoLayout before SIM-108, verbatim; it never ends on a cycle.</summary>
     private static Dictionary<string, Avalonia.Point> LayoutBeforeSim108(VizTopology topology, double cw, double ch)
     {

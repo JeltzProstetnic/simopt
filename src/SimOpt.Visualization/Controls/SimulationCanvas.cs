@@ -20,7 +20,7 @@ public enum RenderMode { Schematic, Realistic }
 
 public class SimulationCanvas : Control, ISimulationSurface
 {
-    private SimulationModel? _sim;
+    private ViewerModel? _sim;
     private VizTopology? _topology;
     private Dictionary<string, Point> _positions = new();
     private DispatcherTimer? _timer;
@@ -180,26 +180,31 @@ public class SimulationCanvas : Control, ISimulationSurface
     /// </summary>
     public void StartSimulation(VizTopology topology, double duration = 200.0, int speedMs = 30)
     {
-        _timer?.Stop();   // a second start must not leave the first run's timer ticking
-        _topology = topology;
-        _sim = new SimulationModel { EndTime = duration };
-        _sim.Build(topology);
-        _stepCount = 0;
-        _frame = 0;
-        _dots.Clear();
-        _nodeStates.Clear();
-        _speedMs = speedMs;
+        Load(VizSchema.ToSchema(topology), duration, warmup: 0d, speedMs);
         _running = true;
-        _resumable = true;
-
-        // Compute layout
-        _positions = AutoLayout.Compute(topology, Bounds.Width > 0 ? Bounds.Width : 960, Bounds.Height > 0 ? Bounds.Height - 60 : 460);
-
-        _sim.Start();
-
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_speedMs) };
         _timer.Tick += (_, _) => Tick();
         _timer.Start();
+    }
+
+    /// <summary>
+    /// SIM-110 step 4: builds the document's model with the schema builder at t = 0, paused, and lays out what
+    /// is drawn: every node of the document, the queues and routers the conversion inserted too.
+    /// </summary>
+    private void Load(VizDocument document, double duration, double warmup, int speedMs)
+    {
+        _timer?.Stop();   // a second start must not leave the first run's timer ticking
+        _sim = new ViewerModel(document, duration, warmup);
+        _topology = _sim.Drawn;
+        _stepCount = 0;
+        _frame = 0;
+        _dots.Clear();
+        _prevCounts.Clear();
+        _speedMs = speedMs;
+        _running = false;
+        _resumable = true;
+        _positions = AutoLayout.Compute(_topology, Bounds.Width > 0 ? Bounds.Width : 960, Bounds.Height > 0 ? Bounds.Height - 60 : 460);
+        _nodeStates = _sim.GetNodeStates();
     }
 
     /// <summary>
@@ -239,21 +244,7 @@ public class SimulationCanvas : Control, ISimulationSurface
     /// </summary>
     public void LoadTopologyPaused(VizTopology topology, double duration = 200.0, int speedMs = 30)
     {
-        _timer?.Stop();
-        _topology = topology;
-        _sim = new SimulationModel { EndTime = duration };
-        _sim.Build(topology);
-        _stepCount = 0;
-        _frame = 0;
-        _dots.Clear();
-        _nodeStates.Clear();
-        _speedMs = speedMs;
-        _running = false;
-        _resumable = true;
-
-        _positions = AutoLayout.Compute(topology, Bounds.Width > 0 ? Bounds.Width : 960, Bounds.Height > 0 ? Bounds.Height - 60 : 460);
-        _sim.Start();
-        _nodeStates = _sim.GetNodeStates();
+        Load(VizSchema.ToSchema(topology), duration, warmup: 0d, speedMs);
         InvalidateVisual();
     }
 
@@ -388,8 +379,8 @@ public class SimulationCanvas : Control, ISimulationSurface
                 int prevFrom = _prevCounts.GetValueOrDefault(conn.From, 0);
                 spawn = curCounts[conn.From] < prevFrom;
             }
-            // Server → downstream: spawn when downstream count increased (item finished)
-            else if (fromState.Type == "server")
+            // Server or router → downstream: spawn when downstream count increased (item finished or passed on)
+            else if (fromState.Type is "server" or "router")
             {
                 int prevTo = _prevCounts.GetValueOrDefault(conn.To, 0);
                 spawn = curCounts[conn.To] > prevTo;
