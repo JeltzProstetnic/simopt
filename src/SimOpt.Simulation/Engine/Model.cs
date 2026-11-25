@@ -714,7 +714,7 @@ namespace SimOpt.Simulation.Engine
             if (breakPoints.Count > 0) breakTime = breakPoints.Keys.First();
             else breakTime = double.MaxValue;
 
-            while (eventScheduler.EventfulMomentsCount > 0
+            while (eventScheduler.HasEvents
                 && !requestStop
                 && !requestPause
                 && !requestInterrupt
@@ -751,7 +751,7 @@ namespace SimOpt.Simulation.Engine
                 CurrentState = ExecutionState.Interrupted;
                 requestInterrupt = false;
             }
-            else if (eventScheduler.EventfulMomentsCount == 0 || requestStop)
+            else if (!eventScheduler.HasEvents || requestStop)
             {
                 CurrentState = ExecutionState.Stopped;
                 requestStop = false;
@@ -1298,7 +1298,7 @@ namespace SimOpt.Simulation.Engine
                     throw new InitializationException("Cannot simulate - the model is not initialized.");
                 }
 
-                if (eventScheduler.EventfulMomentsCount == 0)
+                if (!eventScheduler.HasEvents)
                 {
                     this.Log<SIM_ERROR>("Cannot simulate - no events are scheduled. If this happens on a consecutive run, check your reset functions.", this);
                     throw new ApplicationException("Cannot simulate - no events are scheduled. If this happens on a consecutive run, check your reset functions.");

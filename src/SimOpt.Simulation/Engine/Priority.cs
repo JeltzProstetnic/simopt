@@ -121,13 +121,14 @@ namespace SimOpt.Simulation.Engine
         /// opposite case and zero for equal priorities (which should
         /// never occur though!)</returns>
 		public int CompareTo(Priority other) {
-            if (PriorityType.CompareTo(other.PriorityType) == 0)
+            // SIM-129: compare the enum as int; Enum.CompareTo(object) boxed both sides on every comparison
+            if (PriorityType == other.PriorityType)
             {
                 if (PriorityNumber.CompareTo(other.PriorityNumber) == 0)
                     return AddedOrder.CompareTo(other.AddedOrder);
                 return PriorityNumber.CompareTo(other.PriorityNumber);
             }
-            return PriorityType.CompareTo(other.PriorityType);
+            return ((int)PriorityType).CompareTo((int)other.PriorityType);
         }
 
         #endregion
