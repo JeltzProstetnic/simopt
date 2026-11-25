@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next=SIM-110's rest starting with SIM-70's extraction (brief docs/plans/2026-11-25-sim-110-one-model-path.md), then SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=SIM-110 step 4 (canvas on the schema builder via VizSchema, SimulationModel deleted, File-Open with validation on the nodes, layout block, warm-up state; look at it on screen with MG), then step 5 and SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -114,6 +114,19 @@ the private hand-off (see *Private material*).
 - **SIM-142 found and fixed** (`69476ff`): no topology with two sources could be created (both named their items E1, E2
   ...; `TRIAL_FAILED`). P1 proposed; MG to confirm.
 - Suite 1448 -> 1565 passed, 4 skipped; Python 26 -> 30. No template result moved, so nothing for his issue #30.
+- **SIM-110 steps 1-3 done** (Q-VIEW-PATH): `80e3942` extracts `SimOpt.Engine.Api` (SIM-70's first half; the server keeps
+  the tools, experiments, optimiser and run records); `3b525e0` adds the `normal` family (truncated at zero) and
+  `batch` on a one-server station (every item of a batch passed on); `20f7206` adds `VizSchema.ToSchema`, every preset
+  as a schema document plus layout. Both paths measured in `VizSchemaTests` (SQSS, Production Line unchanged; Factory
+  waste 276 -> 241 because the reject follows the seed; Ivotion shipped 24 -> 354 because the Roland printer lost 14 of
+  every 15). The viewer still draws through `SimulationModel` until step 4.
+- **Step 4, next:** `SimulationCanvas.StartSimulation(VizTopology)` builds through `VizSchema` + `ModelRegistry.TryBuild`;
+  node states and measures come from `ActiveModel` (buffers, servers, sinks, plus the inserted queues/routers, laid out by
+  `AutoLayout`); `SimulationModel` is deleted with its tests ported (`SimulationModelMeasureTests`, `PlaybackTests`);
+  File -> Open reads a topology JSON (an optional top-level `layout` block the builder ignores) and shows validation
+  problems on the nodes; "warming up until t = ..." when the document declares a warm-up. furkansim's `MainWindow`
+  keeps compiling (`VizTopology` and the canvas keep their members); file its inbox item with that commit (its glass
+  line's numbers move). Suite 1600 passed, 4 skipped.
 
 ## Decisions for MG (stable IDs; recommended option first)
 
