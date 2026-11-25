@@ -393,9 +393,18 @@ namespace SimOpt.Simulation.Templates
         #endregion
         #region virt
 
-        public virtual void OnSourceInitialized() 
+        /// <remarks>
+        /// SIM-139 (Q-SRC-START): the auto-start is deferred to a t = 0 action, as <see cref="Reset"/> does,
+        /// so a freshly built model makes its first item after the auto-start delay exactly as a reset one
+        /// does. This runs inside the base constructor: starting here raised a zero-delay item before
+        /// anything was connected (lost), and scheduled the next with the generator of that moment, before
+        /// a subclass had set its own (a phantom with no identifier); real items began one interval late.
+        /// </remarks>
+        public virtual void OnSourceInitialized()
         {
-            if (AutoStart) Start(autoStartDelay);
+            if (!AutoStart) return;
+            running = false;
+            Model.Schedule(0d, () => Start(autoStartDelay));
         }
 
         #endregion

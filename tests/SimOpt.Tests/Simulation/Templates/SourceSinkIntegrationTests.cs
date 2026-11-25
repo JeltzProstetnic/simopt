@@ -34,11 +34,11 @@ public class SourceSinkIntegrationTests
 
         source.ConnectTo(sink);
 
-        // Source autostart=0 fires immediately, then repeats at interval=2
-        // With run time=4.5: items at t=0 and t=2 are guaranteed; t=4 depends on timing
+        // Source autostart=0 makes its first item at t=0, then one every 2: t=0, 2 and 4 by 4.5.
+        // SIM-139 (Q-SRC-START): a fresh model used to lose the t=0 item and count a phantom at t=2.
         model.Run(4.5);
 
-        sink.Count.Should().Be(2);
+        sink.Count.Should().Be(3);
     }
 
     [Fact]
@@ -85,7 +85,9 @@ public class SourceSinkIntegrationTests
         var interval = new ConstantDoubleDistribution(1.0, initialize: false);
         var source = new Source(model, interval, autoStartDelay: 0.0);
 
-        // Source should be running after initialization (autostart)
+        // SIM-139: the auto-start fires when the model runs, on a fresh model as after a reset
+        source.Running.Should().BeFalse();
+        model.Run(0.5);
         source.Running.Should().BeTrue();
     }
 }

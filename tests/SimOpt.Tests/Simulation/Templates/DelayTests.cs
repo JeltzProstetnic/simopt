@@ -176,11 +176,12 @@ public class DelayTests
 
         model.Run(10.5);
 
-        // The delay takes the items of t = 1, 4, 7 and 10 and refuses the other six; three are out.
-        created.Should().Equal(1d, 2d, 3d, 4d, 5d, 6d, 7d, 8d, 9d, 10d);
+        // The delay takes the items of t = 0, 3, 6 and 9 and refuses the other seven; three are out.
+        // (SIM-139: a fresh model makes its first item at t = 0, as after a reset.)
+        created.Should().Equal(0d, 1d, 2d, 3d, 4d, 5d, 6d, 7d, 8d, 9d, 10d);
         sink.Count.Should().Be(3);
         delay.Count.Should().Be(1);
-        delay.RefusedCount.Should().Be(6);
+        delay.RefusedCount.Should().Be(7);
         (sink.Count + delay.Count + delay.RefusedCount).Should().Be(created.Count);
     }
 }
