@@ -30,11 +30,13 @@ buffer, server and sink only, with `mean_interval`, `capacity` and `service_time
 
 ## Recommended option of Q-VIEW-PATH
 
-1. **The topology layer becomes a library.** `SimOpt.Topology` takes the schema types
+1. **The topology layer becomes a library, the first half of SIM-70** (which names it `SimOpt.Engine.Api`
+   and puts the tool layer in it as well, with a contract test that both heads expose the same tools;
+   that half follows). The library takes the schema types
    (`TopologyDefinition`, `ParamValue`, `DistributionSpec`, `SchemaCatalog`), the builder,
    `DistributionFactory`, the lint, the offered-load check and the patcher out of `SimOpt.McpServer`;
    the server, the viewer, the tests and the coming desktop app (SIM-71, which per the readiness review
-   calls the tools in process) reference it. The namespaces become `SimOpt.Topology.*`, a mechanical
+   calls the tools in process) reference it. The namespaces become `SimOpt.Engine.Api.*`, a mechanical
    change to the `using` lines of 18 test files and 16 source files. Nothing in the JSON or the MCP
    tools changes.
 2. **Every model the viewer shows is built by that builder.** `VizTopology` stays as the input
@@ -59,6 +61,10 @@ between them; the Ivotion preset's printer is a station with batches. furkansim'
 (`VizTopology` and the canvas keep their members), but its glass line's numbers move with the
 reject routing and the inserted queues, so it gets an inbox item with the commit.
 
+This replaces SIM-72, which proposed the opposite mapping (`TopologyDefinition` → `VizTopology`, so an MCP
+model would render through the viewer's own builder): that keeps two builders and the viewer's reject
+seed. SIM-72 closes when step 4 below lands.
+
 ## Alternatives in Q-VIEW-PATH
 
 - **The viewer references `SimOpt.McpServer` directly** instead of a new library: a one-line change,
@@ -70,7 +76,7 @@ reject routing and the inserted queues, so it gets an inbox item with the commit
 
 ## Build plan after the answer (test-first)
 
-1. Extract `SimOpt.Topology`; the suite passes unchanged apart from `using` lines, and
+1. Extract `SimOpt.Engine.Api` (the topology half of SIM-70); the suite passes unchanged apart from `using` lines, and
    `EngineFingerprintTests` stays as it is.
 2. `normal` and `batch` with their goodness-of-fit and batch tests.
 3. `VizTopology` → schema document plus layout; each preset builds through the schema builder, and a

@@ -69,8 +69,9 @@ the private hand-off (see *Private material*).
 - **Q-VIEW-PATH** (new 2026-11-25, restart #5; brief `docs/plans/2026-11-25-sim-110-one-model-path.md`): how the
   viewer builds its models, the rest of SIM-110 (one model path, JSON and MCP models in the viewer). Its pause,
   cycle-safe layout and engine-measured numbers are done.
-  - **A `SimOpt.Topology` library, every viewer model through the schema builder (Recommended):** the topology
-    layer moves out of the MCP server (namespaces change, JSON and tools do not); `VizTopology` presets and
+  - **A shared library (SIM-70's `SimOpt.Engine.Api`), every viewer model through the schema builder
+    (Recommended):** the topology layer moves out of the MCP server (namespaces change, JSON and tools do not);
+    SIM-72's reverse mapping is dropped; `VizTopology` presets and
     furkansim's glass line convert to schema documents plus a layout overlay; the schema gains `normal` arrivals
     and a `batch` station for the Roland printer. You will see: reject decisions follow the seed (the same run
     every time, other numbers than today), a queue drawn where a server fed a server directly, and furkansim's
