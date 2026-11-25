@@ -53,3 +53,32 @@ front end over the same `Wait` objects. That is decision **Q-ASYNC** in the hand
   A generation counter makes any stale resume a no-op.
 - **Not in v1:** any-of and all-of, interrupts, resource requests, waiting on a template's event, and
   wiring into the SIM-65 topology schema. They are the next slices.
+
+## Slice 4: waiting on a template's event (2026-11-25, night)
+
+```csharp
+IEnumerable<Wait> Inspector(Process p)
+{
+    while (true)
+    {
+        var arrival = Wait.Next(buffer.ItemReceivedEvent);          // the next item the buffer receives
+        yield return arrival;
+        if (arrival.Args.Identifier.StartsWith("rush")) buffer.Get(arrival.Args.Identifier);
+    }
+}
+```
+
+- `Wait.Next(evnt, when)` for unary, binary and ternary events (every event the templates expose is one
+  of these). The optional filter skips raises the process does not want. The wait holds what the
+  raise carried: `Value`, or `Sender` and `Args`, plus `Data` for a ternary event.
+- The handler records the raise, removes itself and resumes the process through a zero-delay event,
+  as the other waits do, so the process continues in the same instant after the event and its other
+  handlers, never inside a template's half-finished operation.
+- A lost any-of or an interrupt removes the handler (`Cancel`). A reset removes it too, through a new
+  `Wait.Abandon` that `Process` calls on its current wait: unlike `Cancel` it undoes nothing, because a
+  stock or a resource resets its own state. Without it, a process waiting at the end of a replication
+  left a handler that added an event to the next one (8 against 9 events in the test).
+- Tests `TemplateEventWaitTests` (7).
+
+**Next slices:** a random-draw helper per process, a process example in `examples/`, then the SIM-65
+schema.

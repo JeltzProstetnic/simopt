@@ -1,11 +1,12 @@
 using System;
 using System.Linq;
+using SimOpt.Simulation.Events;
 
 namespace SimOpt.Simulation.Processes
 {
     /// <summary>
     /// SIM-126: something a process yields and waits for: a timeout, a stock or resource request,
-    /// another process, or a combination (<see cref="AnyOf"/>, <see cref="AllOf"/>). The process is
+    /// another process, the next raise of an event (<see cref="Next{TSender, TArgs}"/>), or a combination (<see cref="AnyOf"/>, <see cref="AllOf"/>). The process is
     /// resumed at the instant the wait completes. A wait is yielded once.
     /// </summary>
     public abstract class Wait
@@ -24,6 +25,13 @@ namespace SimOpt.Simulation.Processes
         internal virtual void Cancel() { }
 
         /// <summary>
+        /// The process is reset while waiting: drop any subscription to something that outlives the
+        /// reset, such as a handler on a template's event, but undo nothing, because a stock or a
+        /// resource resets its own state. Most waits hold nothing that survives a reset.
+        /// </summary>
+        internal virtual void Abandon() { }
+
+        /// <summary>
         /// A wait for anything that takes a completion callback, e.g.
         /// <c>Wait.From(done =&gt; stock.Take(5, done))</c>. The callback must be invoked from an event.
         /// Such a wait cannot be withdrawn.
@@ -39,6 +47,25 @@ namespace SimOpt.Simulation.Processes
 
         /// <summary>Completes when all of <paramref name="waits"/> have completed.</summary>
         public static Wait AllOf(params Wait[] waits) => new AllOfWait(waits);
+
+        /// <summary>
+        /// SIM-126: completes at the next raise of <paramref name="evnt"/> that passes
+        /// <paramref name="when"/> (any raise if it is null), e.g. <c>Wait.Next(buffer.ItemReceivedEvent)</c>;
+        /// the process continues in that instant, after the event's other handlers, and reads the
+        /// raise's sender and arguments from the wait.
+        /// </summary>
+        public static EventWait<TSender, TArgs> Next<TSender, TArgs>(BinaryEvent<TSender, TArgs> evnt,
+                                                                    Func<TSender, TArgs, bool> when = null)
+            => new EventWait<TSender, TArgs>(evnt, when);
+
+        /// <summary>As <see cref="Next{TSender, TArgs}"/>, for an event that carries one value.</summary>
+        public static EventWait<T> Next<T>(UnaryEvent<T> evnt, Func<T, bool> when = null)
+            => new EventWait<T>(evnt, when);
+
+        /// <summary>As <see cref="Next{TSender, TArgs}"/>, for an event that carries sender, arguments and data.</summary>
+        public static EventWait<TSender, TArgs, TData> Next<TSender, TArgs, TData>(TernaryEvent<TSender, TArgs, TData> evnt,
+                                                                                   Func<TSender, TArgs, TData, bool> when = null)
+            => new EventWait<TSender, TArgs, TData>(evnt, when);
 
         internal static Wait[] Check(Wait[] waits)
         {
@@ -92,6 +119,11 @@ namespace SimOpt.Simulation.Processes
             done = true;
             foreach (Wait w in waits) w.Cancel();
         }
+
+        internal override void Abandon()
+        {
+            foreach (Wait w in waits) w.Abandon();
+        }
     }
 
     internal sealed class AllOfWait : Wait
@@ -117,6 +149,11 @@ namespace SimOpt.Simulation.Processes
         {
             cancelled = true;
             foreach (Wait w in waits) w.Cancel();
+        }
+
+        internal override void Abandon()
+        {
+            foreach (Wait w in waits) w.Abandon();
         }
     }
 

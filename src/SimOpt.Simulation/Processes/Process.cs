@@ -78,6 +78,7 @@ namespace SimOpt.Simulation.Processes
             generation++;
             DisposeSteps();
             joiners.Clear();
+            current?.Abandon();   // slice 4: a wait on an event must not keep its handler past a reset
             current = null;
             interruptPending = interrupted = false;
             alive = true;
@@ -164,6 +165,7 @@ namespace SimOpt.Simulation.Processes
                 generation++;
                 DisposeSteps();
                 joiners.Clear();
+                current?.Abandon();
                 current = null;
                 alive = false;
             }

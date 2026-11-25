@@ -18,7 +18,7 @@
 ## Build & Test Notes
 - `dotnet` (SDK 10.0.102, tests target net9.0) is at `~/.dotnet/dotnet` and is **not on PATH** in Claude Code's Bash or in tmux jobs. Prefix commands with `export DOTNET_ROOT=$HOME/.dotnet PATH=$HOME/.dotnet:$PATH`.
 - The full suite takes about 10 s warm (35 s before SIM-129). A fresh worktree's restore + build + test runs past the 120 s tool limit, so launch it through `tmux-launch.sh`.
-- Baseline as of 2026-11-25: 1067 passed, 1 skipped.
+- Baseline as of 2026-11-25: 1074 passed, 1 skipped.
 
 ## Active Roster
 - **Agents:** Explore (engine code search across `src/`), Plan (slice design, gap analyses), general-purpose (cross-file reviews and extraction). VoltAgent bundles `voltagent-core-dev`, `voltagent-lang` and `voltagent-qa-sec` are enabled in `.claude/settings.local.json`, so `voltagent-lang:csharp-developer`, `voltagent-lang:dotnet-core-expert`, `voltagent-qa-sec:code-reviewer` and `voltagent-qa-sec:debugger` are available.
