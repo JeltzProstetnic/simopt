@@ -528,7 +528,8 @@ or his repository.
 
 **Knowledge split (owner, verbatim):** *"generic knowledge which we could also have gotten from
 literature into public agent fleet, too specific things into cfg."* Literature-level
-manufacturing-simulation knowledge is staged in `docs/staged/` for the public fleet template.
+manufacturing-simulation knowledge was staged in `docs/staged/` for the public fleet template; it now lives in
+the fleet (`global/knowledge/`, CFG-894), and simopt's copies were deleted on 2026-11-25 (Q-STAGED).
 Anything specific to his platform stays out of this repository and goes to the fleet's private
 configuration.
 
@@ -667,3 +668,15 @@ closed, and was deleted. Its standing rules for unattended work that still apply
   (SIM-71).
 - **Q-SRC-START → first item at t = 0 on both paths** (SIM-139): a freshly built model matches what every replicated
   and MCP run already does after its reset, so no replicated result and none of his frozen runs move.
+- **Q-PRIO → accepted as proposed**: SIM-122 P2, SIM-123 P1, SIM-132 P2, SIM-133 P2, SIM-134 P1, SIM-135 P1, SIM-136
+  P2, SIM-137 P1, SIM-138 P3, SIM-139 P1, SIM-140 P2.
+- **Q-PRIV-RULE → private material is filed as a cfg inbox attachment** (SIM-123, Meta-Rules consent given). cfg adds
+  `inbox-file.sh --attach <file>` (copies into `cross-project/attachments/<project>/`); once it ships, simopt's
+  `.claude/CLAUDE.md` gains, after "SimOpt owns simulation expertise": *"**Private material leaves the same session.**
+  File every note, review or index you write about a colleague's private material as a cfg-agent-fleet inbox attachment
+  in the session you write it, never into `tmp/` or any other untracked path."*, with two edits that remove the
+  conflicts: "stage to `tmp/staged-*.md`" becomes "stage it to `docs/staged/`", and the `tmp/` line becomes "`tmp/`:
+  gitignored and swept after 14 days; it holds only re-obtainable copies of third-party material, such as a colleague's
+  repository for SIM-105."
+- **Q-STAGED → simopt's staged copies deleted**; the fleet copies (byte-identical) are canonical.
+- **Q-CIW → filed as SIM-141 at P3.**
