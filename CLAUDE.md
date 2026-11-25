@@ -41,7 +41,8 @@
 | `src/SimOpt.FMT` | Empty scaffold (FMT logic lives in crucible) |
 | `src/SimOpt.Logging` | Cross-platform simulation logging |
 | `src/SimOpt.Logging.Desktop` | Desktop logging sink |
-| `tests/SimOpt.Tests` | xUnit test project (1290 passing, 1 skipped, 2026-11-25) |
+| `tests/SimOpt.Tests` | xUnit test project (1325 passing, 1 skipped, 2026-11-25) |
+| `python/` | The `simopt` Python package (SIM-130): drives the MCP server, results as pandas frames; pytest in `python/tests` |
 | `benchmarks/SimOpt.Benchmarks` | Speed harness (SIM-129): time and bytes per event, results fingerprints pinned by `EngineFingerprintTests` |
 | `examples/` | Complete runnable models (SQSS, ED, SupplyChain, Warehouse, CarWash as processes, etc.) |
 | `docs/plans/` | Implementation plans for major features |
@@ -61,6 +62,9 @@ dotnet test tests/SimOpt.Tests/SimOpt.Tests.csproj
 
 # Run an example
 dotnet run --project examples/SimOpt.Examples.SQSS
+
+# Python package (SIM-130; acceptance tests need a built server)
+env -C python python3 -m pytest -q
 
 # Speed per event (SIM-129)
 dotnet run -c Release --project benchmarks/SimOpt.Benchmarks -- --scale 0.3 --reps 10 --repeat 3

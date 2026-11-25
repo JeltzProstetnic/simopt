@@ -100,11 +100,18 @@ dotnet build SimOpt.slnx
 
 ## Testing
 
-551 tests across simulation, optimization, mathematics, and statistics (xUnit + FluentAssertions):
+1325 tests across simulation, optimization, mathematics, statistics and the MCP server (xUnit +
+FluentAssertions; 1 skipped, as of 2026-11-25):
 
 ```bash
 dotnet test SimOpt.slnx
 ```
+
+## From Python
+
+`python/` holds the `simopt` package: build a model as topology JSON, validate it, run replicated
+experiments and searches through the MCP server, and get the results as rows or pandas DataFrames
+(`python/README.md`, which also shows the in-process route through pythonnet).
 
 ## Running the Visualization
 

@@ -1,6 +1,7 @@
 # SIM-130: a clean way in from Python
 
-**Status:** in progress 2026-11-25 (night, unattended, cfg caretaking, restart #4).
+**Status:** done 2026-11-25 (night, unattended, cfg caretaking, restart #4): `7565faf`, `986d073` and the
+README commit; 22 pytest tests, the acceptance ones against the real server.
 **Serves:** MG's SIM-122 conclusion (2026-11-25): SimOpt wins as simulation-optimisation with sound statistics
 that agents and Python users can drive, provided Python can reach it cleanly. UN-001/004 (a model stated
 as data), UN-012/013 (replicated results with intervals), UN-015 (search).
@@ -66,6 +67,23 @@ then.
    frames (D4, D7). **Acceptance**, against the real server: the clinic built in Python, a flu scenario
    compared with the baseline into a DataFrame, and `optimize` answering 7 exam rooms.
 3. README section and the pythonnet alternative documented.
+
+## Progress and measured numbers
+
+| step | commit | tests |
+|---|---|---|
+| 1 client, `Server`, errors, finding the server | `7565faf` | 10 |
+| 2 builder, `Model`, rows and frames; acceptance on the real server | `986d073` | 22 |
+| 3 README, pythonnet verified | this commit | 22 |
+
+- **A stale Release build answered without the newer tools** (`Unknown tool: 'validate_model'`), because the
+  package preferred Release over Debug. It now starts the newest of the two builds (D3, revised).
+- **pythonnet, measured:** loaded into the .NET 9 runtime that the server's build names, the first JSON call
+  fails inside the MCP SDK's type initialiser: the build carries `System.Text.Json` 10.0.3 and the runtime's
+  own version 9 is loaded instead (the normal host resolves this through `deps.json`; pythonnet's loader does
+  not). Loaded into the .NET 10.0.2 runtime with a three-line runtime config, `CreateModel` and a 10-replication
+  `RunExperiment` work in process (clinic wait 2.05, 95 % interval [1.12, 2.99]). The recipe is in
+  `python/README.md`.
 
 ## Outside this item
 
