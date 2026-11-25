@@ -229,7 +229,7 @@ public class TopologyResourceStockTests
 
         ExperimentRunner.AddDefaultMetrics(t);
 
-        t.Metrics.Select(m => (m.Id, m.Kind, m.Node)).Should().Contain(new[]
+        t.Metrics.Select(m => (m.Id, m.Kind, m.Node)).Should().Contain(new (string, string, string?)[]
         {
             ("util_bays", "utilization", "bays"), ("wait_bays", "wait_time", "bays"),
             ("level_soap", "level", "soap"), ("empty_soap", "empty_share", "soap"),

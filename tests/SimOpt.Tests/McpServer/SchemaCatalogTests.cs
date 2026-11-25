@@ -36,8 +36,12 @@ public class SchemaCatalogTests
                    {"id": "r", "type": "router", "params": {"policy": "probabilistic"}},
                    {"id": "a", "type": "sink"}, {"id": "b", "type": "sink"},
                    {"id": "bays", "type": "resource", "params": {"capacity": 2}},
-                   {"id": "soap", "type": "stock", "params": {"initial": 40, "capacity": 40}}],
-         "connections": [["arrivals", "q"], ["q", "s"], ["s", "d"], ["d", "r"], ["r", "a", 3], {"from": "r", "to": "b", "weight": 1}]}
+                   {"id": "soap", "type": "stock", "params": {"initial": 40, "capacity": 40}},
+                   {"id": "cars", "type": "source", "params": {"arrival": {"type": "exponential", "mean": 3}}},
+                   {"id": "wash", "type": "process", "steps": [{"type": "seize", "resource": "bays"}, {"type": "take", "stock": "soap", "amount": 1},
+                                                               {"type": "delay", "duration": {"type": "uniform", "min": 4, "max": 6}}]}],
+         "connections": [["arrivals", "q"], ["q", "s"], ["s", "d"], ["d", "r"], ["r", "a", 3], {"from": "r", "to": "b", "weight": 1},
+                         ["cars", "wash"], ["wash", "a"]]}
         """;
 
     private static async Task<JsonElement> CreateModel(SimulationTools tools, string topology)
@@ -109,6 +113,12 @@ public class SchemaCatalogTests
             .Should().Equal(SchemaCatalog.DistributionTypes);
         schema.GetProperty("node_types").EnumerateArray().Select(t => t.GetProperty("name").GetString())
               .Should().Equal(SchemaCatalog.NodeTypes.Select(t => t.Name));
+        // SIM-126: the step vocabulary of a process node, published as the builder reads it
+        schema.GetProperty("step_types").EnumerateArray().Select(t => t.GetProperty("name").GetString())
+              .Should().Equal(SchemaCatalog.StepTypes.Select(t => t.Name));
+        defs.GetProperty("step").GetProperty("properties").GetProperty("type").GetProperty("enum")
+            .EnumerateArray().Select(e => e.GetString())
+            .Should().Equal(SchemaCatalog.StepTypes.Select(t => t.Name));
     }
 
     [Fact]

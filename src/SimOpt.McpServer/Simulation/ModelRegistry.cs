@@ -180,6 +180,7 @@ namespace SimOpt.McpServer.Simulation
             var sinks = new Dictionary<string, SimpleSink>();
             var resources = new Dictionary<string, Resource>();   // SIM-126: beside the item flow
             var stocks = new Dictionary<string, Stock>();
+            var processes = new Dictionary<string, ProcessNode>();
 
             int entityCounter = 0;
 
@@ -191,6 +192,10 @@ namespace SimOpt.McpServer.Simulation
                 string label = Label(node);
                 Check(node.Id, "INVALID_NODE", () =>
                 {
+                    if (node.Steps != null && CanonicalType(node) != "process")
+                        throw new TopologyException("STEPS_NOT_READ", node.Id,
+                            $"{label} '{node.Id}' has steps, and only a process node reads steps.",
+                            $"Remove its steps, or make '{node.Id}' a process.");
                     switch (CanonicalType(node))
                     {
                         case "source":
@@ -330,12 +335,26 @@ namespace SimOpt.McpServer.Simulation
                             break;
                         }
 
+                        case "process":
+                            break;   // SIM-126: built below, once every resource and stock its steps name exists
+
                         default:
                             throw new TopologyException("UNKNOWN_NODE_TYPE", node.Id,
                                 $"Unknown node type '{node.Type}' for node '{node.Id}'.",
                                 $"Valid types: {SchemaCatalog.Vocabulary()}.");
                     }
                 });
+            }
+
+            // SIM-126: every fault in a process's steps is reported, not only the first
+            foreach (NodeDefinition node in topology.Nodes)
+            {
+                if (string.IsNullOrWhiteSpace(node.Id) || failed.Contains(node.Id) || CanonicalType(node) != "process") continue;
+                var faults = new List<ValidationIssue>();
+                ProcessNode? process = BuildProcess(model, node, resources, stocks, failed, faults);
+                foreach (ValidationIssue fault in faults) Fail(fault, node.Id);
+                if (process != null && faults.Count == 0) processes[node.Id] = process;
+                else failed.Add(node.Id);
             }
 
             // ── wire connections ─────────────────────────────────────────────
@@ -372,7 +391,7 @@ namespace SimOpt.McpServer.Simulation
 
             bool Exists(string id) =>
                 sources.ContainsKey(id) || buffers.ContainsKey(id) || stations.ContainsKey(id) ||
-                delays.ContainsKey(id) || routers.ContainsKey(id) || sinks.ContainsKey(id);
+                delays.ContainsKey(id) || routers.ContainsKey(id) || sinks.ContainsKey(id) || processes.ContainsKey(id);
 
             // A node that pushes what it releases (a source, a station's server, a delay, a router) into the
             // node downstream. False when the destination is not a node that takes a push.
@@ -386,6 +405,7 @@ namespace SimOpt.McpServer.Simulation
                 if (sinks.TryGetValue(to, out SimpleSink? sink)) return sink.ConnectTo(upstream);
                 if (delays.TryGetValue(to, out SimpleDelay? delay)) return delay.ConnectTo(upstream);
                 if (routers.TryGetValue(to, out SimpleRouter? router)) return router.ConnectTo(upstream);
+                if (processes.TryGetValue(to, out ProcessNode? process)) return process.ConnectTo(upstream);
                 return false;
             }
 
@@ -503,6 +523,16 @@ namespace SimOpt.McpServer.Simulation
                             $"at once, so the queue would stay empty.",
                             $"Connect the node that feeds '{from}' to '{to}' directly, or put a station between '{from}' and '{to}'.");
                     }
+                    else if (processes.ContainsKey(to))
+                    {
+                        // SIM-126 (rule 6): a process takes every item at once and waits at its seize step
+                        string feeders = string.Join(", ", topology.Connections.Where(c => c.To == from).Select(c => $"'{c.From}'"));
+                        throw new TopologyException("INVALID_CONNECTION", from,
+                            $"Connection '{from}' → '{to}': a queue cannot feed a process. A process takes every item at once, " +
+                            $"so the queue would stay empty.",
+                            $"Connect {(feeders.Length > 0 ? feeders : "its upstream node")} to '{to}' directly: items wait at " +
+                            "its seize step.");
+                    }
                     else if (routers.ContainsKey(to))
                     {
                         // SIM-65 step 4: a queue is taken from by its station; it pushes nothing on.
@@ -523,6 +553,11 @@ namespace SimOpt.McpServer.Simulation
                 else if (delays.TryGetValue(from, out SimpleDelay? upDly))
                 {
                     connected = Push(upDly, from, to);
+                }
+                // ── from=Process (SIM-126): it feeds what a delay feeds ────────
+                else if (processes.TryGetValue(from, out ProcessNode? upProc))
+                {
+                    connected = Push(upProc, from, to);
                 }
                 // ── from=Router ──────────────────────────────────────────────
                 else if (routers.TryGetValue(from, out SimpleRouter? upRtr))
@@ -556,6 +591,11 @@ namespace SimOpt.McpServer.Simulation
                     else if (routers.TryGetValue(to, out SimpleRouter? downRtr))
                     {
                         upRtr.AddTarget(downRtr, share);
+                        connected = true;
+                    }
+                    else if (processes.TryGetValue(to, out ProcessNode? downProc))
+                    {
+                        upRtr.AddTarget(downProc, share);
                         connected = true;
                     }
                 }
@@ -597,7 +637,8 @@ namespace SimOpt.McpServer.Simulation
             // node.Id) and survive both a process restart and a reordering of the node list.
             model.Reset(topology.Seed);
 
-            return new ActiveModel(model, sources, buffers, servers, delays, routers, sinks, topology, metrics, resources, stocks);
+            return new ActiveModel(model, sources, buffers, servers, delays, routers, sinks, topology, metrics, resources, stocks,
+                processes);
         }
 
         /// <summary>
@@ -878,6 +919,244 @@ namespace SimOpt.McpServer.Simulation
                     $"{label} '{node.Id}': capacity must be a whole number of at least 1, not {capacity}.",
                     "Leave it out for an unlimited queue.");
             return (int)capacity;
+        }
+
+        /// <summary>
+        /// SIM-126 schema: a process node from its steps (<c>docs/plans/2026-11-25-sim-126-process-schema.md</c>).
+        /// A step without an id is <c>&lt;type&gt;#&lt;n&gt;</c>, the n-th step of its type. Every faulty step
+        /// goes into <paramref name="faults"/>; null when there is any.
+        /// </summary>
+        private static ProcessNode? BuildProcess(Model model, NodeDefinition node, Dictionary<string, Resource> resources,
+            Dictionary<string, Stock> stocks, ISet<string> failed, List<ValidationIssue> faults)
+        {
+            if (node.Steps == null || node.Steps.Count == 0)
+            {
+                faults.Add(new ValidationIssue("MISSING_STEPS", $"Process '{node.Id}' has no steps.", node.Id,
+                    "Give it steps, such as [{\"type\": \"seize\", \"resource\": \"<resource id>\"}, " +
+                    "{\"type\": \"delay\", \"duration\": {\"type\": \"exponential\", \"mean\": 5}}]."));
+                return null;
+            }
+
+            var steps = new List<ProcessStep>();
+            var perType = new Dictionary<string, int>();
+            var ids = new HashSet<string>();
+            var held = new Dictionary<string, int>();
+            bool blocked = false;   // a step names a resource or stock that failed: its own error says why
+            for (int i = 0; i < node.Steps.Count; i++)
+            {
+                StepDefinition definition = node.Steps[i] ?? new StepDefinition();
+                string type = (definition.Type ?? string.Empty).Trim().ToLowerInvariant();
+                StepTypeSpec? spec = SchemaCatalog.StepTypes.FirstOrDefault(t => t.Name == type);
+                if (spec == null)
+                {
+                    faults.Add(new ValidationIssue("UNKNOWN_STEP_TYPE",
+                        $"Process '{node.Id}', step {i + 1}: '{definition.Type}' is not a step type.", node.Id,
+                        $"Use one of: {string.Join(", ", SchemaCatalog.StepTypes.Select(t => t.Name))}."));
+                    continue;
+                }
+                perType[type] = perType.GetValueOrDefault(type) + 1;
+                string id = string.IsNullOrWhiteSpace(definition.Id) ? $"{type}#{perType[type]}" : definition.Id.Trim();
+                if (!ids.Add(id))
+                {
+                    faults.Add(new ValidationIssue("DUPLICATE_STEP_ID",
+                        $"Process '{node.Id}': two steps have the id '{id}'.", node.Id, "Give each step its own id."));
+                    continue;
+                }
+                var step = new StepReader(node.Id, id, spec, definition, faults);
+                if (!step.FieldsKnown()) continue;
+                switch (type)
+                {
+                    case "delay":
+                        if (step.Distribution("duration", atMost: double.PositiveInfinity, of: null) is IDistribution<double> duration)
+                            steps.Add(new DelayStep(id, duration));
+                        break;
+                    case "seize":
+                    case "release":
+                    {
+                        string? name = step.NodeId("resource", resources.Keys, "resource", failed, ref blocked);
+                        if (name == null) break;
+                        Resource resource = resources[name];
+                        if (type == "seize")
+                        {
+                            held[name] = held.GetValueOrDefault(name) + 1;
+                            steps.Add(new SeizeStep(id, resource));
+                        }
+                        else if (held.GetValueOrDefault(name) == 0)
+                        {
+                            faults.Add(new ValidationIssue("RELEASE_NOT_HELD",
+                                $"Process '{node.Id}', step '{id}' releases '{name}', which the item does not hold at that step.",
+                                node.Id, "Seize it in an earlier step, or remove the release: an item leaving the process frees " +
+                                         "every unit it still holds."));
+                        }
+                        else
+                        {
+                            held[name]--;
+                            steps.Add(new ReleaseStep(id, resource));
+                        }
+                        break;
+                    }
+                    case "take":
+                    case "put":
+                    {
+                        string? name = step.NodeId("stock", stocks.Keys, "stock", failed, ref blocked);
+                        if (name == null) break;
+                        Stock stock = stocks[name];
+                        if (step.Amount(stock) is not { } amount) break;
+                        if (type == "take")
+                            steps.Add(amount.Fixed is double fixedTake ? new TakeStep(id, stock, fixedTake) : new TakeStep(id, stock, amount.Drawn!));
+                        else
+                            steps.Add(amount.Fixed is double fixedPut ? new PutStep(id, stock, fixedPut) : new PutStep(id, stock, amount.Drawn!));
+                        break;
+                    }
+                }
+            }
+            if (faults.Count > 0 || blocked) return null;
+            return new ProcessNode(model, StableHash.Of(node.Id), steps, id: node.Id, name: node.Id);
+        }
+
+        /// <summary>SIM-126: reads one step's fields against its type, recording what is wrong with the fix.</summary>
+        private sealed class StepReader
+        {
+            private readonly string node, id;
+            private readonly StepTypeSpec spec;
+            private readonly StepDefinition step;
+            private readonly List<ValidationIssue> faults;
+
+            public StepReader(string node, string id, StepTypeSpec spec, StepDefinition step, List<ValidationIssue> faults)
+            {
+                this.node = node; this.id = id; this.spec = spec; this.step = step; this.faults = faults;
+            }
+
+            private string Where => $"Process '{node}', step '{id}'";
+
+            private void Fault(string code, string message, string? suggestion = null) =>
+                faults.Add(new ValidationIssue(code, $"{Where}: {message}", node, suggestion));
+
+            /// <summary>False, with a fault per field, when the step carries a field its type does not read.</summary>
+            public bool FieldsKnown()
+            {
+                bool known = true;
+                foreach (string field in step.Fields.Keys.Where(f => spec.Fields.All(s => s.Name != f)))
+                {
+                    known = false;
+                    Fault("UNKNOWN_STEP_FIELD", $"a {spec.Name} step does not read '{field}'.",
+                        $"Its fields are {string.Join(", ", spec.Fields.Select(f => f.Name))}; remove '{field}'.");
+                }
+                return known;
+            }
+
+            private ParamValue? Required(string field)
+            {
+                if (step.Fields.TryGetValue(field, out ParamValue? value) && value != null) return value;
+                ParameterSpec what = spec.Fields.First(f => f.Name == field);
+                Fault("MISSING_STEP_FIELD", $"a {spec.Name} step needs '{field}'.", $"Give {field}: {what.Description}");
+                return null;
+            }
+
+            /// <summary>The id of a node of the kind <paramref name="kind"/> that <paramref name="field"/> names, or null.</summary>
+            public string? NodeId(string field, IEnumerable<string> declared, string kind, ISet<string> failed, ref bool blocked)
+            {
+                ParamValue? value = Required(field);
+                if (value == null) return null;
+                if (value.Text is not string name)
+                {
+                    Fault("INVALID_STEP_FIELD", $"{field} must be the id of a {kind} node, a string, not {value}.");
+                    return null;
+                }
+                name = name.Trim();
+                if (declared.Contains(name)) return name;
+                if (failed.Contains(name)) { blocked = true; return null; }
+                List<string> known = declared.ToList();
+                Fault(kind == "resource" ? "UNKNOWN_RESOURCE" : "UNKNOWN_STOCK", $"'{name}' is not a {kind} of this model.",
+                    known.Count > 0 ? $"Name one of: {string.Join(", ", known.Select(k => $"'{k}'"))}."
+                                    : $"Declare a {kind} node '{name}'.");
+                return null;
+            }
+
+            /// <summary>
+            /// A distribution in <paramref name="field"/> that cannot draw below 0, nor above
+            /// <paramref name="atMost"/> (a stock's capacity, named by <paramref name="of"/>); null when faulty.
+            /// </summary>
+            public IDistribution<double>? Distribution(string field, double atMost, string? of)
+            {
+                ParamValue? value = Required(field);
+                if (value == null) return null;
+                if (value.Distribution is not DistributionSpec given)
+                {
+                    string example = value.Number is double n
+                        ? $"{{\"type\": \"constant\", \"value\": {n.ToString(System.Globalization.CultureInfo.InvariantCulture)}}}"
+                        : "{\"type\": \"exponential\", \"mean\": 5}";
+                    Fault("INVALID_STEP_FIELD", $"{field} must be a distribution object, not {value}.", $"Write {example}.");
+                    return null;
+                }
+                return Checked(field, given, atMost, of);
+            }
+
+            private IDistribution<double>? Checked(string field, DistributionSpec given, double atMost, string? of)
+            {
+                // the bounds first: a family refuses a negative minimum with an argument exception that
+                // does not say which field it came from
+                (double lower, double upper) = (0d, 0d);
+                try { (lower, upper) = DistributionFactory.Bounds(given); }
+                catch (InvalidOperationException) { }   // a field is missing; Create says which
+                IDistribution<double>? distribution = null;
+                if (lower >= 0d)
+                {
+                    try
+                    {
+                        distribution = DistributionFactory.Create(given, $"process '{node}', step '{id}', field '{field}'");
+                    }
+                    catch (Exception e) when (e is InvalidOperationException or ArgumentException)
+                    {
+                        Fault("INVALID_STEP_FIELD", e.Message);
+                        return null;
+                    }
+                }
+                if (lower < 0d)
+                {
+                    Fault("INVALID_STEP_FIELD", $"{field} can draw below 0 (its least value is {Fmt(lower)}).",
+                        "Give a distribution that starts at 0 or above, or shift it up.");
+                    return null;
+                }
+                if (upper > atMost)
+                {
+                    Fault("INVALID_STEP_FIELD",
+                        $"{field} can draw more than the capacity {Fmt(atMost)} of {of}, so such a request could never be served.",
+                        "Give a bounded distribution (uniform, triangular, empirical, constant) within the capacity, or raise it.");
+                    return null;
+                }
+                return distribution;
+            }
+
+            /// <summary>A take or put amount: a positive number within the stock's capacity, or a distribution that stays within it.</summary>
+            public (double? Fixed, IDistribution<double>? Drawn)? Amount(Stock stock)
+            {
+                ParamValue? value = Required("amount");
+                if (value == null) return null;
+                string of = $"stock '{stock.Identifier}'";
+                if (value.Number is double amount)
+                {
+                    if (!(amount > 0d) || double.IsInfinity(amount))
+                    {
+                        Fault("INVALID_STEP_FIELD", $"amount must be a positive number, not {Fmt(amount)}.");
+                        return null;
+                    }
+                    if (amount > stock.Capacity)
+                    {
+                        Fault("INVALID_STEP_FIELD",
+                            $"amount {Fmt(amount)} is more than the capacity {Fmt(stock.Capacity)} of {of}, so it could never be served.",
+                            "Lower the amount, or raise the stock's capacity.");
+                        return null;
+                    }
+                    return (amount, null);
+                }
+                if (value.Distribution is DistributionSpec given)
+                    return Checked("amount", given, stock.Capacity, of) is IDistribution<double> drawn ? (null, drawn) : null;
+                Fault("INVALID_STEP_FIELD", $"amount must be a positive number or a distribution, not {value}.");
+                return null;
+            }
+
+            private static string Fmt(double value) => value.ToString("G6", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         /// <summary>SIM-126: a resource's <c>capacity</c>, a whole number from 1 (the default) to 10,000.</summary>

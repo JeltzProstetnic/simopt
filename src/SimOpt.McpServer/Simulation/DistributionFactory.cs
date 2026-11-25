@@ -67,6 +67,22 @@ namespace SimOpt.McpServer.Simulation
             };
         }
 
+        /// <summary>
+        /// SIM-126: the least and the greatest value a distribution <see cref="Create"/> accepted can draw,
+        /// shift included; the greatest is infinite for the unbounded families (exponential, lognormal,
+        /// gamma). Lets a builder refuse a step value that could go below 0 or overfill a stock.
+        /// </summary>
+        public static (double Lower, double Upper) Bounds(DistributionSpec spec)
+        {
+            double shift = spec.Shift ?? 0d;
+            return (spec.Type ?? string.Empty).Trim().ToLowerInvariant() switch
+            {
+                "constant" => (spec.Value!.Value + shift, spec.Value.Value + shift),
+                "triangular" or "uniform" or "empirical" => (spec.Min!.Value + shift, spec.Max!.Value + shift),
+                _ => (shift, double.PositiveInfinity),
+            };
+        }
+
         // ── the families ─────────────────────────────────────────────────────
 
         private static IDistribution<double> Exponential(DistributionSpec spec, string context, double shift)

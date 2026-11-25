@@ -75,6 +75,15 @@ namespace SimOpt.McpServer.Models
         [Description("Node-specific parameters, each a number, a string or a distribution object (e.g. mean_interval, service_time, capacity)")]
         [JsonPropertyName("params")]
         public Dictionary<string, ParamValue> Params { get; set; } = new();
+
+        /// <summary>
+        /// SIM-126: a process node's steps, in order. Null on every other node, so a document without a
+        /// process is written, and hashed, as before.
+        /// </summary>
+        [Description("A process node's steps, in order: {type, id?, fields}, type one of delay, seize, release, take, put (see get_schema's step_types)")]
+        [JsonPropertyName("steps")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<StepDefinition>? Steps { get; set; }
     }
 
     /// <summary>

@@ -18,6 +18,9 @@ namespace SimOpt.McpServer.Models
     /// <summary>A metric kind as the catalogue publishes it.</summary>
     public sealed record MetricKindSpec(string Name, string MeasuredAt, string Description);
 
+    /// <summary>SIM-126: a step type of a process node as the catalogue publishes it, with the fields it reads.</summary>
+    public sealed record StepTypeSpec(string Name, string Description, IReadOnlyList<ParameterSpec> Fields);
+
     /// <summary>
     /// SIM-65 step 6 (D7): the one source of truth for the topology vocabulary of schema v1. The
     /// builder (<see cref="ModelRegistry"/>) resolves node types through it, and <c>get_schema</c> and
@@ -48,7 +51,7 @@ namespace SimOpt.McpServer.Models
                     new ParameterSpec("arrival", "distribution", false, "exponential, mean 1",
                         "Time between arrivals.", Alternative: "mean_interval"),
                 },
-                FedBy: "nothing", Feeds: "a queue, delay, router or sink"),
+                FedBy: "nothing", Feeds: "a queue, delay, router, sink or process"),
             new NodeTypeSpec("queue", new[] { "buffer" },
                 "Holds items until a station takes them; a full queue refuses new items.",
                 new[]
@@ -57,7 +60,7 @@ namespace SimOpt.McpServer.Models
                     new ParameterSpec("discipline", "string", false, "fifo", "Which item a station takes next.",
                         Choices: new[] { "fifo", "lifo" }),
                 },
-                FedBy: "a source, station, delay or router", Feeds: "a station"),
+                FedBy: "a source, station, delay, router or process", Feeds: "a station"),
             new NodeTypeSpec("station", new[] { "server" },
                 "Serves items taken from its queue, each for its own service time, on one or more servers.",
                 new[]
@@ -67,7 +70,7 @@ namespace SimOpt.McpServer.Models
                     new ParameterSpec("service", "distribution", false, "exponential, mean 1",
                         "Service time of one item.", Alternative: "service_time"),
                 },
-                FedBy: "a queue only", Feeds: "a queue, delay, router or sink"),
+                FedBy: "a queue only", Feeds: "a queue, delay, router, sink or process"),
             new NodeTypeSpec("delay", None,
                 "Holds every item for its own duration, any number at once, then passes it on (walking, cooling, transport).",
                 new[]
@@ -75,7 +78,7 @@ namespace SimOpt.McpServer.Models
                     new ParameterSpec("duration", "distribution", true, null,
                         "How long each item is held.", Alternative: "delay_time"),
                 },
-                FedBy: "a source, station, delay or router", Feeds: "a queue, delay, router or sink"),
+                FedBy: "a source, station, delay, router or process", Feeds: "a queue, delay, router, sink or process"),
             new NodeTypeSpec("router", None,
                 "Passes each item straight on to one of the nodes it is connected to.",
                 new[]
@@ -86,11 +89,18 @@ namespace SimOpt.McpServer.Models
                         "a tie to the connection listed first; queues only, no weights.",
                         Choices: new[] { "probabilistic", "shortest_queue" }),
                 },
-                FedBy: "a source, station, delay or router", Feeds: "a queue, delay, router or sink"),
+                FedBy: "a source, station, delay, router or process", Feeds: "a queue, delay, router, sink or process"),
             new NodeTypeSpec("sink", None,
                 "Absorbs and counts finished items.",
                 System.Array.Empty<ParameterSpec>(),
-                FedBy: "a source, station, delay or router", Feeds: "nothing"),
+                FedBy: "a source, station, delay, router or process", Feeds: "nothing"),
+            new NodeTypeSpec("process", None,
+                "Runs every item it receives through its steps, in order, any number of items at once, then passes it on " +
+                "(an exam that needs a nurse, a wash that needs a bay and soap). An item leaving frees every unit it still " +
+                "holds. Every random step value is drawn when the item enters. No loops or conditions: route between nodes.",
+                System.Array.Empty<ParameterSpec>(),
+                FedBy: "a source, station, delay, router or process (not a queue: it waits at its seize step)",
+                Feeds: "a queue, delay, router, sink or process"),
             new NodeTypeSpec("resource", None,
                 "Units an item holds while a process works on it (bays, nurses, forklifts), first come, first served. " +
                 "Not on the item flow: nothing is connected to it; a process's seize step takes a unit and its release frees it.",
@@ -108,6 +118,34 @@ namespace SimOpt.McpServer.Models
                     new ParameterSpec("capacity", "number", false, "unlimited", "Most the stock holds, a positive number."),
                 },
                 FedBy: "nothing (a process takes from it and puts into it)", Feeds: "nothing"),
+        };
+
+        private static readonly ParameterSpec ResourceField =
+            new ParameterSpec("resource", "string", true, null, "The id of a resource node.");
+
+        private static readonly ParameterSpec StockField =
+            new ParameterSpec("stock", "string", true, null, "The id of a stock node.");
+
+        private static readonly ParameterSpec AmountField =
+            new ParameterSpec("amount", "number or distribution", true, null,
+                "A positive number, or a distribution drawn when the item enters that cannot go below 0 or beyond the " +
+                "stock's capacity; a draw of 0 moves nothing.");
+
+        /// <summary>SIM-126: the closed list of steps a process node's <c>steps</c> may use (Q-PROC-SCHEMA).</summary>
+        public static IReadOnlyList<StepTypeSpec> StepTypes { get; } = new[]
+        {
+            new StepTypeSpec("delay", "Holds the item for its own duration (washing, an exam, transport).",
+                new[] { new ParameterSpec("duration", "distribution", true, null, "How long; it cannot go below 0.") }),
+            new StepTypeSpec("seize",
+                "Waits for a unit of the resource, first come, first served, and holds it until a release step or until " +
+                "the item leaves the process.",
+                new[] { ResourceField }),
+            new StepTypeSpec("release", "Frees one unit of a resource the item holds, before it leaves the process.",
+                new[] { ResourceField }),
+            new StepTypeSpec("take", "Takes the amount out of the stock, waiting until the whole amount is there.",
+                new[] { StockField, AmountField }),
+            new StepTypeSpec("put", "Puts the amount into the stock, waiting while it would overfill the stock.",
+                new[] { StockField, AmountField }),
         };
 
         public static IReadOnlyList<MetricKindSpec> MetricKinds { get; } = new[]
@@ -131,11 +169,12 @@ namespace SimOpt.McpServer.Models
         /// </summary>
         public static IReadOnlyList<string> Limits { get; } = new[]
         {
-            "Items move between connected nodes in no time; travel, transport and handling take time only where a delay node is placed.",
+            "Items move between connected nodes in no time; travel, transport and handling take time only where a delay node or a delay step is placed.",
             "Stations never break down, and their servers work without shifts, breaks or set-ups.",
             "Arrivals keep one distribution for the whole run: no daily pattern and no peak hours.",
             "All items are alike: no item types, attributes or priorities; a queue serves first in first out or last in first out, and a router never looks at the item.",
-            "A station's servers are identical and serve one item at a time each; nothing, staff included, is shared between stations.",
+            "A station's servers are identical and serve one item at a time each, and a station shares nothing with another; what activities share (staff, bays) is a resource that process steps seize, one unit per step.",
+            "A process has no loops or conditions, and an item holds a unit only within one process node; it frees every unit it still holds when it leaves.",
             "An item waits in its queue until served and never leaves early; an item a full queue refuses is lost, and counted.",
             "Every replication starts empty and idle; only the warm-up keeps that start out of the figures.",
         };
@@ -166,6 +205,13 @@ namespace SimOpt.McpServer.Models
         {
             JsonArray Strings(IEnumerable<string> values) => new JsonArray(values.Select(v => (JsonNode)JsonValue.Create(v)!).ToArray());
             JsonObject Number(string description) => new JsonObject { ["type"] = "number", ["description"] = description };
+            JsonObject Value() => new JsonObject
+            {
+                ["anyOf"] = new JsonArray(
+                    new JsonObject { ["type"] = "number" },
+                    new JsonObject { ["type"] = "string" },
+                    new JsonObject { ["$ref"] = "#/$defs/distribution" }),
+            };
 
             var distribution = new JsonObject
             {
@@ -208,15 +254,28 @@ namespace SimOpt.McpServer.Models
                     {
                         ["type"] = "object",
                         ["description"] = "Per node type, see node_types; a value is a number, a string or a distribution.",
-                        ["additionalProperties"] = new JsonObject
-                        {
-                            ["anyOf"] = new JsonArray(
-                                new JsonObject { ["type"] = "number" },
-                                new JsonObject { ["type"] = "string" },
-                                new JsonObject { ["$ref"] = "#/$defs/distribution" }),
-                        },
+                        ["additionalProperties"] = Value(),
+                    },
+                    ["steps"] = new JsonObject
+                    {
+                        ["type"] = "array",
+                        ["description"] = "A process node's steps, in order; see step_types.",
+                        ["items"] = new JsonObject { ["$ref"] = "#/$defs/step" },
                     },
                 },
+            };
+
+            var step = new JsonObject
+            {
+                ["type"] = "object",
+                ["description"] = "A step of a process: its type, an optional id (else <type>#<n>), and the fields its type reads.",
+                ["required"] = Strings(new[] { "type" }),
+                ["properties"] = new JsonObject
+                {
+                    ["id"] = new JsonObject { ["type"] = "string" },
+                    ["type"] = new JsonObject { ["enum"] = Strings(StepTypes.Select(t => t.Name)) },
+                },
+                ["additionalProperties"] = Value(),
             };
 
             var connection = new JsonObject
@@ -277,6 +336,7 @@ namespace SimOpt.McpServer.Models
                 {
                     ["distribution"] = distribution,
                     ["node"] = node,
+                    ["step"] = step,
                     ["connection"] = connection,
                     ["metric"] = metric,
                 },

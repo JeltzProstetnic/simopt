@@ -23,7 +23,8 @@ namespace SimOpt.McpServer.Simulation
             TopologyDefinition topology,
             IReadOnlyDictionary<string, string>? metrics = null,
             Dictionary<string, Resource>? resources = null,
-            Dictionary<string, Stock>? stocks = null)
+            Dictionary<string, Stock>? stocks = null,
+            Dictionary<string, ProcessNode>? processes = null)
         {
             Model = model;
             Sources = sources;
@@ -36,6 +37,7 @@ namespace SimOpt.McpServer.Simulation
             Metrics = metrics ?? new Dictionary<string, string>();
             Resources = resources ?? new Dictionary<string, Resource>();
             Stocks = stocks ?? new Dictionary<string, Stock>();
+            Processes = processes ?? new Dictionary<string, ProcessNode>();
         }
 
         public Model Model { get; }
@@ -51,6 +53,9 @@ namespace SimOpt.McpServer.Simulation
 
         /// <summary>SIM-126: the stocks, beside the item flow; process steps take from them and put into them.</summary>
         public Dictionary<string, Stock> Stocks { get; }
+
+        /// <summary>SIM-126: the process nodes, on the item flow like delays.</summary>
+        public Dictionary<string, ProcessNode> Processes { get; }
         public TopologyDefinition Topology { get; }
 
         /// <summary>

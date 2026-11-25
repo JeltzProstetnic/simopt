@@ -68,7 +68,7 @@ namespace SimOpt.McpServer.Simulation
             foreach (var (id, router) in copy.Routers) if (router.RefusedCount > 0) refused[id] = router.RefusedCount;
             int finished = copy.Sinks.Values.Sum(s => s.Count);
             int inside = copy.Buffers.Values.Sum(b => b.Count) + copy.Servers.Values.Count(s => s.Busy)
-                       + copy.Delays.Values.Sum(d => d.Count);
+                       + copy.Delays.Values.Sum(d => d.Count) + copy.Processes.Values.Sum(p => p.Count);
 
             string limited = stopped
                 ? $", stopped at the {limit.TotalSeconds.ToString("G3", CultureInfo.InvariantCulture)} s time limit before {Fmt(length)}"

@@ -18,7 +18,7 @@ namespace SimOpt.McpServer.Simulation
     public static class TopologyLint
     {
         /// <summary>Node types that push each item they release into every node connected after them.</summary>
-        private static readonly HashSet<string> PushTypes = new() { "source", "station", "delay" };
+        private static readonly HashSet<string> PushTypes = new() { "source", "station", "delay", "process" };
 
         public static void Check(TopologyDefinition topology, ValidationReport report)
         {

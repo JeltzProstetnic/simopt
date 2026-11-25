@@ -43,7 +43,7 @@ namespace SimOpt.McpServer.Tools
         [Description(
             "Creates a new simulation model from a JSON topology description. " +
             "Returns a model_id to be used in subsequent calls. " +
-            "Nodes may have types: source, queue, station, delay, router, sink (buffer and server are accepted for queue and station). " +
+            "Nodes may have types: source, queue, station, delay, router, sink, process, resource, stock (buffer and server are accepted for queue and station). " +
             "Connections flow from source nodes toward sink nodes. " +
             "Source params: arrival, a distribution object such as {\"type\":\"exponential\",\"mean\":2} " +
             "(types: exponential, triangular, uniform, lognormal, gamma, constant, empirical), " +
@@ -61,6 +61,11 @@ namespace SimOpt.McpServer.Tools
             "Sink has no params. " +
             "Beside the item flow, connected to nothing: resource (capacity, whole units, default 1), units a process holds; " +
             "stock (initial, default 0; capacity, default unlimited), a level processes take from and put into. " +
+            "A process node has no params but steps, a list run in order for every item it receives, any number at once: " +
+            "{\"type\":\"delay\",\"duration\":<distribution>}, {\"type\":\"seize\",\"resource\":<id>}, " +
+            "{\"type\":\"release\",\"resource\":<id>}, {\"type\":\"take\"|\"put\",\"stock\":<id>,\"amount\":<number or distribution>}, " +
+            "each with an optional id (else <type>#<n>); an item leaving frees every unit it holds, step values are drawn when it " +
+            "enters; a process is fed and feeds like a delay, never from a queue. " +
             "Metrics: an optional list [{id, kind, node?}] of what the model measures: wait_time and queue_length at a queue or " +
             "a resource, utilization at a station or a resource, level and empty_share at a stock, count and throughput at a " +
             "sink, cycle_time at a sink or, without a node, at all sinks. " +
@@ -457,6 +462,10 @@ namespace SimOpt.McpServer.Tools
                 foreach (var (id, stk) in active.Stocks)
                     stockStats[id] = StockState(stk);
 
+                var processStats = new Dictionary<string, object>();
+                foreach (var (id, proc) in active.Processes)
+                    processStats[id] = new { inside = proc.Count };
+
                 return JsonSerializer.Serialize(new
                 {
                     model_id,
@@ -473,6 +482,7 @@ namespace SimOpt.McpServer.Tools
                         sources = sourceStats,
                         resources = resourceStats,
                         stocks = stockStats,
+                        processes = processStats,
                     }
                 }, Output);
             }
@@ -541,6 +551,9 @@ namespace SimOpt.McpServer.Tools
                 foreach (var (id, res) in active.Resources)
                     nodeStates.Add(new { id, type = "resource", capacity = res.Capacity, in_use = res.InUse, waiting = res.Waiting });
 
+                foreach (var (id, proc) in active.Processes)
+                    nodeStates.Add(new { id, type = "process", inside = proc.Count });
+
                 foreach (var (id, stk) in active.Stocks)
                     nodeStates.Add(new
                     {
@@ -588,6 +601,7 @@ namespace SimOpt.McpServer.Tools
                     fed_by = t.FedBy,
                     feeds = t.Feeds,
                 }),
+                step_types = SchemaCatalog.StepTypes.Select(t => new { name = t.Name, description = t.Description, fields = t.Fields.Select(Describe) }),
                 metric_kinds = SchemaCatalog.MetricKinds.Select(k => new { name = k.Name, measured_at = k.MeasuredAt, description = k.Description }),
                 distributions = SchemaCatalog.DistributionTypes,
                 limits = SchemaCatalog.Limits,
