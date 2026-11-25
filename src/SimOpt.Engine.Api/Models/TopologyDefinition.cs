@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SimOpt.McpServer.Models
+namespace SimOpt.Engine.Api.Models
 {
     /// <summary>
     /// Describes a complete simulation topology to be instantiated.

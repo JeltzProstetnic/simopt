@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Processes;
 using SimOpt.Simulation.Templates;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>
     /// Holds a live <see cref="Model"/> together with its node references

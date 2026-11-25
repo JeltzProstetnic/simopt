@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol;
 using SimOpt.McpServer.Simulation;
+using SimOpt.Engine.Api.Simulation;
 using SimOpt.McpServer.Tools;
 using Xunit;
 

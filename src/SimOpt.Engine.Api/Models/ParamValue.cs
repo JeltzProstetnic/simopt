@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SimOpt.McpServer.Models
+namespace SimOpt.Engine.Api.Models
 {
     /// <summary>What a node parameter holds.</summary>
     public enum ParamValueKind

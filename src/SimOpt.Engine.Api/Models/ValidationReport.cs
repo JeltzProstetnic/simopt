@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace SimOpt.McpServer.Models
+namespace SimOpt.Engine.Api.Models
 {
     /// <summary>
     /// SIM-66 (D2): one problem found in a topology, machine-actionable: a stable code, the node it is

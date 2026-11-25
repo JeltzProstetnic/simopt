@@ -6,9 +6,9 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>
     /// SIM-66 step 5 (D9): applies a patch to a copy of a topology. Every operation is tried and every

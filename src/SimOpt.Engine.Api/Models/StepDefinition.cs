@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SimOpt.McpServer.Models
+namespace SimOpt.Engine.Api.Models
 {
     /// <summary>
     /// SIM-126 schema: one step of a <c>process</c> node, written flat as

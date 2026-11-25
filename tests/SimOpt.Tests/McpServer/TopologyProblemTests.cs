@@ -5,6 +5,7 @@ using System.Text.Json;
 using FluentAssertions;
 using ModelContextProtocol;
 using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.McpServer.Optimization;
 using SimOpt.Optimization.Interfaces;
 using SimOpt.Optimization.Strategies.RandomSearch;

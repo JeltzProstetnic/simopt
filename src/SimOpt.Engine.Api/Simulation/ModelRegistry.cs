@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SimOpt.Mathematics.Stochastics.Distributions;
 using SimOpt.Mathematics.Stochastics.Interfaces;
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
 using SimOpt.Simulation.Enum;
@@ -14,7 +14,7 @@ using SimOpt.Simulation.Statistics;
 using SimOpt.Simulation.Templates;
 using SimOpt.Basics.Utilities;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>
     /// Thread-safe registry of active simulation models.

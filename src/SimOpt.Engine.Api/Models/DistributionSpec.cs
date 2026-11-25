@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
-namespace SimOpt.McpServer.Models
+namespace SimOpt.Engine.Api.Models
 {
     /// <summary>
     /// A probability distribution as it appears in a schema-v1 topology document.
@@ -13,11 +13,11 @@ namespace SimOpt.McpServer.Models
     /// flat and optional rather than a nested per-type payload: an LLM emits <c>{"type":"triangular",
     /// "min":20,"mode":30,"max":40}</c> far more reliably than it emits a discriminated union, the
     /// shape survives being published as JSON Schema, and a wrong field for a given type is caught
-    /// by <see cref="SimOpt.McpServer.Simulation.DistributionFactory"/> with the field named.
+    /// by <see cref="SimOpt.Engine.Api.Simulation.DistributionFactory"/> with the field named.
     /// </para>
     /// <para>
     /// Which fields a type requires is documented in
-    /// <see cref="SimOpt.McpServer.Models.SchemaCatalog"/>, which is also what <c>get_schema</c> and
+    /// <see cref="SimOpt.Engine.Api.Models.SchemaCatalog"/>, which is also what <c>get_schema</c> and
     /// <c>list_templates</c> render — so the vocabulary a client is told about and the vocabulary
     /// the builder accepts cannot drift apart.
     /// </para>

@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SimOpt.Engine.Api\SimOpt.Engine.Api.csproj" />
     <ProjectReference Include="..\SimOpt.Simulation\SimOpt.Simulation.csproj" />
     <ProjectReference Include="..\SimOpt.Optimization\SimOpt.Optimization.csproj" />
   </ItemGroup>

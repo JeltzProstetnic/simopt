@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.McpServer.Simulation;
+using SimOpt.Engine.Api.Simulation;
 using Xunit;
 
 namespace SimOpt.Tests.McpServer;

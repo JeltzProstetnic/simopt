@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>The load offered to one station, before any run.</summary>
     /// <param name="ArrivalRate">Items reaching the station per unit of time.</param>

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.Optimization;
 using SimOpt.Optimization.Interfaces;
 using SimOpt.Optimization.Strategies.Evolutionary;
+using SimOpt.Engine.Api.Simulation;
 
 namespace SimOpt.McpServer.Optimization
 {

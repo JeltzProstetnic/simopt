@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
-using SimOpt.McpServer.Simulation;
+using SimOpt.Engine.Api.Simulation;
 
-namespace SimOpt.McpServer.Models
+namespace SimOpt.Engine.Api.Models
 {
     /// <summary>A node parameter as the catalogue publishes it.</summary>
     /// <param name="Kind">"distribution", "number", "integer" or "string".</param>

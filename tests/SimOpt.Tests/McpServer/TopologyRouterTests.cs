@@ -4,7 +4,9 @@ using System.Linq;
 using System.Text.Json;
 using FluentAssertions;
 using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.McpServer.Simulation;
+using SimOpt.Engine.Api.Simulation;
 using SimOpt.McpServer.Tools;
 using Xunit;
 

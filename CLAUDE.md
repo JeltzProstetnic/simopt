@@ -35,7 +35,8 @@
 | `src/SimOpt.Optimization` | Strategy interfaces + EA, SA, PSO, random search implementations |
 | `src/SimOpt.Visualization` | Avalonia 2D live rendering (schematic + realistic modes) |
 | `src/SimOpt.Learning` | Machine learning utilities |
-| `src/SimOpt.McpServer` | MCP server: model registry, topology builder, experiment tools |
+| `src/SimOpt.Engine.Api` | The topology layer every head shares (SIM-70 first half): schema v1 types, builder, distribution factory, lint, offered load, patcher, validation |
+| `src/SimOpt.McpServer` | MCP server: the tools, experiments, optimisation and run records, over `SimOpt.Engine.Api` |
 | `src/SimOpt.GridWorld` | Grid agent world (ported to Python by crucible) |
 | `src/SimOpt.Ivotion` | Ivotion showcase model |
 | `src/SimOpt.FMT` | Empty scaffold (FMT logic lives in crucible) |

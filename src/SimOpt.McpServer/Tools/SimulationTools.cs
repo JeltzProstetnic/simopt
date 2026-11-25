@@ -11,8 +11,10 @@ using System.Text.Json.Serialization;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.McpServer.Optimization;
 using SimOpt.McpServer.Simulation;
+using SimOpt.Engine.Api.Simulation;
 using SimOpt.Simulation.Templates;
 
 namespace SimOpt.McpServer.Tools

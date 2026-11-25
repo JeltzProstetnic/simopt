@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.Simulation.Statistics;
+using SimOpt.Engine.Api.Simulation;
 
 namespace SimOpt.McpServer.Simulation
 {

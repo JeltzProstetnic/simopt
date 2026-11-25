@@ -4,9 +4,9 @@ using System.Globalization;
 using System.Linq;
 using SimOpt.Mathematics.Stochastics.Distributions;
 using SimOpt.Mathematics.Stochastics.Interfaces;
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>
     /// Turns a schema-v1 <see cref="DistributionSpec"/> into a configured — and deliberately

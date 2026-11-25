@@ -8,6 +8,7 @@ using FluentAssertions;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol;
 using SimOpt.McpServer.Simulation;
+using SimOpt.Engine.Api.Simulation;
 using SimOpt.McpServer.Tools;
 using Xunit;
 
@@ -101,7 +102,7 @@ public sealed class RunRecordTests : IDisposable
         JsonElement record = Json(File.ReadAllText(path));
 
         record.GetProperty("limits").EnumerateArray().Select(e => e.GetString())
-              .Should().Equal(SimOpt.McpServer.Models.SchemaCatalog.Limits);
+              .Should().Equal(SimOpt.Engine.Api.Models.SchemaCatalog.Limits);
     }
 
     [Fact]

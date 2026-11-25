@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- SIM-70 (first half) / SIM-110, Q-VIEW-PATH: the topology layer the MCP server, the viewer and the desktop
+       app share: the schema v1 types, the builder, the distribution factory, the lint, the offered-load check,
+       the patcher and validation. No MCP or hosting dependency. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>SimOpt.Engine.Api</RootNamespace>
+    <AssemblyName>SimOpt.Engine.Api</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimOpt.Simulation\SimOpt.Simulation.csproj" />
+  </ItemGroup>
+</Project>

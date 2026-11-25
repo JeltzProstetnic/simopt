@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using SimOpt.Engine.Api.Models;
+using SimOpt.Engine.Api.Simulation;
 
 namespace SimOpt.McpServer.Models
 {

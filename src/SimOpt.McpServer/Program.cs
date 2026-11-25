@@ -3,7 +3,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using SimOpt.McpServer.Simulation;
+using SimOpt.Engine.Api.Simulation;
 using SimOpt.McpServer.Tools;
+using SimOpt.Engine.Api.Models;
 
 // The MCP server communicates over stdio (stdin/stdout).
 // All log output MUST go to stderr to avoid corrupting the JSON-RPC stream.

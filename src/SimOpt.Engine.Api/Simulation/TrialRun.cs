@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.Simulation.Enum;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>
     /// SIM-66 step 4 (D6): one short replication of a topology that builds, on a copy of its own, to

@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>
     /// SIM-66 (D1): one fault the builder found, carrying it as a <see cref="ValidationIssue"/>. The

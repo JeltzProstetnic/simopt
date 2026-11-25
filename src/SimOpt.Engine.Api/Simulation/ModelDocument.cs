@@ -6,9 +6,9 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>
     /// SIM-67 and SIM-86: a model version as its schema v1 document, the bytes <c>save_model</c> writes,

@@ -1,6 +1,6 @@
-using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 
-namespace SimOpt.McpServer.Simulation
+namespace SimOpt.Engine.Api.Simulation
 {
     /// <summary>
     /// SIM-66 (D1-D6): every layer of validation, in order. The builder's checks and the structural

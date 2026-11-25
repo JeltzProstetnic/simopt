@@ -10,7 +10,9 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ModelContextProtocol;
 using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.McpServer.Optimization;
+using SimOpt.Engine.Api.Simulation;
 
 namespace SimOpt.McpServer.Simulation
 {

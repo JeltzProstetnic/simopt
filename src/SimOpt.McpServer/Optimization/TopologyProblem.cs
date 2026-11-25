@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using SimOpt.McpServer.Models;
+using SimOpt.Engine.Api.Models;
 using SimOpt.McpServer.Simulation;
+using SimOpt.Engine.Api.Simulation;
 using SimOpt.Optimization.Interfaces;
 using SimOpt.Simulation.Statistics;
 
