@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next=SIM-110 step 4 (canvas on the schema builder via VizSchema, SimulationModel deleted, File-Open with validation on the nodes, layout block, warm-up state, look at it on screen with MG), then step 5 and SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=SIM-86 slice C (report_run, Markdown, English or German), then MG looks at the viewer on screen (SIM-110 [?]); approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -120,16 +120,43 @@ the private hand-off (see *Private material*).
   as a schema document plus layout. Both paths measured in `VizSchemaTests` (SQSS, Production Line unchanged; Factory
   waste 276 -> 241 because the reject follows the seed; Ivotion shipped 24 -> 354 because the Roland printer lost 14 of
   every 15). The viewer still draws through `SimulationModel` until step 4.
-- **Step 4, next:** `SimulationCanvas.StartSimulation(VizTopology)` builds through `VizSchema` + `ModelRegistry.TryBuild`;
-  node states and measures come from `ActiveModel` (buffers, servers, sinks, plus the inserted queues/routers, laid out by
-  `AutoLayout`); `SimulationModel` is deleted with its tests ported (`SimulationModelMeasureTests`, `PlaybackTests`);
-  File -> Open reads a topology JSON (an optional top-level `layout` block the builder ignores) and shows validation
-  problems on the nodes; "warming up until t = ..." when the document declares a warm-up. furkansim's `MainWindow`
-  keeps compiling (`VizTopology` and the canvas keep their members); file its inbox item with that commit (its glass
-  line's numbers move). Suite 1600 passed, 4 skipped.
+- Step 4's plan (done the next session, see below) was: the canvas on the schema builder, `SimulationModel` deleted,
+  File -> Open with problems on the nodes, the `layout` block, the warm-up state, and the furkansim inbox item.
+
+## Session 2026-11-25 late morning (WSL, MG away, cfg caretaking)
+
+- **SIM-110 steps 4 and 5 done**, test-first, in two commits:
+  - `76fe582`: the canvas runs a `ViewerModel` built by `ModelValidator`/`ModelRegistry.TryBuild` from the schema
+    document; `SimulationModel` is deleted, its tests ported (`ViewerModelTests`). Each preset's sinks equal the
+    registry's own run at t = 2000 (SQSS 1001, Parallel Servers 1996, Production Line 1332, Factory 3995 + waste 241,
+    Ivotion 354). The canvas draws every node of the document, inserted queues and routers too; on a floor plan an
+    unplaced node sits between the nodes it joins, small and unlabelled. Closes SIM-99's viewer half; SIM-136 moot.
+  - `79c4c6c`: File -> Open (Ctrl+O) a `save_model`/`export_model` document or a `simopt-run/1` record (its call gives
+    the run length and warm-up), shown paused as a sixth list entry, Space runs it; File -> Save model as (Ctrl+S)
+    with a top-level `layout` block that the builder and `load_model` ignore (same model hash). A model with errors
+    is drawn without running, problems red on the nodes and in a panel; a running model's warnings are outlined
+    dashed amber and listed. Before a warm-up ends the screen says "warming up until t = ..." and every measure is "–".
+    Closes SIM-72.
+- **Decided within the approved brief, for MG to confirm (Q-VIEW-WARMUP below):** a schema document has no warm-up
+  field, so "a document that declares a warm-up" is read as a run record, which declares one; no schema field invented.
+- **Seen rendered offscreen** (Avalonia headless in the scratchpad, no window on the desktop): factory schematic and
+  realistic, a broken SQSS, a run record with a warm-up. Not seen by MG: SIM-110 is `[?]` until he looks.
+- **Found:** the factory preset is overloaded (assembly lines and QC offered 1.19; the staging queue refuses items),
+  now visible as warnings: **SIM-143**, P3 proposed. The realistic rack showed "0/1" for an empty unbounded queue
+  (SIM-92 slip), fixed.
+- furkansim: its app compiles and its glass line runs on the new path (scratch copy: 66 finished at t = 200, warnings
+  SATURATED and REFUSED); inbox [work] item filed through `inbox-file.sh` (left uncommitted in cfg's repo for cfg).
+- Suite 1600 -> 1627 passed, 4 skipped. Next: SIM-86 slice C (`report_run`, Markdown, English or German).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
+- **Q-VIEW-WARMUP (open, 2026-11-25):** the viewer shows "warming up until t = ..." for a run record, whose call
+  declares the warm-up (and the run length); a plain model document has no warm-up field, so it runs without one.
+  **Recommended: keep it so** (no schema change; a run record is what carries a run's settings). The alternative is an
+  optional top-level `warmup` in the topology document, read by the viewer and by `run_experiment` when the call gives
+  none, which changes the schema and the MCP head.
+- **Q-SIM143-PRIO (open, 2026-11-25):** SIM-143 (the factory preset is overloaded and loses items at staging, now shown
+  as warnings) was filed at **P3 (recommended)**; the alternative is P2. Fixing it means rebalancing a demo preset.
 - **Q-SIM142-PRIO (open, 2026-11-25):** SIM-142 (no topology with two sources could be created; fixed in `69476ff`) was
   filed at **P1 (recommended)**; the alternative is P2. It is done either way, so the answer only sets its record.
 
