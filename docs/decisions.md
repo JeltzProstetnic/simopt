@@ -545,3 +545,19 @@ brief: process-style modelling (SIM-126, which resolves Q-PROC as "plan it now")
 (SIM-129) and a clean way in from Python over the SIM-65 schema and MCP (SIM-130). They head the
 backlog above the commercial track. Build order by dependency: SIM-125, SIM-128, SIM-127, SIM-126,
 SIM-129, with SIM-130 following SIM-65/66.
+
+## 2026-11-25 (night) — speed target, process streams, order of work (SIM-129, SIM-126, SIM-65)
+
+- **Target per event (SIM-129):** at most 250 ns per event for template models on the WSL box, measured
+  by `benchmarks/SimOpt.Benchmarks`; time is machine- and load-dependent, so no test holds it. Bytes
+  per event are deterministic and are held by `EngineAllocationBudgetTests` (260 for template models).
+  Speed work must keep every result byte-identical; `EngineFingerprintTests` pins a hash of every
+  result, and a change meant to move results updates those hashes in the same commit and says so.
+  Evidence: `docs/plans/2026-11-25-sim-129-speed-per-event.md`.
+- **A process's random streams are seeded by name** (`p.Random(name, distribution)`, the stable hash
+  of the name on the process's seed), not by registration order as the model's own streams are
+  (SIM-131). Why: a body makes its streams while it runs, and order-based seeds would tie each stream
+  to the ones made before it and make a reset model draw other numbers than a rebuilt one.
+- **SIM-65 before SIM-110.** The handover listed SIM-65 step 1 and then SIM-110; SIM-65 continued past
+  step 1 because it is P0 and SIM-130 (P0, the Python way in) depends on it, while SIM-110 is P1.
+  Unattended choice by the session; MG may reorder.
