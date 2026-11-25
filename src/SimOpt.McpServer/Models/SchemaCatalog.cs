@@ -95,6 +95,21 @@ namespace SimOpt.McpServer.Models
                 "Mean time from an item's creation at a source to its arrival at the sink."),
         };
 
+        /// <summary>
+        /// SIM-86 (UN-035): what a schema v1 model does not represent, published by <c>get_schema</c> and
+        /// written into every run record, so that no figure is read as covering it.
+        /// </summary>
+        public static IReadOnlyList<string> Limits { get; } = new[]
+        {
+            "Items move between connected nodes in no time; travel, transport and handling take time only where a delay node is placed.",
+            "Stations never break down, and their servers work without shifts, breaks or set-ups.",
+            "Arrivals keep one distribution for the whole run: no daily pattern and no peak hours.",
+            "All items are alike: no item types, attributes or priorities; a queue serves first in first out or last in first out, and a router never looks at the item.",
+            "A station's servers are identical and serve one item at a time each; nothing, staff included, is shared between stations.",
+            "An item waits in its queue until served and never leaves early; an item a full queue refuses is lost, and counted.",
+            "Every replication starts empty and idle; only the warm-up keeps that start out of the figures.",
+        };
+
         /// <summary>The distribution families, in the order they are advertised.</summary>
         public static IReadOnlyList<string> DistributionTypes => DistributionFactory.KnownTypes;
 

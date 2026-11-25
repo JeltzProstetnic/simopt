@@ -62,7 +62,27 @@ the private hand-off (see *Private material*).
 - **Housekeeping** (`81d2bbf`): `docs/pending-commercial-track.md` retired, its standing rules in `docs/decisions.md`.
 - Suite 1361 passed, 1 skipped (`dotnet test tests/SimOpt.Tests/SimOpt.Tests.csproj`). Weekly ultra at 23 % when last read.
 
+## Session 2026-11-25 early morning, restart #6 (WSL, unattended, cfg caretaking)
+
+- **SIM-86 slices A and B done** (`b34ebcc`, `fb13866`; brief `docs/plans/2026-11-25-sim-86-provenance.md`):
+  results name the model by the SHA-256 of its saved document (`model_sha256`, line feeds only so it is the same on
+  every OS), list every value they assumed (`assumed`: warm-up, seed, replications, default metrics, node defaults by
+  patch path) and echo each scenario's patch. `run_experiment(record: path)` writes a `simopt-run/1` record and
+  `reproduce_run(path)` repeats it anywhere: a forged figure or a changed model is caught. Python follows. Suite 1378
+  passed, 1 skipped; Python 24. No template result moved.
+- Slice C (the expert-report form) waits for **Q-PROV-REPORT**.
+
 ## Decisions for MG (stable IDs; recommended option first)
+
+- **Q-PROV-REPORT** (new 2026-11-25, restart #6, SIM-86 slice C, UN-034 "exportable in a form that goes into an
+  expert report"): what form a run record takes for a report.
+  - **A `report_run` tool renders a record as a Markdown appendix, English or German by argument (Recommended):**
+    provenance table (tool, model hash, seed, replications, warm-up), what was assumed, the standing limits of schema
+    v1, results with intervals, and how to repeat it (`reproduce_run`); you turn it into PDF or Word in your own
+    toolchain.
+  - **A PDF straight from the server** (the fleet office template): one step less for you, a heavy dependency in the
+    server.
+  - **No report form:** the JSON record is the exhibit and you write the prose.
 
 - **Q-STORE** (new 2026-11-25, restart #4, SIM-67 D4): should the server keep every model in a directory and
   reload it when it starts ("re-hydrate on reconnect" in the old backlog text)?

@@ -70,15 +70,22 @@ runs are unaffected and no comment on his issue #30 is needed.
 Tests: `RunRecordTests` (9), one Python acceptance test. Suite 1369 -> 1378 passed, 1 skipped; Python
 23 -> 24 passed.
 
+## The limits of schema v1 (done, test-first)
+
+UN-035 also asks the tool to say what it did not model. `SchemaCatalog.Limits` states seven things a
+schema v1 model does not represent (no travel time without a delay node; no breakdowns, shifts, breaks
+or set-ups; stationary arrivals; all items alike, no priorities, a router never looks at the item;
+identical servers, one item each, nothing shared between stations; no reneging, a refused item is lost
+and counted; every replication starts empty and idle, only the warm-up removes that). Each was checked
+against the builder. `get_schema` publishes them as `limits`, and every run record carries them inside
+its hash. They are not in each agent answer, to keep answers small (UN-023). Tests: one in
+`SchemaCatalogTests`, one in `RunRecordTests`; suite 1378 -> 1380 passed, 1 skipped.
+
 ## Still open in SIM-86
 
 - **Slice C, the form for an expert report** (UN-034): a human-readable rendering of a record
   (provenance table, assumptions, results with intervals). Its language and format are MG's call
   (Q-PROV-REPORT).
-- **The standing simplifications of schema v1** (UN-035: "what it did not model"): moves between nodes
-  take no time unless a delay node is placed; stations never fail; no shifts, breaks or priorities;
-  each replication starts empty and idle. These belong in the record and in `get_schema`, not in every
-  agent answer.
 - **Python:** `Experiment.frame().attrs["provenance"]`, so provenance stays with a pandas frame.
 - **`optimize` records:** the same record for a search (its call, every evaluated point); not built yet.
 - **Known gap:** a document without `seed` is run with 42 (`TopologyDefinition.Seed` is a plain int),

@@ -109,6 +109,20 @@ public class SchemaCatalogTests
     }
 
     [Fact]
+    public void GetSchema_StatesWhatASchemaV1ModelDoesNotRepresent()
+    {
+        // SIM-86 (UN-035): the tool says plainly what it did not model
+        JsonElement schema = Json(new SimulationTools(new ModelRegistry()).GetSchema());
+
+        string[] limits = schema.GetProperty("limits").EnumerateArray().Select(e => e.GetString()!).ToArray();
+
+        limits.Should().Equal(SchemaCatalog.Limits);
+        limits.Should().Contain(l => l.Contains("break down"))
+              .And.Contain(l => l.Contains("delay node"))
+              .And.Contain(l => l.Contains("warm-up"));
+    }
+
+    [Fact]
     public void ListTemplates_DescribesTheCatalogsTypes_ByTheirV1Names()
     {
         JsonElement listed = Json(new SimulationTools(new ModelRegistry()).ListTemplates());

@@ -94,6 +94,17 @@ public sealed class RunRecordTests : IDisposable
     }
 
     [Fact]
+    public async Task TheRecord_StatesWhatTheModelDoesNotRepresent()
+    {
+        var (_, path) = await Recorded();
+
+        JsonElement record = Json(File.ReadAllText(path));
+
+        record.GetProperty("limits").EnumerateArray().Select(e => e.GetString())
+              .Should().Equal(SimOpt.McpServer.Models.SchemaCatalog.Limits);
+    }
+
+    [Fact]
     public async Task TheAnswer_SaysWhereTheRecordIs_AndItsHash()
     {
         var (answer, path) = await Recorded();

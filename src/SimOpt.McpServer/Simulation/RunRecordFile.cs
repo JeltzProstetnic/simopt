@@ -67,6 +67,7 @@ namespace SimOpt.McpServer.Simulation
                 ["record"] = Format,
                 ["tool_call"] = "run_experiment",
                 ["model"] = JsonNode.Parse(ModelDocument.Write(topology)),
+                ["limits"] = JsonSerializer.SerializeToNode(SchemaCatalog.Limits, Options),
                 ["call"] = JsonSerializer.SerializeToNode(call, Options),
                 ["result"] = JsonSerializer.SerializeToNode(result, Options),
             };

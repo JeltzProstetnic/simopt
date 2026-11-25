@@ -526,7 +526,8 @@ namespace SimOpt.McpServer.Tools
         [McpServerTool]
         [Description(
             "Returns the topology schema (version 1) that create_model reads: a JSON Schema of the document, " +
-            "every node type with its parameters, every metric kind and every distribution family. " +
+            "every node type with its parameters, every metric kind, every distribution family, and the limits: what a " +
+            "model of this schema does not represent. " +
             "Check a topology against it before calling create_model. No input required.")]
         public string GetSchema()
         {
@@ -546,6 +547,7 @@ namespace SimOpt.McpServer.Tools
                 }),
                 metric_kinds = SchemaCatalog.MetricKinds.Select(k => new { name = k.Name, measured_at = k.MeasuredAt, description = k.Description }),
                 distributions = SchemaCatalog.DistributionTypes,
+                limits = SchemaCatalog.Limits,
             }, Output);
         }
 
