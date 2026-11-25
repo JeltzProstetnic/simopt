@@ -42,6 +42,12 @@ public sealed class IvotionProblem : IProblem
     public double OperatorWagePerHour { get; set; } = IvotionCostModel.OperatorWagePerHour;
 
     /// <summary>
+    /// SIM-93: minutes at the start of each run whose shipments throughput leaves out, so a line that
+    /// starts empty is not scored on its pipeline fill. 0 keeps every earlier result.
+    /// </summary>
+    public double WarmupMinutes { get; set; }
+
+    /// <summary>
     /// No closed-form optimum exists for this problem; return +∞ so strategies
     /// that use <see cref="IProblem.OptimumFitness"/> as an early-termination
     /// bound keep searching.
@@ -67,9 +73,9 @@ public sealed class IvotionProblem : IProblem
 
         var handles = IvotionTopologyBuilder.Build(iv, Seed, ArrivalIntervalMinutes);
         handles.RunFor(SimDurationMinutes);
-        var kpis = IvotionKpis.Extract(handles, SimDurationMinutes, OperatorWagePerHour);
-
-        iv.Fitness = MapObjectiveToFitness(kpis, Objective);
+        var kpis = IvotionKpis.Extract(handles, SimDurationMinutes, OperatorWagePerHour, WarmupMinutes);
+        // SIM-93: a run the step cap cut short is not scored as if it had covered the duration
+        iv.Fitness = kpis.Completed ? MapObjectiveToFitness(kpis, Objective) : -double.MaxValue;
         iv.HasFitness = true;
         return true;
     }

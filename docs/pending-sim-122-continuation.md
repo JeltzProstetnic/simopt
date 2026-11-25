@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=next unblocked P1 item (SIM-126 schema waits for Q-PROC-SCHEMA, SIM-110 rest waits for Q-VIEW-PATH) - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=next unblocked P1 item (SIM-126 schema waits for Q-PROC-SCHEMA, SIM-110 rest waits for Q-VIEW-PATH) - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130 and SIM-67 done (2026-11-25 night); SIM-126's schema brief written, its build waits for Q-PROC-SCHEMA; next SIM-110
 
@@ -80,6 +80,16 @@ the private hand-off (see *Private material*).
     the viewer and furkansim's app.
   - **Two paths:** presets keep their own builder, JSON and MCP models use the schema builder; SIM-99's viewer
     half stays open.
+- **Q-IVO-STATS** (new 2026-11-25, restart #5, SIM-93): how long the Ivotion optimiser runs each configuration.
+  Measured on the baseline (1 printer, batches of 15): the first batch ships at about 84 minutes, then one every ~83,
+  a steady ~10.8 pieces/h. A score counts whole batches in its window, so it can be off by one batch: today's
+  120-minute run with no warm-up scores 7.5. 20 seeds gave the same score at every setting below except where the
+  warm-up ends near a shipment, so replications would not help; run length does. A warm-up setting now exists
+  (default 0).
+  - **960 minutes (two shifts) with a 120-minute warm-up (Recommended):** the baseline scores 10.71, the same on all
+    20 seeds; off by at most one batch, 1.1 pieces/h; each evaluation takes about eight times as long as today.
+  - **480 minutes with a 120-minute warm-up:** scores 10.0, off by at most 2.5 pieces/h; four times as long.
+  - **Keep 120 minutes, no warm-up,** and label the score as one batch cycle.
 - **Q-AUTO** (new 2026-11-25, restart #4): which search "auto" runs when the space is larger than the
   budget. **Recommended: the EA (built, unattended choice):** best or tied at the default budget with the
   best worst case. Alternatives: random search (the step-3 behaviour), or SA as D6 planned (measured last).

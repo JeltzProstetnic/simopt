@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using SimOpt.Simulation.Engine;
+using SimOpt.Simulation.Statistics;
 using SimOpt.Simulation.Templates;
 
 namespace SimOpt.Ivotion;
@@ -24,6 +26,18 @@ public sealed class IvotionTopologyHandles
     public double EffectivePackTime { get; }
     public double EffectiveLabelTime { get; }
     public double EffectiveSsbTime { get; }
+
+    /// <summary>The model time the handles were made at; KPIs are taken from here on.</summary>
+    public double StartTime { get; }
+
+    /// <summary>
+    /// SIM-93: the measured busy share of each manual station, in the order of
+    /// <see cref="ManualStations"/>. A station is one server whose speed scales with its operators, so
+    /// all of its operators are busy exactly when it is.
+    /// </summary>
+    public IReadOnlyList<TimeWeightedCollector> StationUtilization { get; }
+
+    private readonly List<double> shipTimes = new();
 
     public IvotionTopologyHandles(
         Model model,
@@ -51,22 +65,33 @@ public sealed class IvotionTopologyHandles
         EffectivePackTime = effectivePackTime;
         EffectiveLabelTime = effectiveLabelTime;
         EffectiveSsbTime = effectiveSsbTime;
+        StartTime = model.CurrentTime;
+        StationUtilization = manualStations.Select(s => Instrumentation.ObserveUtilization(s)).ToArray();
+        shippedSink.ItemReceived.AddHandler((_, _) => shipTimes.Add(model.CurrentTime));
     }
 
+    /// <summary>SIM-93: the batches that reached the sink at or after <paramref name="time"/>.</summary>
+    public int ShippedSince(double time) => shipTimes.Count(t => t >= time);
+
     /// <summary>
-    /// Run the model for the given number of simulated minutes.
+    /// Run the model for the given number of simulated minutes, ending exactly at the requested time.
     /// Starts the source if it hasn't already been started.
     /// </summary>
-    public void RunFor(double minutes, double step = 0.1)
+    /// <returns>
+    /// SIM-93: false when the step cap stopped the run before the requested time; the KPIs of such a
+    /// run say so (<see cref="IvotionKpis.Completed"/>).
+    /// </returns>
+    public bool RunFor(double minutes, double step = 0.1, int? maxSteps = null)
     {
         Source.Start();
         double endTime = Model.CurrentTime + minutes;
-        int maxSteps = (int)(minutes / step) * 100 + 10_000; // sanity cap
+        int cap = maxSteps ?? (int)(minutes / step) * 100 + 10_000; // sanity cap
         int steps = 0;
-        while (Model.CurrentTime < endTime && steps < maxSteps)
+        while (Model.CurrentTime < endTime && steps < cap)
         {
-            Model.Step(step);
+            Model.Run(System.Math.Min(Model.CurrentTime + step, endTime));   // the last step lands on the end
             steps++;
         }
+        return Model.CurrentTime >= endTime;
     }
 }

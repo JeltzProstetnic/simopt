@@ -115,12 +115,17 @@ public sealed class IvotionKpisToSummaryConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
     {
         if (value is not IvotionKpis k) return "—";
+        // SIM-93: measured figures first, then those computed from the configuration
+        string busy = double.IsNaN(k.BusyLaborHoursPerSimHour) ? "      –" : $"{k.BusyLaborHoursPerSimHour,7:F1}";
+        string run = k.Completed ? "" : $"\nRun cut short at {k.SimulatedMinutes:F0} min: not scored";
         return
-            $"Throughput/hr   : {k.ThroughputPerHour,7:F1}\n" +
+            $"Throughput/hr   : {k.ThroughputPerHour,7:F1}  (measured)\n" +
+            $"Busy labour h/h : {busy}  (measured)\n" +
+            $"Cost/piece      : ${k.CostPerPiece,7:F2}\n" +
+            "From the configuration:\n" +
+            $"Paid labour h/h : {k.LaborHoursPerSimHour,7:F1}\n" +
             $"Total cost/hr   : ${k.TotalCostPerHour,7:F2}\n" +
-            $"Labor hrs/hr    : {k.LaborHoursPerSimHour,7:F1}\n" +
-            $"Floor space m²  : {k.FloorSpaceM2,7:F1}\n" +
-            $"Cost/piece      : ${k.CostPerPiece,7:F2}";
+            $"Floor space m²  : {k.FloorSpaceM2,7:F1}" + run;
     }
     public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
         => throw new NotSupportedException();
