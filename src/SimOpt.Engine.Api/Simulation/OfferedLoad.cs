@@ -68,8 +68,9 @@ namespace SimOpt.Engine.Api.Simulation
                 if (c.Outlet == null && wired.Add((c.From, c.To))) outs[c.From].Add(c);
 
             var servers = order.Where(id => type[id] == "station").ToDictionary(id => id, id => Servers(nodes[id]));
+            // SIM-110: a batch station serves `batch` items per service time, so an item's share is a fraction
             var service = order.Where(id => type[id] == "station")
-                               .ToDictionary(id => id, id => MeanTime(nodes[id], "service", "service_time"));
+                               .ToDictionary(id => id, id => MeanTime(nodes[id], "service", "service_time") / Batch(nodes[id]));
 
             // routing matrix, row = from
             var p = new double[n, n];
@@ -362,6 +363,9 @@ namespace SimOpt.Engine.Api.Simulation
                 return DistributionFactory.Create(given.Distribution, $"node '{node.Id}', parameter '{distName}'").Mean;
             return node.Params.TryGetValue(meanName, out ParamValue? mean) && mean?.Number is double m ? m : 1d;
         }
+
+        private static int Batch(NodeDefinition node) =>
+            node.Params.TryGetValue("batch", out ParamValue? b) && b?.Number is double batch && batch >= 1 ? (int)batch : 1;
 
         private static int Servers(NodeDefinition node) =>
             node.Params.TryGetValue("servers", out ParamValue? c) && c?.Number is double count ? (int)count : 1;

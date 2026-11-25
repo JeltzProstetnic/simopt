@@ -68,7 +68,10 @@ namespace SimOpt.Engine.Api.Models
                     new ParameterSpec("servers", "integer", false, "1",
                         "Servers working in parallel, 1 to 10,000; reported as <id>#1 .. <id>#c when more than one."),
                     new ParameterSpec("service", "distribution", false, "exponential, mean 1",
-                        "Service time of one item.", Alternative: "service_time"),
+                        "Service time of one item, or of one batch.", Alternative: "service_time"),
+                    new ParameterSpec("batch", "integer", false, null,
+                        "Serves this many items together: waits until it holds them, serves them for one service time and " +
+                        "passes every one on (a printer's bed, an oven); absent, one at a time. One server only."),
                 },
                 FedBy: "a queue only", Feeds: "a queue, delay, router, sink or process"),
             new NodeTypeSpec("delay", None,
@@ -269,13 +272,13 @@ namespace SimOpt.Engine.Api.Models
                 ["properties"] = new JsonObject
                 {
                     ["type"] = new JsonObject { ["enum"] = Strings(DistributionTypes) },
-                    ["mean"] = Number("exponential, lognormal, gamma"),
+                    ["mean"] = Number("exponential, lognormal, gamma, normal (before its truncation at zero)"),
                     ["rate"] = Number("exponential, instead of mean"),
                     ["min"] = Number("triangular, uniform, empirical"),
                     ["mode"] = Number("triangular"),
                     ["max"] = Number("triangular, uniform, empirical"),
                     ["value"] = Number("constant"),
-                    ["stddev"] = Number("lognormal, with mean"),
+                    ["stddev"] = Number("lognormal, normal, with mean"),
                     ["mu"] = Number("lognormal, mean of the underlying normal"),
                     ["sigma"] = Number("lognormal, standard deviation of the underlying normal"),
                     ["k"] = Number("gamma, shape"),

@@ -58,6 +58,8 @@ public class DistributionFactoryTests
         new object[] { new DistributionSpec { Type = "lognormal", Mean = 5, Stddev = 2 }, 5.0 },
         new object[] { new DistributionSpec { Type = "gamma", Mean = 4, K = 2 }, 4.0 },
         new object[] { new DistributionSpec { Type = "constant", Value = 7 }, 7.0 },
+        // SIM-110: a normal truncated at zero; at a spread of 15 % of the mean the truncation is invisible
+        new object[] { new DistributionSpec { Type = "normal", Mean = 2, Stddev = 0.3 }, 2.0 },
         new object[]
         {
             // Grid points 0, 5, 10 carrying 0.25 / 0.5 / 0.25 ⇒ mean 5.
@@ -96,6 +98,27 @@ public class DistributionFactoryTests
         // The engine's own Mean property must agree with the sample, or a caller reading it — the
         // analytic pre-check in SIM-66 will — is told something the simulation does not do.
         Build(spec).Mean.Should().BeApproximately(expectedMean, 1e-9);
+    }
+
+    [Fact]
+    public void Normal_IsTruncatedAtZero_AndReportsTheTruncatedMean()
+    {
+        IDistribution<double> wide = Build(new DistributionSpec { Type = "normal", Mean = 1, Stddev = 1 });
+
+        wide.Mean.Should().BeApproximately(1.2876, 1e-4, "mu + sigma phi(1) / Phi(1) for the Gaussian kept at or above zero");
+        SampleMean(wide).Should().BeApproximately(wide.Mean, 0.02 * wide.Mean);
+        DistributionFactory.Bounds(new DistributionSpec { Type = "normal", Mean = 1, Stddev = 1 }).Lower.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0d)]
+    [InlineData(-1d)]
+    public void Normal_NeedsAPositiveStddev(double? stddev)
+    {
+        Action build = () => Build(new DistributionSpec { Type = "normal", Mean = 2, Stddev = stddev });
+
+        build.Should().Throw<InvalidOperationException>().Where(e => e.Message.Contains("stddev") && e.Message.Contains("'x'"));
     }
 
     // ── alternative parameterisations ────────────────────────────────────────

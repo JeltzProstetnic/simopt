@@ -31,7 +31,7 @@ namespace SimOpt.Engine.Api.Simulation
         /// <summary>The distribution families schema v1 accepts, in the order they are advertised.</summary>
         public static readonly IReadOnlyList<string> KnownTypes = new[]
         {
-            "exponential", "triangular", "uniform", "lognormal", "gamma", "constant", "empirical",
+            "exponential", "triangular", "uniform", "lognormal", "gamma", "constant", "empirical", "normal",
         };
 
         /// <summary>
@@ -62,6 +62,7 @@ namespace SimOpt.Engine.Api.Simulation
                 "gamma" => Gamma(spec, context, shift),
                 "constant" => Constant(spec, context, shift),
                 "empirical" => Empirical(spec, context, shift),
+                "normal" => Normal(spec, context, shift),
                 _ => throw Refuse(context,
                         $"unknown distribution type '{spec.Type}'. Valid types: {string.Join(", ", KnownTypes)}."),
             };
@@ -203,6 +204,28 @@ namespace SimOpt.Engine.Api.Simulation
             double value = Require(spec.Value, context, "constant", "value");
             var dist = new ConstantDoubleDistribution();
             dist.Configure(value + shift);
+            return dist;
+        }
+
+        /// <summary>
+        /// SIM-110 step 2: a Gaussian of the given mean and stddev truncated at zero (a draw below zero is
+        /// drawn again), then shifted; the presets' arrivals. Its mean is the truncated mean.
+        /// </summary>
+        private static IDistribution<double> Normal(DistributionSpec spec, string context, double shift)
+        {
+            double mean = Require(spec.Mean, context, "normal", "mean");
+            double stddev = Require(spec.Stddev, context, "normal", "stddev");
+            RequirePositive(stddev, "stddev", context);
+            var dist = new TruncatedGaussianDistribution();
+            try
+            {
+                dist.Configure(mean, stddev, shift);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                throw Refuse(context, $"a normal of mean {Fmt(mean)} and stddev {Fmt(stddev)} lies almost wholly below zero, " +
+                                      "where it is cut off, so it would never draw.");
+            }
             return dist;
         }
 

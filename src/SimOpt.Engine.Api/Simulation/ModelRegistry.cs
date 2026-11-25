@@ -181,6 +181,7 @@ namespace SimOpt.Engine.Api.Simulation
             var resources = new Dictionary<string, Resource>();   // SIM-126: beside the item flow
             var stocks = new Dictionary<string, Stock>();
             var processes = new Dictionary<string, ProcessNode>();
+            var batchOutputs = new Dictionary<string, BatchOutput>();   // SIM-110: by server id
 
             int entityCounter = 0;
 
@@ -243,6 +244,7 @@ namespace SimOpt.Engine.Api.Simulation
                         case "station":
                         {
                             int count = ServerCount(node, label);
+                            int batch = BatchSize(node, label, count);
                             // SIM-65 (D2): c servers are a pool of single servers behind the upstream
                             // queue, the construction AnalyticBatteryTests.RunMMc validates against
                             // Erlang-C. One server keeps the node id, so its seed, and every result built
@@ -251,6 +253,9 @@ namespace SimOpt.Engine.Api.Simulation
                             for (int k = 1; k <= count; k++)
                             {
                                 string memberId = count == 1 ? node.Id : $"{node.Id}#{k}";
+                                // SIM-110: a batch station serves `batch` items together, as the Roland
+                                // printer does, and passes every one of them on (BatchOutput)
+                                BatchOutput? output = batch > 1 ? new BatchOutput(memberId) : null;
                                 var server = new SimpleServer(
                                     model,
                                     StableHash.Of(memberId),   // see the source case above
@@ -267,9 +272,15 @@ namespace SimOpt.Engine.Api.Simulation
                                     // time unmeasurable: the thing reaching the sink was not the thing that
                                     // left the source. For a flow model the part that leaves a station is
                                     // the part that entered it.
-                                    createProduct: m => m[0]);
+                                    createProduct: output == null ? m => m[0] : output.Hold,
+                                    checkMaterialComplete: output == null ? null : m => m.Count >= batch);
                                 server.AutoContinue = true;
                                 servers[memberId] = server;
+                                if (output != null)
+                                {
+                                    output.Follow(server);
+                                    batchOutputs[memberId] = output;
+                                }
                                 pool.Add(server);
                             }
                             stations[node.Id] = pool;
@@ -587,7 +598,8 @@ namespace SimOpt.Engine.Api.Simulation
                 // ── from=Station ─────────────────────────────────────────────
                 else if (stations.TryGetValue(from, out List<SimpleServer>? upPool))
                 {
-                    foreach (SimpleServer member in upPool) connected = Push(member, from, to);
+                    foreach (SimpleServer member in upPool)
+                        connected = Push(batchOutputs.TryGetValue(member.Identifier, out BatchOutput? batch) ? batch : member, from, to);
                 }
                 // ── from=Delay ───────────────────────────────────────────────
                 else if (delays.TryGetValue(from, out SimpleDelay? upDly))
@@ -1308,6 +1320,57 @@ namespace SimOpt.Engine.Api.Simulation
             }
 
             private static string Fmt(double value) => value.ToString("G6", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// SIM-110: a station's <c>batch</c>, a whole number of at least 1 (absent: one item at a time); more
+        /// than one only on a station of one server.
+        /// </summary>
+        private static int BatchSize(NodeDefinition node, string label, int servers)
+        {
+            if (!TryGetNumber(node, label, "batch", out double batch)) return 1;
+            if (batch < 1 || batch > int.MaxValue || batch != Math.Floor(batch))
+                throw new TopologyException("INVALID_PARAMETER", node.Id,
+                    $"{label} '{node.Id}': batch must be a whole number of at least 1, not {batch}.");
+            if (batch > 1 && servers > 1)
+                throw new TopologyException("INVALID_PARAMETER", node.Id,
+                    $"{label} '{node.Id}': a station with a batch has one server in this version, not {servers}.",
+                    "Give it servers 1, or several batch stations behind a shortest_queue router.");
+            return (int)batch;
+        }
+
+        /// <summary>
+        /// SIM-110: the exit of a batch station's server. The server makes one product per batch (the
+        /// Roland printer passed on only that one); this holds the batch's items when it is made and passes
+        /// every one on, in the order they were taken, when the server releases it.
+        /// </summary>
+        private sealed class BatchOutput : IItemSource<SimpleEntity>
+        {
+            private readonly List<SimpleEntity> held = new();
+            private readonly SimOpt.Simulation.Events.BinaryEvent<IEntity, SimpleEntity> released;
+
+            public BatchOutput(string server) { released = new SimOpt.Simulation.Events.BinaryEvent<IEntity, SimpleEntity>(server + ".Batch"); }
+
+            public SimOpt.Simulation.Events.BinaryEvent<IEntity, SimpleEntity> EntityCreatedEvent => released;
+
+            public SimpleEntity Hold(List<SimpleEntity> batch)
+            {
+                held.Clear();
+                held.AddRange(batch);
+                return batch[0];
+            }
+
+            public void Follow(SimpleServer server) =>
+                server.EntityCreatedEvent.AddHandler((sender, _) =>
+                {
+                    foreach (SimpleEntity item in held.ToArray()) released.Raise(sender, item);
+                });
+
+            public bool ConnectTo(IItemSink<SimpleEntity> sink)
+            {
+                released.AddHandler((_, item) => sink.Put(item));
+                return true;
+            }
         }
 
         /// <summary>SIM-126: a resource's <c>capacity</c>, a whole number from 1 (the default) to 10,000.</summary>

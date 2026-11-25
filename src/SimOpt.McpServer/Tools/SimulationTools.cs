@@ -48,7 +48,7 @@ namespace SimOpt.McpServer.Tools
             "Nodes may have types: source, queue, station, delay, router, sink, process, resource, stock (buffer and server are accepted for queue and station). " +
             "Connections flow from source nodes toward sink nodes. " +
             "Source params: arrival, a distribution object such as {\"type\":\"exponential\",\"mean\":2} " +
-            "(types: exponential, triangular, uniform, lognormal, gamma, constant, empirical), " +
+            "(types: exponential, triangular, uniform, lognormal, gamma, constant, empirical, normal: truncated at zero), " +
             "or mean_interval, an exponential mean (default 1.0). " +
             "Queue params: capacity (default unlimited), discipline \"fifo\" (default) or \"lifo\". " +
             "Station params: service, a distribution object, or service_time, an exponential mean (default 1.0); " +
