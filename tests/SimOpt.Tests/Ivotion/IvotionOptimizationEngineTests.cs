@@ -112,6 +112,8 @@ public class IvotionOptimizationEngineTests
     [Fact]
     public async Task RunAsync_Cancellation_StopsEarly()
     {
+        // SIM-121: cancelled from the progress callback after five iterations, not after 100 ms of wall
+        // clock, which failed under a loaded parallel suite
         var engine = new IvotionOptimizationEngine();
         var settings = new IvotionOptimizationSettings
         {
@@ -120,12 +122,35 @@ public class IvotionOptimizationEngineTests
             SimDurationMinutes = 30.0,
             Seed = 1,
         };
-        var cts = new CancellationTokenSource(millisecondsDelay: 100);
+        using var cts = new CancellationTokenSource();
+        var progress = new SynchronousProgress(s => { if (s.Iteration >= 5) cts.Cancel(); });
+
+        var result = await engine.RunAsync(settings, progress, cts.Token);
+
+        result.TotalIterations.Should().Be(5);
+        result.WasCancelled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RunAsync_WithATokenAlreadyCancelled_ReturnsACancelledResult_InsteadOfThrowing()
+    {
+        // SIM-121: Task.Run(..., ct) returned a cancelled task when the token was cancelled before the
+        // thread pool started the work, so the same cancellation sometimes threw and sometimes returned
+        var engine = new IvotionOptimizationEngine();
+        var settings = new IvotionOptimizationSettings
+        {
+            Strategy = IvotionStrategyKind.Random,
+            Iterations = 100,
+            SimDurationMinutes = 30.0,
+            Seed = 1,
+        };
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
 
         var result = await engine.RunAsync(settings, progress: null, cts.Token);
 
-        result.TotalIterations.Should().BeLessThan(10_000);
         result.WasCancelled.Should().BeTrue();
+        result.TotalIterations.Should().Be(0);
     }
 
     [Fact]

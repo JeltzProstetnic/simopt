@@ -28,7 +28,10 @@ public sealed class IvotionOptimizationEngine : IIvotionOptimizationEngine
             throw new NotSupportedException(
                 $"Strategy {settings.Strategy} is not yet wired (Phase A.2 / later).");
 
-        return Task.Run(() => Run(settings, progress, ct), ct);
+        // SIM-121: not Task.Run(..., ct): with the token already cancelled when the pool got to the work it
+        // returned a cancelled task, so a cancellation threw or returned depending on timing. The loops poll
+        // ct themselves and always return a result with WasCancelled.
+        return Task.Run(() => Run(settings, progress, ct));
     }
 
     private static IvotionOptimizationResult Run(
