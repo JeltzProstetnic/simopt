@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next=SIM-86 slice C (report_run, Markdown, English or German), then MG looks at the viewer on screen (SIM-110 [?]); approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=SIM-140 (constraints over decision variables), then MG looks at the viewer on screen (SIM-110 [?]) and the German sample report; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -147,6 +147,11 @@ the private hand-off (see *Private material*).
 - furkansim: its app compiles and its glass line runs on the new path (scratch copy: 66 finished at t = 200, warnings
   SATURATED and REFUSED); inbox [work] item filed through `inbox-file.sh` (left uncommitted in cfg's repo for cfg).
 - Suite 1600 -> 1627 passed, 4 skipped. Next: SIM-86 slice C (`report_run`, Markdown, English or German).
+- **SIM-86 slice C done** (`ff2c874`, samples `ed21053`): `report_run(path, language)` renders a run record as a Markdown
+  appendix, English or German (provenance with both hashes checked, settings, results with intervals, assumptions,
+  the schema limits in German too, how to repeat it); Python `Server.report_run`. SIM-86 closed; its seed gap is
+  **SIM-144** (P3 proposed, Q-SIM144-PRIO). Samples for MG's wording review: `docs/plans/2026-11-25-sim-86/sample-report-{en,de}.md`.
+  Suite 1634 passed, 4 skipped; Python 31. Next: SIM-140 (constraints over decision variables).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
@@ -157,6 +162,8 @@ the private hand-off (see *Private material*).
   none, which changes the schema and the MCP head.
 - **Q-SIM143-PRIO (open, 2026-11-25):** SIM-143 (the factory preset is overloaded and loses items at staging, now shown
   as warnings) was filed at **P3 (recommended)**; the alternative is P2. Fixing it means rebalancing a demo preset.
+- **Q-SIM144-PRIO (open, 2026-11-25):** SIM-144 (a topology without `seed` runs at 42 and is not listed as assumed;
+  fixing it makes `Seed` nullable in the schema's C# contract) was filed at **P3 (recommended)**; the alternative is P2.
 - **Q-SIM142-PRIO (open, 2026-11-25):** SIM-142 (no topology with two sources could be created; fixed in `69476ff`) was
   filed at **P1 (recommended)**; the alternative is P2. It is done either way, so the answer only sets its record.
 
