@@ -94,6 +94,55 @@ namespace SimOpt.McpServer.Optimization
             return q;
         }
 
+        /// <summary>
+        /// SIM-68 step 2 (D6): how many distinct points the quantised space holds, or null when a real
+        /// variable without a step makes it continuous.
+        /// </summary>
+        public long? SpaceSize
+        {
+            get
+            {
+                long size = 1;
+                foreach (DecisionVariable v in variables)
+                {
+                    long? count = Count(v);
+                    if (count == null) return null;
+                    size = size > long.MaxValue / Math.Max(count.Value, 1) ? long.MaxValue : size * count.Value;
+                }
+                return size;
+            }
+        }
+
+        /// <summary>D6: every point of a discrete space, the first variable changing slowest.</summary>
+        public IEnumerable<double[]> Grid()
+        {
+            if (SpaceSize == null) throw new InvalidOperationException("A space with a continuous variable cannot be enumerated.");
+            List<double[]> axes = variables.Select(v => Enumerable.Range(0, (int)Count(v)!.Value)
+                                                                  .Select(k => Quantise(v, v.Min + k * (v.Step ?? 1d))).Distinct().ToArray())
+                                           .ToList();
+            var index = new int[axes.Count];
+            while (true)
+            {
+                yield return axes.Select((axis, i) => axis[index[i]]).ToArray();
+                int d = axes.Count - 1;
+                while (d >= 0 && ++index[d] == axes[d].Length) index[d--] = 0;
+                if (d < 0) yield break;
+            }
+        }
+
+        private static long? Count(DecisionVariable v)
+        {
+            if (v.Step is double step) return (long)Math.Floor((v.Max - v.Min) / step + 1e-9) + 1;
+            if (v.Type == "integer") return (long)(v.Max - v.Min) + 1;
+            return v.Min == v.Max ? 1 : null;
+        }
+
+        private static double Quantise(DecisionVariable v, double x)
+        {
+            if (v.Type == "integer") x = Math.Round(x, MidpointRounding.AwayFromZero);
+            return Math.Clamp(x, v.Min, v.Max);
+        }
+
         public IEnumerable<ISolution> GenerateCandidates(int seed, int count)
         {
             var draw = new TopologySolution(variables, Array.Empty<double>(), unchecked((ulong)seed));

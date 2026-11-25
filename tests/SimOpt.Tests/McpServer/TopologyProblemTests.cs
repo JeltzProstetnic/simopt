@@ -186,6 +186,39 @@ public class TopologyProblemTests
     }
 
     [Fact]
+    public void ADiscreteSpace_IsCounted_AndEnumeratedPointByPoint()
+    {
+        TopologyProblem problem = Problem(new[]
+        {
+            Rooms(),
+            new DecisionVariable { Path = "arrivals.arrival.mean", Type = "real", Min = 4, Max = 5, Step = 0.5 },
+        });
+
+        problem.SpaceSize.Should().Be(27, "9 room counts times 3 interarrival means");
+        problem.Grid().Select(p => (p[0], p[1])).Should().HaveCount(27).And.OnlyHaveUniqueItems()
+               .And.Contain((4d, 4d)).And.Contain((12d, 5d));
+    }
+
+    [Fact]
+    public void ASpaceWithAContinuousVariable_HasNoSize()
+    {
+        Problem(new[] { new DecisionVariable { Path = "arrivals.arrival.mean", Type = "real", Min = 4, Max = 5 } },
+                new ObjectiveDefinition { Metric = "util_exam", Direction = "max" })
+            .SpaceSize.Should().BeNull();
+    }
+
+    [Fact]
+    public void EnumeratingTheClinicsNineRoomCounts_FindsSeven_InNineEvaluations()
+    {
+        TopologyProblem problem = Problem();
+
+        foreach (double[] point in problem.Grid()) problem.Evaluate(At(problem, point));
+
+        problem.Evaluations.Should().HaveCount(9);
+        problem.Evaluations.Where(e => e.Feasible).MaxBy(e => e.Fitness)!.Point.Should().Equal(7);
+    }
+
+    [Fact]
     public void TheBudget_StopsEvaluating_AndSaysSo()
     {
         TopologyProblem problem = Problem(budget: 2);
