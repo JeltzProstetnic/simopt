@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using SimOpt.Basics.Utilities;
+using SimOpt.Mathematics.Stochastics.Interfaces;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
 
@@ -23,6 +25,7 @@ namespace SimOpt.Simulation.Processes
         private readonly Func<Process, IEnumerable<Wait>> body;
         private readonly bool restartOnReset;
         private readonly List<Action> joiners = new List<Action>();
+        private readonly Dictionary<string, Random<double>> streams = new Dictionary<string, Random<double>>();
         private IEnumerator<Wait> steps;
         private int generation;
         private bool alive;
@@ -68,6 +71,37 @@ namespace SimOpt.Simulation.Processes
 
         /// <summary>A wait that completes after <paramref name="delay"/> time units (0 is allowed).</summary>
         public Wait Timeout(double delay) => new TimeoutWait(delay);
+
+        /// <summary>
+        /// SIM-126, slice 5: this process's random stream called <paramref name="name"/>. The first call
+        /// makes it from <paramref name="distribution"/> (configured, not initialised); later calls return
+        /// it and ignore the distribution, so the body may ask on every run. Its numbers follow from the
+        /// process's seed and the name alone, so other streams, and the order in which they are made, do
+        /// not change them, and a reset reseeds it as a rebuilt model would seed it.
+        /// </summary>
+        /// <remarks>
+        /// A stream costs two generators' state (about 5 kB). For a process started per customer,
+        /// draw from a stream of the model or of a long-lived process instead.
+        /// </remarks>
+        public Random<double> Random(string name, IDistribution<double> distribution)
+        {
+            if (name == null) throw new ArgumentNullException(nameof(name));
+            if (streams.TryGetValue(name, out Random<double> stream)) return stream;
+            stream = new Random<double>(this, distribution);
+            stream.Reset(StreamSeed(name), Model.Antithetic, Model.NonStochasticMode);
+            streams.Add(name, stream);
+            return stream;
+        }
+
+        /// <summary>This process's stream called <paramref name="name"/>, made earlier by <see cref="Random(string, IDistribution{double})"/>.</summary>
+        public Random<double> Random(string name)
+        {
+            if (name != null && streams.TryGetValue(name, out Random<double> stream)) return stream;
+            throw new ArgumentException("Process '" + EntityName + "' has no random stream named '" + name +
+                                        "'; make it with Random(name, distribution).", nameof(name));
+        }
+
+        private int StreamSeed(string name) => GetRandomSeedFor(StableHash.Of("process-random:" + name));
 
         /// <summary>
         /// Schedules the first step as a zero-delay event, so a process started inside a handler runs
@@ -156,6 +190,9 @@ namespace SimOpt.Simulation.Processes
         public override void Reset()
         {
             base.Reset();
+            // slice 5: a named stream is seeded from the new seed and its name, whatever base.Reset gave it
+            foreach (KeyValuePair<string, Random<double>> s in streams)
+                s.Value.Reset(StreamSeed(s.Key), Model.Antithetic, Model.NonStochasticMode);
             if (restartOnReset)
             {
                 Begin();

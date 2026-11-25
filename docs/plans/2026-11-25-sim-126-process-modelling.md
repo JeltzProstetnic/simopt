@@ -80,5 +80,31 @@ IEnumerable<Wait> Inspector(Process p)
   left a handler that added an event to the next one (8 against 9 events in the test).
 - Tests `TemplateEventWaitTests` (7).
 
-**Next slices:** a random-draw helper per process, a process example in `examples/`, then the SIM-65
-schema.
+## Slice 5: a process's own random streams (2026-11-25, night)
+
+```csharp
+IEnumerable<Wait> Machine(Process p)
+{
+    while (true)
+    {
+        yield return p.Timeout(p.Random("run", Exponential(1d / 480)).Next());
+        yield return p.Timeout(p.Random("repair", Exponential(1d / 30)).Next());
+    }
+}
+```
+
+- `p.Random(name, distribution)` makes the stream on the first call and returns it afterwards, so the
+  body may ask on every run; `p.Random(name)` returns one made earlier and names the missing stream
+  otherwise.
+- **Seeded by name, not by order.** A stream's seed is `GetRandomSeedFor(StableHash.Of("process-random:"
+  + name))` on the process's seed, applied when it is made and again on every reset. Adding a stream, or
+  making streams in another order, leaves the others' numbers alone; the same name in two processes
+  gives two streams (each process has its own seed, by its id since SIM-125). Seeding by registration
+  order, as the model's streams are (SIM-131), would have tied a stream to every stream made before it,
+  and a body that makes its streams while it runs would have drawn other numbers after a reset than a
+  rebuilt model does.
+- A stream holds two generators' state (about 5 kB), so a process started per customer should draw from
+  a model stream or a long-lived process's stream instead.
+- Tests `ProcessRandomStreamTests` (4); without the reseed in `Reset` the rebuilt-against-reset test fails.
+
+**Next slices:** a process example in `examples/`, then the SIM-65 schema.
