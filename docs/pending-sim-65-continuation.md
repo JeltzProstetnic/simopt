@@ -26,8 +26,20 @@ are what make the remaining work mechanical rather than open.
 
 Step 1 (`ParamValue`) is done, commit "SIM-65 step 1"; suite 1091 passed, 1 skipped. Step 2a is done too
 (`queue`/`station` with aliases, `arrival`/`service` distributions, `discipline`, `servers` other than 1
-refused; `TopologyVocabularyTests`, suite 1102). Resume at step 2b: the `delay` node (`SimpleDelay`) and
-`weight` on connections for the router.
+refused; `TopologyVocabularyTests`, suite 1102). Resume at step 2b: the `delay` node and `weight` on
+connections for the router.
+
+**Step 2b found SIM-132 first.** `Delay<T>` (`src/SimOpt.Simulation/Templates/Delay.cs`) holds one item:
+`Put` returns false while an item is inside, and the handler `ConnectTo(IItemSource)` attaches ignores the
+return value, so a second item arriving during a delay disappears. It has no tests and no user here. The
+schema's `delay {duration: Dist}` means every item gets its own timer. Plan, test-first: give `Delay<T>` a
+`capacity` (default 1, today's behaviour, so nothing downstream moves; unlimited holds a timer per item),
+make a refusal visible (an event or the not-accepted notification the other templates use), check its
+`Reset` drops items in flight; then the builder builds `delay` as a `SimpleDelay` with
+`seedID: StableHash.Of(node.Id)` and unlimited capacity, wires it as a push node (source/station → delay →
+queue/station/sink), and reads `duration` with `TimeDistribution(node, label, "duration", "delay_time")`.
+Connection `weight` (a `double?` on `ConnectionDefinition`) can land in the same step; only the router
+(step 4) reads it.
 
 ## What is left in SIM-65, in order
 

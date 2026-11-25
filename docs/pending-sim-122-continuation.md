@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=SIM-65 step 2 (node vocabulary), then steps 3-6, SIM-126's schema part and SIM-110, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=blocked; next=SIM-132 then SIM-65 step 2b (delay node), then steps 3-6, SIM-126's schema part and SIM-110, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
 # SimPy-gap section: SIM-124, 125, 127, 128, 129, 131 done, SIM-126 slices 1-6 done, SIM-65 step 1 done; next SIM-65 step 2
 
@@ -25,9 +25,9 @@ the private hand-off (see *Private material*).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
-- **Q-PRIO**: priorities of the two items still unset (SIM-124 is done, SIM-125 is P0 since 2026-11-25).
-  **Recommended: accept as proposed**: SIM-122 P2, SIM-123 P1 (private material was lost). The
-  alternative is to set them yourself.
+- **Q-PRIO**: priorities of the items still unset (SIM-124 is done, SIM-125 is P0 since 2026-11-25).
+  **Recommended: accept as proposed**: SIM-122 P2, SIM-123 P1 (private material was lost), SIM-132 P2
+  (`Delay<T>` drops items; found 2026-11-25 night). The alternative is to set them yourself.
 - **Q-PIN-COMMENT: DECIDED and DONE.** MG via Telegram 2026-11-24 (#1660, replying to #1659):
   *"inform him."* The drafted comment was posted unchanged on his issue #30 at 22:14:59 UTC
   (comment id 7145993700). Next: watch #30 for his reply or a pin move.
@@ -80,8 +80,10 @@ the private hand-off (see *Private material*).
    **SIM-126 slices 4-6 done the same night:** `e789e5a` (a process waits for the next raise of a template's event,
    `Wait.Next`), `6a228ef` (named random streams per process, `p.Random(name, distribution)`), `be58575` (the car wash
    example, `examples/SimOpt.Examples.CarWash`); suite 1081 passed, 1 skipped. Left of SIM-126: the SIM-65 schema.
-   **SIM-65 step 1 done the same night** (`6637d1c`, `ParamValue`; suite 1091 passed, 1 skipped).
-   **Next, in order:** SIM-65 step 2 (node vocabulary, `docs/pending-sim-65-continuation.md`), then SIM-126's schema part,
+   **SIM-65 step 1 and step 2a done the same night** (`6637d1c` `ParamValue`; `f738868` queue/station aliases,
+   arrival/service distributions, discipline; suite 1102 passed, 1 skipped). Step 2b found **SIM-132** (`Delay<T>` holds
+   one item and silently drops the rest; P2 proposed, **Q-PRIO** now covers it too).
+   **Next, in order:** SIM-132, then SIM-65 step 2b (plan in `docs/pending-sim-65-continuation.md`), then SIM-126's schema part,
    SIM-110 and SIM-130. Older plan, kept for reference: SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
    process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
    follow, unless MG orders otherwise.
