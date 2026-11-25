@@ -168,6 +168,11 @@ namespace SimOpt.Simulation.Templates
 
         public bool IsEmpty { get { return itemPriorityMap.Count == 0; } }
 
+        /// <summary>
+        /// Called with every item the buffer refuses because it is full (<c>Put</c> returns false).
+        /// The default does nothing, so an item pushed in through <c>ConnectTo</c> while the buffer is
+        /// full is dropped without a trace; set this to count, reroute or fail on such an item (SIM-118).
+        /// </summary>
         public Action<T> NotifyItemNotAccepted
         {
             get { return notifyItemNotAccepted; }
@@ -193,6 +198,9 @@ namespace SimOpt.Simulation.Templates
         public BinaryEvent<IEntity, T> ItemRemovedEvent { get { return itemRemovedEvent; } }
         
         /// <summary>
+        /// Raised after a <c>Put</c> that leaves the buffer holding <see cref="MaxCapacity"/> items,
+        /// right after <see cref="ItemReceivedEvent"/>. It is not raised for an item the full buffer
+        /// refuses; <see cref="NotifyItemNotAccepted"/> sees those (SIM-118).
         /// CAUTION: This is an immediate event. Some event schedulers may not process it.
         /// If you call Put in a handler it will probably result in an infinite loop.
         /// </summary>
