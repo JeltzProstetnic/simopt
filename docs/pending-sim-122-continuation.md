@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=SIM-129 speed (top section), then SIM-126 slices 4+, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=blocked; next=SIM-126 slice 4 (wait on a template's event), while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SimPy-gap section: SIM-124, 125, 127, 128, 131 done, SIM-126 slices 1-3 done; next SIM-129
+# SimPy-gap section: SIM-124, 125, 127, 128, 129, 131 done, SIM-126 slices 1-3 done; next SIM-126 slice 4
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -74,8 +74,10 @@ the private hand-off (see *Private material*).
    `0a621f3`: processes, `Resource`, any-of/all-of, interrupts, withdrawal) and SIM-131, found on the way
    (model-level random streams shared one seed after `Reset`; `5810ae5`). Suite 1025 passed, 1 skipped.
    Comments on his issue #30 cover SIM-124, SIM-125 and SIM-126..131.
-   **Next, in order:** SIM-129 (speed per event: benchmark harness over the battery models, profile, keep results
-   byte-identical), then SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
+   **SIM-129 done 2026-11-25 (night, unattended):** `5cb47a1`..`576f156`, results byte-identical, 997 -> 179 ns per
+   event, SIM-122 case 5.3 s -> 1.55 s (SimPy 2.77 s); brief `docs/plans/2026-11-25-sim-129-speed-per-event.md`;
+   suite 1067 passed, 1 skipped. No comment on his issue #30 needed: no result moved.
+   **Next, in order:** SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
    process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
    follow, unless MG orders otherwise.
    **Q-ASYNC** (new): the process layer uses C# iterators; an `async` front end over the same waits stays
