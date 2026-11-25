@@ -19,7 +19,7 @@ public class IvotionOptimizationEngineTests
             Strategy = IvotionStrategyKind.Random,
             Objective = IvotionObjective.MaximizeThroughput,
             Iterations = 4,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 7,
         };
 
@@ -39,7 +39,7 @@ public class IvotionOptimizationEngineTests
         {
             Strategy = IvotionStrategyKind.Random,
             Iterations = 5,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 13,
         };
         var samples = new List<IvotionFitnessSample>();
@@ -66,7 +66,7 @@ public class IvotionOptimizationEngineTests
             Objective = IvotionObjective.MaximizeThroughput,
             Iterations = 2,
             PopulationSize = 6,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 21,
         };
 
@@ -87,7 +87,7 @@ public class IvotionOptimizationEngineTests
             Objective = IvotionObjective.MaximizeThroughput,
             Iterations = 3,
             PopulationSize = 6,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 21,
         };
         async Task<List<string>> Search()
@@ -119,7 +119,7 @@ public class IvotionOptimizationEngineTests
         {
             Strategy = IvotionStrategyKind.Random,
             Iterations = 10_000,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 1,
         };
         using var cts = new CancellationTokenSource();
@@ -141,7 +141,7 @@ public class IvotionOptimizationEngineTests
         {
             Strategy = IvotionStrategyKind.Random,
             Iterations = 100,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 1,
         };
         using var cts = new CancellationTokenSource();
@@ -163,7 +163,7 @@ public class IvotionOptimizationEngineTests
             Strategy = IvotionStrategyKind.ParticleSwarm,
             Iterations = 5,
             PopulationSize = 6,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 3,
         };
 
@@ -186,7 +186,7 @@ public class IvotionOptimizationEngineTests
             Strategy = IvotionStrategyKind.ParticleSwarm,
             Iterations = 50,
             PopulationSize = 4,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 1,
         };
         using var cts = new CancellationTokenSource();
@@ -248,7 +248,7 @@ public class IvotionOptimizationEngineTests
             Strategy = IvotionStrategyKind.Random,
             Objective = IvotionObjective.MaximizeThroughput,
             Iterations = 3,
-            SimDurationMinutes = 30.0,
+            SimDurationMinutes = 30.0, WarmupMinutes = 0,
             Seed = 5,
         };
 

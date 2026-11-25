@@ -81,7 +81,7 @@ public partial class IvotionOptimizationViewModel : ViewModelBase
     private int _populationSize = 12;
 
     [ObservableProperty]
-    private double _simDurationMinutes = 480.0;
+    private double _simDurationMinutes = 960.0; // SIM-93, Q-IVO-STATS: two shifts after the settings' 120-minute warm-up
 
     [ObservableProperty]
     private int _seed = 42;

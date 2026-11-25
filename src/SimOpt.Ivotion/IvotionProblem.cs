@@ -26,7 +26,8 @@ public enum IvotionObjective
 public sealed class IvotionProblem : IProblem
 {
     public IvotionObjective Objective { get; set; } = IvotionObjective.MaximizeThroughput;
-    public double SimDurationMinutes { get; set; } = 120.0;
+    /// <summary>SIM-93 (Q-IVO-STATS): two shifts by default, as <see cref="IvotionOptimizationSettings"/>.</summary>
+    public double SimDurationMinutes { get; set; } = 960.0;
     public int Seed { get; set; } = 42;
 
     /// <summary>
@@ -43,9 +44,9 @@ public sealed class IvotionProblem : IProblem
 
     /// <summary>
     /// SIM-93: minutes at the start of each run whose shipments throughput leaves out, so a line that
-    /// starts empty is not scored on its pipeline fill. 0 keeps every earlier result.
+    /// starts empty is not scored on its pipeline fill. 120 by default (Q-IVO-STATS); 0 scores the whole run.
     /// </summary>
-    public double WarmupMinutes { get; set; }
+    public double WarmupMinutes { get; set; } = 120.0;
 
     /// <summary>
     /// No closed-form optimum exists for this problem; return +∞ so strategies

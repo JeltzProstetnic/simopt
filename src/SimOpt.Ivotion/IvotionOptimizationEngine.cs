@@ -24,6 +24,9 @@ public sealed class IvotionOptimizationEngine : IIvotionOptimizationEngine
         if (settings.Iterations <= 0)
             throw new ArgumentOutOfRangeException(nameof(settings),
                 "Iterations must be > 0.");
+        if (!(settings.WarmupMinutes >= 0 && settings.WarmupMinutes < settings.SimDurationMinutes))
+            throw new ArgumentOutOfRangeException(nameof(settings),
+                $"The warm-up ({settings.WarmupMinutes} min) must be at least 0 and shorter than the run ({settings.SimDurationMinutes} min).");
         if (settings.Strategy is IvotionStrategyKind.Sweep)
             throw new NotSupportedException(
                 $"Strategy {settings.Strategy} is not yet wired (later).");
@@ -44,6 +47,7 @@ public sealed class IvotionOptimizationEngine : IIvotionOptimizationEngine
         {
             Objective = settings.Objective,
             SimDurationMinutes = settings.SimDurationMinutes,
+            WarmupMinutes = settings.WarmupMinutes,
             Seed = settings.Seed,
             OperatorWagePerHour = settings.OperatorWagePerHour,
         };
@@ -180,7 +184,7 @@ public sealed class IvotionOptimizationEngine : IIvotionOptimizationEngine
         {
             var handles = IvotionTopologyBuilder.Build(best, settings.Seed, problem.ArrivalIntervalMinutes);
             handles.RunFor(settings.SimDurationMinutes);
-            kpis = IvotionKpis.Extract(handles, settings.SimDurationMinutes, settings.OperatorWagePerHour);
+            kpis = IvotionKpis.Extract(handles, settings.SimDurationMinutes, settings.OperatorWagePerHour, settings.WarmupMinutes);
         }
 
         return new IvotionOptimizationResult(

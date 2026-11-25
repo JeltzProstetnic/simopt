@@ -88,7 +88,7 @@ public class IvotionProblemTests
         var problem = new IvotionProblem
         {
             Objective = IvotionObjective.MaximizeThroughput,
-            SimDurationMinutes = 60.0
+            SimDurationMinutes = 60.0, WarmupMinutes = 0
         };
         var sol = new IvotionSolution(new[] { 1, 2, 2, 1, 1, 15 });
 
@@ -105,7 +105,7 @@ public class IvotionProblemTests
         var problem = new IvotionProblem
         {
             Objective = IvotionObjective.MaximizeThroughput,
-            SimDurationMinutes = 60.0,
+            SimDurationMinutes = 60.0, WarmupMinutes = 0,
             Seed = 999
         };
         var solA = new IvotionSolution(new[] { 1, 2, 2, 1, 1, 15 });
@@ -123,7 +123,7 @@ public class IvotionProblemTests
         var problem = new IvotionProblem
         {
             Objective = IvotionObjective.MinimizeTotalCost,
-            SimDurationMinutes = 60.0
+            SimDurationMinutes = 60.0, WarmupMinutes = 0
         };
         var cheap = new IvotionSolution(new[] { 1, 1, 1, 1, 1, 15 });  // 4 ops + 1 Roland
         var pricey = new IvotionSolution(new[] { 2, 3, 3, 2, 2, 15 }); // 10 ops + 2 Rolands
