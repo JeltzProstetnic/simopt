@@ -1,5 +1,5 @@
-<!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=build SIM-126's schema (Q-PROC-SCHEMA decided), then SIM-93 defaults and SIM-110 via SIM-70, while SIM-126 schema, SIM-110 rest, SIM-93 defaults, SIM-86 slice C and SIM-95/117/119 wait - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-PROV-REPORT Q-ENGINE-MOVES Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Action: act -->
+<!-- Work: stage=decided; status=open; next=build SIM-126's process schema (Q-PROC-SCHEMA, brief docs/plans/2026-11-25-sim-126-process-schema.md), then SIM-110 via SIM-70 and SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -89,6 +89,19 @@ the private hand-off (see *Private material*).
   looked at while MG is away.
 - Suite 1439 passed, 4 skipped (3 nightly); Python 26. Telegram #1680 (SIM-86 + Q-PROV-REPORT), #1681 (SIM-98), #1682
   (Q-ENGINE-MOVES).
+
+## Session 2026-11-25 morning (WSL, MG at the console after restart #6)
+
+- **All 17 open decisions answered**, every one as recommended (`docs/decisions.md`, 2026-11-25 morning): Q-PROC-SCHEMA,
+  Q-VIEW-PATH, Q-IVO-STATS, Q-ENGINE-MOVES, Q-PROV-REPORT, Q-AUTO, Q-STORE, Q-SRC-START, Q-PRIO, Q-PRIV-RULE, Q-STAGED,
+  Q-CIW (SIM-141), Q-SFM9, Q-PRIVHOME, Q-FMT, Q-VALID, Q-ASYNC. cfg inbox item filed for `inbox-file.sh --attach`
+  (Q-PRIV-RULE; simopt's `.claude/CLAUDE.md` rule follows when it ships).
+- **SIM-139 done** (`a1a84c5`): first item at the auto-start delay on a fresh model too. **SIM-93 done** (`0a8377e`):
+  960 minutes after a 120-minute warm-up; the baseline scores 10.71. Suite 1448 passed, 4 skipped; Python 26.
+- **Next, in order:** SIM-126's process schema (P0; brief `docs/plans/2026-11-25-sim-126-process-schema.md`, decided
+  shape in `docs/decisions.md`), then SIM-110's rest starting with SIM-70's extraction (brief
+  `docs/plans/2026-11-25-sim-110-one-model-path.md`), then SIM-86 slice C (`report_run`, Markdown, English or German).
+  SIM-117/95/119 wait for his SIM-122 results. Check the first nightly CI run (2026-11-26 02:17 UTC).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
