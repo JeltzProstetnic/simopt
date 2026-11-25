@@ -78,6 +78,22 @@ def test_without_the_environment_the_repositorys_build_is_used(tmp_path):
     assert Path(command[1]).is_file()
 
 
+def test_the_newest_build_is_used_not_a_stale_release(tmp_path):
+    # a Release left from an older build lacked validate_model while Debug was current
+    builds = {}
+    for configuration, age in (("Release", 1000), ("Debug", 10)):
+        dll = tmp_path.joinpath("src", "SimOpt.McpServer", "bin", configuration, "net9.0", "SimOpt.McpServer.dll")
+        dll.parent.mkdir(parents=True)
+        dll.write_text("")
+        stamp = dll.stat().st_mtime - age
+        os.utime(dll, (stamp, stamp))
+        builds[configuration] = str(dll)
+
+    command = server_command({"DOTNET_ROOT": str(tmp_path)}, repository=tmp_path)
+
+    assert command[1] == builds["Debug"]
+
+
 def test_a_missing_server_says_how_to_build_it(tmp_path):
     with pytest.raises(ServerError) as missing:
         server_command({"SIMOPT_SERVER": str(tmp_path / "nowhere.dll")})

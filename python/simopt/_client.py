@@ -12,6 +12,8 @@ import threading
 from collections import deque
 from pathlib import Path
 
+from ._results import Model
+
 PROTOCOL_VERSION = "2025-06-18"
 _REPOSITORY = Path(__file__).resolve().parents[2]
 _BUILD = "dotnet build src/SimOpt.McpServer -c Release"
@@ -31,9 +33,11 @@ class ServerError(Exception):
     """The server could not be found or started, or stopped answering."""
 
 
-def server_command(environ=None):
-    """D3: the command that starts the server: SIMOPT_SERVER, else this repository's build output."""
+def server_command(environ=None, repository=None):
+    """D3: the command that starts the server: SIMOPT_SERVER, else the repository's newest build (a
+    Release left from an older build would answer without the newer tools)."""
     environ = os.environ if environ is None else environ
+    repository = Path(repository) if repository else _REPOSITORY
     named = environ.get("SIMOPT_SERVER")
     if named:
         path = Path(named)
@@ -41,11 +45,12 @@ def server_command(environ=None):
             raise ServerError(f"SIMOPT_SERVER names {path}, which does not exist. Build the server with "
                               f"'{_BUILD}' in the SimOpt repository, or point SIMOPT_SERVER at it.")
         return [_dotnet(environ), str(path)] if path.suffix == ".dll" else [str(path)]
-    for configuration in ("Release", "Debug"):
-        dll = _REPOSITORY / "src" / "SimOpt.McpServer" / "bin" / configuration / "net9.0" / "SimOpt.McpServer.dll"
-        if dll.is_file():
-            return [_dotnet(environ), str(dll)]
-    raise ServerError(f"No SimOpt MCP server found. Build it with '{_BUILD}' in {_REPOSITORY}, "
+    builds = [repository / "src" / "SimOpt.McpServer" / "bin" / configuration / "net9.0" / "SimOpt.McpServer.dll"
+              for configuration in ("Release", "Debug")]
+    built = [dll for dll in builds if dll.is_file()]
+    if built:
+        return [_dotnet(environ), str(max(built, key=lambda dll: dll.stat().st_mtime))]
+    raise ServerError(f"No SimOpt MCP server found. Build it with '{_BUILD}' in {repository}, "
                       "or set SIMOPT_SERVER to its .dll or executable.")
 
 
@@ -104,6 +109,25 @@ class Server:
         if isinstance(answer, dict) and "error" in answer:
             raise SimOptError(answer["error"], validation=answer.get("validation"), answer=answer)
         return answer
+
+    # ── the tools (D4) ──
+
+    def validate(self, topology):
+        """validate_model: the report on a topology, every fault at once, without registering it."""
+        return self.call("validate_model", {"topology": topology})
+
+    def create_model(self, topology):
+        """create_model: registers the topology and returns its Model; a faulty one raises SimOptError."""
+        answer = self.call("create_model", {"topology": topology})
+        return Model(self, answer["model_id"], 1, answer)
+
+    def schema(self):
+        """get_schema: node types, parameters, metric kinds, distributions and the JSON Schema."""
+        return self.call("get_schema")
+
+    def models(self):
+        """list_models: the ids of the models registered on this server."""
+        return self.call("list_models")
 
     def close(self):
         """Ends the server: closes its input, then stops it if it does not exit within five seconds."""
