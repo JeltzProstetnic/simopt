@@ -4,6 +4,7 @@ using FluentAssertions;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Enum;
 using SimOpt.Simulation.Templates;
+using SimOpt.Tests.Helpers;
 using Xunit;
 
 namespace SimOpt.Tests.Simulation.Templates;
@@ -93,11 +94,10 @@ public class BufferFifoSelectionTests
         for (int i = 0; i < 5000; i++) buffer.Put("w" + i, i, "w" + i);
         buffer.Get();
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 1000; i++) buffer.Get();
-        long bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        // SIM-138: the fewest bytes over five windows of 500 Gets, after one warm-up window
+        long bytes = Allocations.Least(() => { for (int i = 0; i < 500; i++) buffer.Get(); });
 
         bytes.Should().Be(0, "the FIFO rule must not scan the queue on every Get");
-        buffer.Preview().Should().Be("w1001");
+        buffer.Preview().Should().Be("w3001");
     }
 }

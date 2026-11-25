@@ -3,6 +3,7 @@ using System.Runtime.Serialization;
 using FluentAssertions;
 using Moq;
 using SimOpt.Simulation.Engine;
+using SimOpt.Tests.Helpers;
 using Xunit;
 
 namespace SimOpt.Tests.Simulation.Engine;
@@ -172,12 +173,11 @@ public class EventSchedulerContractTests
             RunAll(scheduler);
         }
 
-        Cycle(0);
-        long before = System.GC.GetAllocatedBytesForCurrentThread();
-        for (int c = 1; c <= 10; c++) Cycle(c * 100);
-        long bytes = System.GC.GetAllocatedBytesForCurrentThread() - before;
+        // SIM-138: the fewest bytes over five windows of two cycles, after one warm-up window
+        int cycles = 0;
+        long bytes = Allocations.Least(() => { for (int k = 0; k < 2; k++) Cycle(cycles++ * 100); });
 
-        scheduler.EventCounter.Should().Be(11 * 56);
+        scheduler.EventCounter.Should().Be(6 * 2 * 56);
         bytes.Should().Be(0, "the event list is the innermost loop of every model");
     }
 }

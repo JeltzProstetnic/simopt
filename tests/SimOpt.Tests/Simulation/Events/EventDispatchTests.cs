@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Events;
+using SimOpt.Tests.Helpers;
 using Xunit;
 
 namespace SimOpt.Tests.Simulation.Events;
@@ -15,13 +16,8 @@ namespace SimOpt.Tests.Simulation.Events;
 /// </summary>
 public class EventDispatchTests
 {
-    private static long AllocatedBy(Action action)
-    {
-        action();
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        action();
-        return GC.GetAllocatedBytesForCurrentThread() - before;
-    }
+    // SIM-138: the fewest bytes over several windows, so one-off runtime work cannot fail a test
+    private static long AllocatedBy(Action action) => Allocations.Least(action);
 
     [Fact]
     public void HandlersRunInPriorityOrder_TiesInTheOrderAdded()

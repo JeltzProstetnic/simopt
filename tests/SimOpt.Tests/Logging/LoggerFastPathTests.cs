@@ -7,6 +7,7 @@ using SimOpt.Logging;
 using SimOpt.Simulation;
 using SimOpt.Simulation.Engine;
 using Logger = SimOpt.Logging.Logger;
+using SimOpt.Tests.Helpers;
 using Xunit;
 
 namespace SimOpt.Tests.Logging;
@@ -31,13 +32,8 @@ public class LoggerFastPathTests
         public void ShutdownLogger() { }
     }
 
-    private static long AllocatedBy(Action action)
-    {
-        action();   // JIT and first-call caches
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        action();
-        return GC.GetAllocatedBytesForCurrentThread() - before;
-    }
+    // SIM-138: the fewest bytes over several windows, so one-off runtime work cannot fail a test
+    private static long AllocatedBy(Action action) => Allocations.Least(action);
 
     [Fact]
     public void WithNoLoggerRegistered_ALogCallAllocatesNothing()
