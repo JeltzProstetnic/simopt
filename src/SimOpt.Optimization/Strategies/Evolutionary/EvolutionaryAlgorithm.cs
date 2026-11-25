@@ -290,7 +290,9 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
             List<ISolution> result = new List<ISolution>();
             foreach (ISolution individual in individuals)
             {
-                if (!rnd.ExecuteConditionally(() => result.Add(config.Mutation.Apply(individual)), config.MutationRate))
+                // SIM-59: mutate a copy; a crossover may hand back a parent, and mutating it in place changed
+                // a parent that survives, the elite or the best found
+                if (!rnd.ExecuteConditionally(() => result.Add(config.Mutation.Apply((ISolution)individual.Clone())), config.MutationRate))
                     result.Add(individual);
             }
             return result;
@@ -305,7 +307,9 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
         {
             CurrentGeneration.Clear();
             if (individuals.Count < config.PopulationSize) Expand(ref individuals, config.PopulationSize);
-            individuals.Sort();
+            // SIM-59: best first, as ProcessGeneration documents and the parent selectors assume; ISolution's
+            // CompareTo orders by fitness ascending, so the default selector used to breed from the worst
+            individuals.Sort((a, b) => b.Fitness.CompareTo(a.Fitness));
             CurrentGeneration = individuals;
         }
 
@@ -319,19 +323,26 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
             foreach (ISolution individual in individuals)
             {
                 if(!individual.HasFitness) CurrentProblem.Evaluate(individual);
-                if (BestSolution is null || BestSolution.Fitness <= individual.Fitness)
-                {
-                    previousBestSolution = BestSolution!;
-                    BestSolution = individual;
-                    bestSolutionChanged = true;
-                }
-                if (CurrentGenerationBestSolution == null || CurrentGenerationBestSolution.Fitness <= individual.Fitness)
-                    CurrentGenerationBestSolution = individual;
+                Consider(individual);
                 result += individual.Fitness;
                 counter += 1;
             }
             ProcessingStatus = oldStatus;
             return result / counter;
+        }
+
+        /// <summary>Records the individual as the best found and the generation's best when it is.</summary>
+        private void Consider(ISolution individual)
+        {
+            if (BestSolution is null || BestSolution.Fitness < individual.Fitness)
+            {
+                // a copy, so that no later change to the individual can change the best found (SIM-59)
+                previousBestSolution = BestSolution!;
+                BestSolution = (ISolution)individual.Clone();
+                bestSolutionChanged = true;
+            }
+            if (CurrentGenerationBestSolution == null || CurrentGenerationBestSolution.Fitness <= individual.Fitness)
+                CurrentGenerationBestSolution = individual;
         }
 
         #endregion
@@ -369,6 +380,7 @@ namespace SimOpt.Optimization.Strategies.Evolutionary
                 config.Mutation.Initialize(rnd.Next(), 1, 1);
                 config.Mutation.Apply(candidate);
                 CurrentProblem.Evaluate(candidate);
+                Consider(candidate); // SIM-59: a filler can be the best found, too
                 generation.Add(candidate);
             }
 
