@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=SIM-65 step 1 (ParamValue), then SIM-126's schema part and SIM-110, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=blocked; next=SIM-65 step 2 (node vocabulary), then steps 3-6, SIM-126's schema part and SIM-110, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SimPy-gap section: SIM-124, 125, 127, 128, 129, 131 done, SIM-126 slices 1-6 done; next SIM-65 step 1
+# SimPy-gap section: SIM-124, 125, 127, 128, 129, 131 done, SIM-126 slices 1-6 done, SIM-65 step 1 done; next SIM-65 step 2
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -80,7 +80,8 @@ the private hand-off (see *Private material*).
    **SIM-126 slices 4-6 done the same night:** `e789e5a` (a process waits for the next raise of a template's event,
    `Wait.Next`), `6a228ef` (named random streams per process, `p.Random(name, distribution)`), `be58575` (the car wash
    example, `examples/SimOpt.Examples.CarWash`); suite 1081 passed, 1 skipped. Left of SIM-126: the SIM-65 schema.
-   **Next, in order:** SIM-65 step 1 (`ParamValue`, `docs/pending-sim-65-continuation.md`), then SIM-126's schema part,
+   **SIM-65 step 1 done the same night** (`6637d1c`, `ParamValue`; suite 1091 passed, 1 skipped).
+   **Next, in order:** SIM-65 step 2 (node vocabulary, `docs/pending-sim-65-continuation.md`), then SIM-126's schema part,
    SIM-110 and SIM-130. Older plan, kept for reference: SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
    process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
    follow, unless MG orders otherwise.
