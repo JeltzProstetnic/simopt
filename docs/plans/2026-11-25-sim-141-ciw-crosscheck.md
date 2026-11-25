@@ -92,3 +92,7 @@ percent at a station would already show.
 
 **Before this change** the nightly workflow ran green on `8265e46` (workflow_dispatch run 45606086447,
 3 min 26 s), the baseline MG asked for.
+
+**On GitHub** (dispatch run 45607417670 on `5417400`): the .NET gate, then the Ciw step, both green; 13 passed in
+201 s, the whole workflow 6 min 53 s. Every figure in the table above came out identical, digit for digit, on the
+GitHub runner: both engines are reproducible across machines from their seeds (UN-009).

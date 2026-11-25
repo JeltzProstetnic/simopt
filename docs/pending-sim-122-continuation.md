@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next=build SIM-141 (Q-CIW-WHERE/CASES decided: nightly; entry-loss tandem + non-Jackson), MG looks at the viewer (SIM-110 [?]) and the German sample report, check the first nightly CI run; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next= MG looks at the viewer (SIM-110 [?]) and the German sample report, check the first nightly CI run; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -160,6 +160,17 @@ the private hand-off (see *Private material*).
   SIM-82..84, SIM-100/101, SIM-111..114 before he has seen V1), or is P3 without a harness (SIM-94: the four console
   examples' fixes are clear, but nothing tests example output; SIM-141 needs Ciw installed and an integration design).
   Check the first nightly CI run (2026-11-26 02:17 UTC). Suite 1649 passed, 4 skipped; Python 31.
+
+## Session 2026-11-25 noon (WSL, MG at the console)
+
+- **Q-CIW-WHERE and Q-CIW-CASES answered** (as recommended; `8265e46`). The handover's premise was corrected before
+  asking: SimOpt loses an item at a full internal queue, Ciw blocks it.
+- **Nightly baseline first, on MG's order:** the unchanged nightly workflow ran green on `8265e46` (dispatch run
+  45606086447, 3 min 26 s). Local baseline 1649 passed, 4 skipped; Python 31.
+- **SIM-141 built** (`5417400`, brief `docs/plans/2026-11-25-sim-141-ciw-crosscheck.md`): both networks agree with
+  Ciw on all 12 metrics (|z| at most 0.90); a 2 % slower station fails its three metrics at z +16 to +25. Python 42
+  passed, 1 skipped (the nightly module). **Closed:** the nightly's Ciw step ran green on GitHub (run 45607417670,
+  figures identical to the local run). The scheduled 02:17 UTC run now carries both gates.
 
 ## Decisions for MG (stable IDs; recommended option first)
 
