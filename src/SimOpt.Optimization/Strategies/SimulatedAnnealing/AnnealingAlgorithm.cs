@@ -35,6 +35,8 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
 
         private Random rnd = null!;
 
+        private bool stopRequested;
+
         #endregion
         #region evnt
 
@@ -59,6 +61,9 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
         public ISolution CurrentCandidate { get; private set; } = null!;
 
         public ISolution BestCandidate { get; private set; } = null!;
+
+        /// <summary>The moves proposed so far in the current run, the initial candidate not counted.</summary>
+        public int Steps { get; private set; }
 
         #endregion
         #region ctor
@@ -97,6 +102,8 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
         {
             config = null!;
             rnd = null!;
+            stopRequested = false;
+            Steps = 0;
             CurrentTemperature = 0;
             CurrentProblem = null!;
             CurrentCandidate = null!;
@@ -133,9 +140,16 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
                 ProcessingStatus = StatusInitializing;
             }
 
-            // evolve
+            // evolve; SIM-59: the run ends at T = 0, at the iteration count (when set) or on Stop, so a
+            // schedule that never reaches 0 (T * a) and one that Stop cannot hold down both end
             CurrentCandidate = BestCandidate;
-            while (CurrentTemperature >= 0) ProcessCandidate();
+            Steps = 0;
+            stopRequested = false;
+            while (!stopRequested && CurrentTemperature > 0 && (config.NumberOfIterations <= 0 || Steps < config.NumberOfIterations))
+            {
+                ProcessCandidate();
+                Steps++;
+            }
             ProcessingStatus = StatusFinished;
 
             // done
@@ -143,10 +157,11 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
         }
 
         /// <summary>
-        /// Stops the solver by setting the temperature to zero.
+        /// Stops the solver after the current move, and sets the temperature to zero.
         /// </summary>
         public void Stop()
         {
+            stopRequested = true;
             CurrentTemperature = 0;
         }
 
@@ -158,7 +173,7 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
             ProcessingStatus = StatusEvaluating;
             CurrentProblem.Evaluate(newCandidate);
             bool replace = newCandidate.Fitness >= CurrentCandidate.Fitness;
-            if (!replace)
+            if (!replace && CurrentTemperature > 0)
             {
                 double rand = rnd.NextDouble();
                 double dist = newCandidate.Fitness - CurrentCandidate.Fitness;
@@ -166,7 +181,7 @@ namespace SimOpt.Optimization.Strategies.SimulatedAnnealing
             }
             CurrentTemperature = config.DecreaseTemperature.Invoke(this);
             if (replace) CurrentCandidate = newCandidate;
-            if (CurrentCandidate.Fitness >= BestCandidate.Fitness)
+            if (CurrentCandidate.Fitness > BestCandidate.Fitness)
             {
                 ISolution tmp = BestCandidate;
                 BestCandidate = CurrentCandidate;
