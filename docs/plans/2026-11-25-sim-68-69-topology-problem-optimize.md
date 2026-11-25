@@ -1,6 +1,6 @@
 # SIM-68 + SIM-69: `TopologyProblem` and the `optimize` tool
 
-**Status:** started 2026-11-25 (night, unattended, cfg caretaking).
+**Status:** steps 1-3 done 2026-11-25 (night, unattended, cfg caretaking); step 4 open.
 **Serves:** UN-015 (automated configuration search), UN-012 (every evaluated point is replicated),
 UN-033/034 (a search is reproducible from its stored inputs).
 **Builds on:** SIM-66 (patch paths, `TopologyPatcher`, `ExperimentRunner`), SIM-63 (`ReplicationRunner`).
@@ -83,3 +83,16 @@ says so.
 SIM-59's EA cloning and SA temperature defects (they are filed there and matter as soon as "ea" or
 "sa" is chosen; step 4 checks what the tool exposes), multi-objective search, a choice between the
 interval and the mean for constraints, and a stored search record (UN-036).
+
+## Progress and measured numbers
+
+| step | commit | suite (passed, 1 skipped) |
+|---|---|---|
+| 1 `TopologyProblem`, `TopologySolution` | `228bcc5` | 1272 -> 1281 |
+| 2 space size, grid | `28fb063` | 1284 |
+| 3 `optimize` (SIM-69) | this commit | 1290 |
+
+The clinic acceptance, measured: `optimize` with `exam.servers` from 4 to 12, minimise it, `wait_exam < 15`,
+540 minutes after 60 of warm-up, 5 replications per point: strategy grid, 9 evaluations, 71 ms, 922
+characters; best 7 rooms, wait 3.18 [0.92, 5.43], utilisation 0.815, then 8, 9, 10 and 11 rooms. The time
+limit evaluates at least one point, so a search always has a best point to report.

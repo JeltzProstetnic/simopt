@@ -65,8 +65,17 @@ namespace SimOpt.McpServer.Optimization
             if (problems.Count > 0) throw new ArgumentException(string.Join(" ", problems));
         }
 
-        /// <summary>Raised once, when the budget's last point has been evaluated.</summary>
+        /// <summary>Raised once, when the budget's last point has been evaluated or the time limit has passed.</summary>
         public event Action? BudgetExhausted;
+
+        /// <summary>
+        /// SIM-69: no new point is evaluated after this moment (the first always is, so a search has a
+        /// best point); a cached point is still answered.
+        /// </summary>
+        public DateTime? Deadline { get; set; }
+
+        /// <summary>Why evaluation stopped: "budget", "time", or null while it has not.</summary>
+        public string? StopReason { get; private set; }
 
         public IReadOnlyList<DecisionVariable> Variables => variables;
 
@@ -162,7 +171,8 @@ namespace SimOpt.McpServer.Optimization
             string key = string.Join("|", point.Select(x => x.ToString("R", CultureInfo.InvariantCulture)));
             if (!cache.TryGetValue(key, out CandidateEvaluation? evaluation))
             {
-                if (budget is int most && evaluations.Count >= most)
+                if (evaluations.Count > 0 && Deadline is DateTime deadline && DateTime.UtcNow >= deadline) Stop("time");
+                if (StopReason != null)
                 {
                     solution.Fitness = Unusable;
                     solution.HasFitness = true;
@@ -171,15 +181,19 @@ namespace SimOpt.McpServer.Optimization
                 evaluation = Run(point);
                 cache[key] = evaluation;
                 evaluations.Add(evaluation);
-                if (!exhausted && budget is int limit && evaluations.Count >= limit)
-                {
-                    exhausted = true;
-                    BudgetExhausted?.Invoke();
-                }
+                if (budget is int limit && evaluations.Count >= limit) Stop("budget");
             }
             solution.Fitness = evaluation.Fitness;
             solution.HasFitness = true;
             return true;
+        }
+
+        private void Stop(string reason)
+        {
+            if (exhausted) return;
+            exhausted = true;
+            StopReason = reason;
+            BudgetExhausted?.Invoke();
         }
 
         // ── evaluation ──────────────────────────────────────────────────────

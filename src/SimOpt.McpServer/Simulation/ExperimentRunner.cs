@@ -243,7 +243,7 @@ namespace SimOpt.McpServer.Simulation
         private static List<string>? Nonempty(List<string> list) => list.Count == 0 ? null : list;
 
         /// <summary>Four significant digits: enough to read an interval, and a third of the tokens of a full double.</summary>
-        private static double? Round(double value) =>
+        internal static double? Round(double value) =>
             double.IsNaN(value) || double.IsInfinity(value)
                 ? null
                 : double.Parse(value.ToString("G4", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);

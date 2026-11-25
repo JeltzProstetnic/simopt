@@ -7,6 +7,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using ModelContextProtocol.Server;
 using SimOpt.McpServer.Models;
+using SimOpt.McpServer.Optimization;
 using SimOpt.McpServer.Simulation;
 using SimOpt.Simulation.Templates;
 
@@ -169,6 +170,59 @@ namespace SimOpt.McpServer.Tools
                 TopologyDefinition topology = _registry.Topology(model_id, run);
                 ExperimentResult result = ExperimentRunner.Run(model_id, run, topology, duration, replications, warmup,
                                                                metrics, scenarios, seed);
+                return JsonSerializer.Serialize(result, Output);
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
+            }
+        }
+
+        // ── optimize ──────────────────────────────────────────────────────────
+
+        [McpServerTool]
+        [Description(
+            "Searches a model's decision variables for the best point that keeps the constraints. variables: " +
+            "[{path, type: \"integer\"|\"real\", min, max, step?}], each path as for patch_model (e.g. \"exam.servers\"). " +
+            "objective: {metric, direction: \"min\"|\"max\", constraints?: [{metric, op: \"<\"|\"<=\"|\">\"|\">=\", value}]}; " +
+            "metric is a metric id or a variable's path (\"exam.servers\" with min = use as few as possible). Every point is " +
+            "run with replications_per_eval replications at one seed, so points differ only where their settings do; a " +
+            "constraint counts as kept only when the metric's whole 95% interval keeps it. strategy: \"auto\" (every point " +
+            "when the space fits max_evaluations, else random), \"grid\" or \"random\". Returns the best point with its " +
+            "metrics and intervals, violations if no point is feasible, the five best points, provenance and a summary. " +
+            "Example: fewest exam rooms keeping the mean wait under 15: variables [{\"path\":\"exam.servers\",\"type\":" +
+            "\"integer\",\"min\":4,\"max\":12}], objective {\"metric\":\"exam.servers\",\"direction\":\"min\",\"constraints\":" +
+            "[{\"metric\":\"wait_exam\",\"op\":\"<\",\"value\":15}]}.")]
+        public string Optimize(
+            [Description("The model_id returned by create_model")]
+            string model_id,
+            [Description("Decision variables: [{path, type, min, max, step?}]")]
+            List<DecisionVariable> variables,
+            [Description("What to optimise: {metric, direction, constraints?}")]
+            ObjectiveDefinition objective,
+            [Description("Simulated time per replication, warm-up included, in the model's time unit")]
+            double duration,
+            [Description("Time at the start of each replication excluded from every metric (default a tenth of duration)")]
+            double? warmup = null,
+            [Description("Replications per evaluated point (default 5)")]
+            int replications_per_eval = Optimizer.DefaultReplications,
+            [Description("Most points to evaluate (default 50)")]
+            int max_evaluations = Optimizer.DefaultEvaluations,
+            [Description("Wall-clock limit in seconds (default none)")]
+            double? max_seconds = null,
+            [Description("auto | grid | random (default auto)")]
+            string strategy = "auto",
+            [Description("Seed of the replications and of the search (default the model's seed)")]
+            int? seed = null,
+            [Description("The model version to optimise (default the latest)")]
+            int? version = null)
+        {
+            try
+            {
+                int run = version ?? _registry.Versions(model_id);
+                TopologyDefinition topology = _registry.Topology(model_id, run);
+                OptimizationResult result = Optimizer.Run(model_id, run, topology, variables ?? new(), objective ?? new(), duration,
+                    warmup, replications_per_eval, max_evaluations, max_seconds, strategy, seed);
                 return JsonSerializer.Serialize(result, Output);
             }
             catch (Exception ex)
