@@ -119,8 +119,25 @@ namespace SimOpt.Simulation.Events
         /// </summary>
         public override void Raise()
         {
-            Tuple<TSender, TEventArgs, TData> result = retrieveParamsFunction.Invoke();
-            innerEvent.Raise(result.Item1, result.Item2, result.Item3);
+            // SIM-129: the values go to the event directly; a tuple is only unpacked when the
+            // caller supplied a function returning one
+            switch (mode)
+            {
+                case DeferredParams:
+                    Tuple<TSender, TEventArgs, TData> result = retrieveParamsFunction.Invoke();
+                    innerEvent.Raise(result.Item1, result.Item2, result.Item3);
+                    break;
+                case DeferredArgsAndData:
+                    Tuple<TEventArgs, TData> argsAndData = retrieveEventArgsFunction.Invoke();
+                    innerEvent.Raise(sender, argsAndData.Item1, argsAndData.Item2);
+                    break;
+                case DeferredData:
+                    innerEvent.Raise(sender, eventArgs, retrieveDataFunction.Invoke());
+                    break;
+                default:
+                    innerEvent.Raise(sender, eventArgs, data);
+                    break;
+            }
             base.Raise();
         }
 
@@ -134,6 +151,8 @@ namespace SimOpt.Simulation.Events
         private Func<Tuple<TSender, TEventArgs, TData>> retrieveParamsFunction;
         private Func<Tuple<TEventArgs, TData>> retrieveEventArgsFunction;
         private Func<TData> retrieveDataFunction;
+        private byte mode;  // which constructor built it
+        private const byte Values = 0, DeferredData = 1, DeferredArgsAndData = 2, DeferredParams = 3;
 
         #endregion
         #region prop
@@ -184,7 +203,6 @@ namespace SimOpt.Simulation.Events
             this.sender = sender;
             this.eventArgs = eventArgs;
             this.data = data;
-            this.retrieveParamsFunction = RetrieveParams;
         }
 
         /// <summary>
@@ -197,8 +215,8 @@ namespace SimOpt.Simulation.Events
             this.innerEvent = innerEvent;
             this.sender = sender;
             this.eventArgs = eventArgs;
-            this.retrieveParamsFunction = Retrieve1Wrap2;
             this.retrieveDataFunction = retrieveDataFunction;
+            this.mode = DeferredData;
         }
 
         /// <summary>
@@ -210,8 +228,8 @@ namespace SimOpt.Simulation.Events
         {
             this.innerEvent = innerEvent;
             this.sender = sender;
-            this.retrieveParamsFunction = Retrieve2Wrap1;
             this.retrieveEventArgsFunction = retrieveEventArgsFunction;
+            this.mode = DeferredArgsAndData;
         }
 
         /// <summary>
@@ -223,26 +241,11 @@ namespace SimOpt.Simulation.Events
         {
             this.innerEvent = innerEvent;
             this.retrieveParamsFunction = retrieveParamsFunction;
+            this.mode = DeferredParams;
         }
 
         #endregion
         #region impl
-
-        private Tuple<TSender, TEventArgs, TData> RetrieveParams()
-        {
-            return new Tuple<TSender, TEventArgs, TData>(sender, eventArgs, data);
-        }
-
-        private Tuple<TSender, TEventArgs, TData> Retrieve2Wrap1()
-        {
-            Tuple<TEventArgs, TData> result = retrieveEventArgsFunction.Invoke();
-            return new Tuple<TSender, TEventArgs, TData>(sender, result.Item1, result.Item2);
-        }
-
-        private Tuple<TSender, TEventArgs, TData> Retrieve1Wrap2()
-        {
-            return new Tuple<TSender, TEventArgs, TData>(sender, eventArgs, retrieveDataFunction.Invoke());
-        }
 
         #region ISerializableGrubi
 

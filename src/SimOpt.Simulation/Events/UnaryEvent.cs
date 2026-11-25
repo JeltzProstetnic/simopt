@@ -110,7 +110,7 @@ namespace SimOpt.Simulation.Events
         /// <param name="param2"></param>
         public void Raise(TData data)
         {
-            foreach (Action<TData> handler in Handlers.Values)
+            foreach (Action<TData> handler in HandlersInOrder())
             {
                 handler.Invoke(data);
                 if (DetachHandlerRequested) ScheduleForRemoval(handler);

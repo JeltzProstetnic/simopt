@@ -30,6 +30,10 @@ namespace SimOpt.Simulation.Events
 
         private List<THandler> toDetach = new List<THandler>();
 
+        // SIM-129: the handlers in priority order, so a raise needs no enumerator
+        [NonSerialized]
+        private THandler[] handlerArray;
+
         #endregion
         #region prop
 
@@ -57,7 +61,7 @@ namespace SimOpt.Simulation.Events
         public SortedDictionary<Priority, THandler> Handlers
         {
             get { return handlers; }
-            internal set { handlers = value; }
+            internal set { handlers = value; handlerArray = null; }
         }
 
         /// <summary>
@@ -149,6 +153,7 @@ namespace SimOpt.Simulation.Events
             priority.AddedOrder = orderCounter++;
             handlerLookup[handler] = priority;
             handlers[priority] = handler;
+            handlerArray = null;
         }
 
         /// <summary>
@@ -162,6 +167,7 @@ namespace SimOpt.Simulation.Events
             {
                 handlers.Remove(handlerLookup[handler]);
                 handlerLookup.Remove(handler);
+                handlerArray = null;
                 return true;
             }
             return false;
@@ -171,6 +177,24 @@ namespace SimOpt.Simulation.Events
         /// This can be used to remove the currently executing handler after it is finished.
         /// </summary>
         public void DetachCurrentHandler() { DetachHandlerRequested = true; }
+
+        /// <summary>
+        /// The handlers in priority order, for raising. Rebuilt after any change made through this
+        /// class, and whenever the count of <see cref="Handlers"/> no longer matches, which catches a
+        /// direct <c>Handlers.Clear()</c>. A handler added or removed during a raise takes effect at the
+        /// next one; before SIM-129 that threw "Collection was modified".
+        /// </summary>
+        protected THandler[] HandlersInOrder()
+        {
+            THandler[] array = handlerArray;
+            if (array == null || array.Length != handlers.Count)
+            {
+                array = new THandler[handlers.Count];
+                handlers.Values.CopyTo(array, 0);
+                handlerArray = array;
+            }
+            return array;
+        }
 
         /// <summary>
         /// Use this to indicate the handler to be removed.
@@ -201,6 +225,7 @@ namespace SimOpt.Simulation.Events
         {
             handlers.Clear();
             handlerLookup.Clear();
+            handlerArray = null;
         }
 
         #region IComparable
@@ -228,6 +253,7 @@ namespace SimOpt.Simulation.Events
                 THandler handler = (THandler)((object)DelegateFactory.CreateOpenDelegate(methodInfo));
                 handlers[hi.Priority] = handler;
                 handlerLookup[handler] = hi.Priority;
+                handlerArray = null;
                 if (hi.IsToDetatch) toDetach.Add(handler);
             }
         }

@@ -61,7 +61,9 @@ namespace SimOpt.Simulation.Events
         /// </summary>
         public override void Raise()
         {
-            innerEvent.Raise(retrieveParamsFunction.Invoke());
+            // SIM-129: an instance built with its data raises it directly; only one built with a
+            // function calls it
+            innerEvent.Raise(deferred ? retrieveParamsFunction.Invoke() : data);
             base.Raise();
         }
 
@@ -71,6 +73,7 @@ namespace SimOpt.Simulation.Events
         private UnaryEvent<TData> innerEvent;
         private TData data;
         private Func<TData> retrieveParamsFunction;
+        private bool deferred;
 
         #endregion
         #region prop
@@ -106,7 +109,6 @@ namespace SimOpt.Simulation.Events
         {
             this.innerEvent = innerEvent;
             this.data = data;
-            this.retrieveParamsFunction = RetrieveParams;
         }
 
         /// <summary>
@@ -120,15 +122,12 @@ namespace SimOpt.Simulation.Events
         {
             this.innerEvent = innerEvent;
             this.retrieveParamsFunction = retrieveData;
+            this.deferred = true;
         }
 
         #endregion
         #region impl
 
-        private TData RetrieveParams()
-        {
-            return data;
-        }
 
         #region ISerializableGrubi
 

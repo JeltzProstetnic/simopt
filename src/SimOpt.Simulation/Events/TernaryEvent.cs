@@ -196,7 +196,7 @@ namespace SimOpt.Simulation.Events
         /// <param name="param2"></param>
         public void Raise(TSender sender, TEventArgs eventArgs, TData data = default(TData))
         {
-            foreach (Action<TSender, TEventArgs, TData> handler in Handlers.Values)
+            foreach (Action<TSender, TEventArgs, TData> handler in HandlersInOrder())
             {
                 handler.Invoke(sender, eventArgs, data);
                 if (DetachHandlerRequested) ScheduleForRemoval(handler);
