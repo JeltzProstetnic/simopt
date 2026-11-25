@@ -31,6 +31,11 @@ Full statements and the evidence behind each: `docs/plans/2026-08-26-sim-65-topo
   delivered nothing (SIM-135). Allowing the push is no fix either: a busy server gathers what is
   pushed meanwhile and starts its next job with all of it as one batch, of which `createProduct`
   keeps the first. So a push into any station is refused, naming the queue to insert.
+- **A shortest-queue router counts the items waiting plus those in service behind each queue
+  (2026-11-25, step 4).** Counting only the waiting items made a queue in front of a busy server and
+  one in front of an idle server tie, the tie went to the first, and an item waited while a server
+  idled: two equal stations got 56 % and 44 % (measured). With the in-service count they share the
+  work evenly. Ties still go to the connection listed first, so the routing stays deterministic.
 - **Router weights live on the connection, not the node.** A weight describes an edge, and putting
   it there keeps the node parameter bag free of nested maps.
 - **The router is a new template rather than an extension of `SimpleRejectServer`,** because that
