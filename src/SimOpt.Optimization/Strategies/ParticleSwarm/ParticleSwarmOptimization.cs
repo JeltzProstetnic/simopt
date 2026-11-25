@@ -106,6 +106,11 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
                 positions = positions.Concat(extra).ToArray();
             }
 
+            // SIM-59: the swarm moves coordinates, so every candidate must expose its vector
+            ISolution? flat = positions.FirstOrDefault(p => p is not IVectorSolution);
+            if (flat != null)
+                throw new ArgumentException($"Particle swarm moves IVectorSolution candidates; {flat.GetType().Name} is not one.");
+
             // Evaluate initial positions
             foreach (var p in positions)
             {
@@ -205,34 +210,13 @@ namespace SimOpt.Optimization.Strategies.ParticleSwarm
             BestSolutionChanged?.Invoke(this, e);
         }
 
-        private static double[] GetParameters(ISolution solution)
-        {
-            // TestSolution has a Parameters property — use reflection or casting
-            var prop = solution.GetType().GetProperty("Parameters");
-            if (prop != null)
-                return (double[])((double[])prop.GetValue(solution)!).Clone();
+        private static double[] GetParameters(ISolution solution) =>
+            (double[])((IVectorSolution)solution).Parameters.Clone();
 
-            // Fallback: treat solution as single-value
-            return new[] { solution.Fitness };
-        }
+        private static void SetParameters(ISolution solution, double[] parameters) =>
+            ((IVectorSolution)solution).Parameters = parameters;
 
-        private static void SetParameters(ISolution solution, double[] parameters)
-        {
-            var prop = solution.GetType().GetProperty("Parameters");
-            if (prop != null)
-            {
-                prop.SetValue(solution, parameters);
-                return;
-            }
-        }
-
-        private static int GetDimensions(ISolution solution)
-        {
-            var prop = solution.GetType().GetProperty("Parameters");
-            if (prop != null)
-                return ((double[])prop.GetValue(solution)!).Length;
-            return 1;
-        }
+        private static int GetDimensions(ISolution solution) => ((IVectorSolution)solution).Parameters.Length;
 
         #endregion
     }

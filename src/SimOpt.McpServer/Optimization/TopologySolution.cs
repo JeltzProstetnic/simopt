@@ -13,7 +13,7 @@ namespace SimOpt.McpServer.Optimization
     /// moves exactly as the original would, and a search started from the same seed takes the same path.
     /// The wall-clock <c>new Random()</c> in the Ivotion operators is what broke that (SIM-59).
     /// </remarks>
-    public sealed class TopologySolution : ISolution, ITweakable
+    public sealed class TopologySolution : IVectorSolution, ITweakable
     {
         private readonly IReadOnlyList<DecisionVariable> variables;
         private ulong state;

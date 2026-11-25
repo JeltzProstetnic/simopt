@@ -7,7 +7,7 @@ namespace SimOpt.Tests.Helpers;
 /// Minimal ISolution implementation for testing optimization strategies.
 /// Backed by a double[] parameter vector.
 /// </summary>
-public class TestSolution : ISolution, ITweakable, ICombinable<ISolution>
+public class TestSolution : IVectorSolution, ITweakable, ICombinable<ISolution>
 {
     private static readonly Random Rng = new(42);
 
