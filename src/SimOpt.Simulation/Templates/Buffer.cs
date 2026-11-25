@@ -109,6 +109,7 @@ namespace SimOpt.Simulation.Templates
             itemsByEntityID.Clear();
             itemsByPriority.Clear();
             itemPriorityMap.Clear();
+            fifoIds.Clear();
             sources.Clear();
         }
 
@@ -123,6 +124,10 @@ namespace SimOpt.Simulation.Templates
         private Dictionary<string, T> itemsByEntityID;
         private SortedDictionary<Priority, T> itemsByPriority;
         private Dictionary<T, Priority> itemPriorityMap;
+        // SIM-129: every id put, smallest first, so FIFO finds the next item without scanning the
+        // queue. Ids of items already taken are dropped when they reach the top (FifoSelector) or
+        // when the heap outgrows the queue (Put).
+        private readonly PriorityQueue<int, int> fifoIds = new PriorityQueue<int, int>();
         private Func<T> initialItemSelector;
         private Func<T> itemSelector;
         private Random<double> rnd;
@@ -296,6 +301,7 @@ namespace SimOpt.Simulation.Templates
             itemsByEntityID = new Dictionary<string, T>();
             itemsByPriority = new SortedDictionary<Priority, T>();
             itemPriorityMap = new Dictionary<T, Priority>();
+            fifoIds.Clear();
             rnd = new Random<double>(this.Model, new UniformDoubleDistribution(0d, 1d), Model.Antithetic, Model.NonStochasticMode);
             sources = new List<IItemSource<T>>();
             notifyItemNotAccepted = Noop;
@@ -425,6 +431,8 @@ namespace SimOpt.Simulation.Templates
             itemsByEntityID[sid] = item;
             itemsByPriority[priority] = item;
             itemPriorityMap[item] = priority;
+            fifoIds.Enqueue(id, id);
+            if (fifoIds.Count > 2 * itemsByID.Count + 32) RebuildFifoIds();   // another selector is taking the items
             nextID = id + 1;
             LogPutMsg(item);
 
@@ -697,9 +705,21 @@ namespace SimOpt.Simulation.Templates
         #endregion
         #region itemselectors
 
-        private T FifoSelector() 
+        private T FifoSelector()
         {
-            return itemsByID[(from item in itemsByID select item.Key).Min()];
+            // the smallest id present; every present id is in fifoIds
+            while (fifoIds.Count > 0)
+            {
+                if (itemsByID.TryGetValue(fifoIds.Peek(), out T item)) return item;
+                fifoIds.Dequeue();
+            }
+            return itemsByID[(from item in itemsByID select item.Key).Min()];   // empty: throws as it always did
+        }
+
+        private void RebuildFifoIds()
+        {
+            fifoIds.Clear();
+            foreach (int id in itemsByID.Keys) fifoIds.Enqueue(id, id);
         }
 
         private T LifoSelector()

@@ -1,8 +1,9 @@
 // SIM-129: the models the speed harness times and EngineFingerprintTests pins. The first five are the
 // analytic battery's systems (tests/.../AnalyticBatteryTests.cs), built the same way; mg1-breakdowns is
 // the SIM-122 case; the two process cases exercise the process layer (SIM-126), the stock (SIM-127)
-// and events at the current instant (SIM-128). Each case hashes every number it computes, so a change
-// that moves one result in any replication changes its fingerprint.
+// and events at the current instant (SIM-128); mm1-overload has a queue that grows all run. Each case
+// hashes every number it computes, so a change that moves one result in any replication changes its
+// fingerprint.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,7 @@ namespace SimOpt.Benchmarks
     {
         public static readonly IReadOnlyList<string> Names = new[]
         {
-            "mm1", "md1", "mg1u", "mmc", "jackson", "mg1-breakdowns", "process-mm1", "process-stock",
+            "mm1", "md1", "mg1u", "mmc", "jackson", "mg1-breakdowns", "process-mm1", "process-stock", "mm1-overload",
         };
 
         /// <summary>Runs one case.</summary>
@@ -45,6 +46,7 @@ namespace SimOpt.Benchmarks
                 "mg1-breakdowns" => MG1Breakdowns(scale, replications, baseSeed),
                 "process-mm1" => ProcessMM1(scale, replications, baseSeed),
                 "process-stock" => ProcessStock(scale, replications, baseSeed),
+                "mm1-overload" => MM1Overload(scale, replications, baseSeed),
                 _ => throw new ArgumentException($"Unknown case '{name}'.", nameof(name)),
             };
         }
@@ -118,6 +120,27 @@ namespace SimOpt.Benchmarks
             Instrumentation.ObserveWaitingTime(buffer);
             Instrumentation.ObserveUtilization(server);
             return Replicate("mm1", model, 21_000d * scale, 1_000d * scale, replications, baseSeed);
+        }
+
+        /// <summary>
+        /// An overloaded M/M/1 (λ = 1.2, μ = 1): the queue grows all run, as in the bad
+        /// configurations an optimiser visits, so per-item costs that depend on queue length show.
+        /// </summary>
+        private static CaseOutcome MM1Overload(double scale, int replications, int baseSeed)
+        {
+            var model = new Model("mm1-overload", 1, 0d);
+            SimpleSource source = PoissonArrivals(model, 1.2, "mm1-overload");
+            SimpleBuffer buffer = UnboundedQueue(model, "buf");
+            SimpleServer server = PassThroughServer(model, Exponential(1.0), "srv", "mm1-overload");
+            var sink = new SimpleSink(model, id: "snk", name: "snk");
+            buffer.ConnectTo(source);
+            server.ConnectTo(buffer);
+            buffer.ItemReceivedEvent.AddHandler((_, _) => { if (server.Idle) server.Start(); });
+            sink.ConnectTo(server);
+            Instrumentation.ObserveQueueLength(buffer);
+            Instrumentation.ObserveWaitingTime(buffer);
+            Instrumentation.ObserveUtilization(server);
+            return Replicate("mm1-overload", model, 20_000d * scale, 1_000d * scale, replications, baseSeed);
         }
 
         private static CaseOutcome MG1(string tag, IDistribution<double> service, double scale, int replications, int baseSeed)
