@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=read MG's answers, then SIM-36 or SIM-96 while SIM-126 schema, SIM-110 rest, SIM-93 defaults, SIM-86 slice C and SIM-95/117/119 wait - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-PROV-REPORT Q-ENGINE-MOVES Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=read MG's answers, then SIM-97 or SIM-94 while SIM-126 schema, SIM-110 rest, SIM-93 defaults, SIM-86 slice C and SIM-95/117/119 wait - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-PROV-REPORT Q-ENGINE-MOVES Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -76,7 +76,14 @@ the private hand-off (see *Private material*).
   published algorithm (renamed from "Multiplicative"). **R250_521 was grossly biased** (top bit almost never set: 0.4 % of
   the first 1,000 doubles reached 0.5) and is fixed; nothing in SimOpt constructs it. Telegram #1681.
 - **SIM-121 done** (`596ec4e`): an Ivotion cancellation always returns a cancelled result; the test no longer uses the clock.
-- Suite 1413 passed, 1 skipped; Python 25. Telegram #1680 (SIM-86 + Q-PROV-REPORT), #1681 (SIM-98).
+- **SIM-36 done** (`1be72c6`): PSO validated on Sphere and Rosenbrock (five seeds each); `IvotionSolution` is an
+  `IVectorSolution`; the Ivotion tab offers "Particle Swarm". Not seen on screen.
+- **SIM-86 records for `optimize`** (`6927002`); refused with `max_seconds`.
+- **SIM-96 done** (`a07e92a`): `AnalyticNightlyTests` + `.github/workflows/nightly.yml`; Wq 3.974 +- 0.0587, coverage 0.935,
+  Welch plot in `docs/plans/2026-11-25-sim-96/`. **First scheduled run: 2026-11-26 02:17 UTC; check it went green**
+  (it has not run on GitHub yet; locally the gate takes 150 s).
+- Suite 1433 passed, 4 skipped (3 nightly); Python 26. Telegram #1680 (SIM-86 + Q-PROV-REPORT), #1681 (SIM-98), #1682
+  (Q-ENGINE-MOVES).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
@@ -250,8 +257,9 @@ the private hand-off (see *Private material*).
    **Restart #6:** SIM-86 slices A, B, the limits and Python provenance, SIM-98 and SIM-121 done, see the section above.
    **Next after restart #6, in order:** read Telegram for MG's answers first. Then whichever of SIM-126's schema,
    SIM-110's rest, SIM-93's defaults, SIM-86 slice C or SIM-95/117/119 his answers unblock. Unblocked meanwhile: SIM-36
-   (P1, Ivotion PSO through a real-valued view, plus Sphere/Rosenbrock validation), SIM-96 (P2, nightly analytic gate),
-   records for `optimize` (SIM-86). SIM-20 still needs a Claude Code session with the server registered.
+   (done), SIM-96 (done), records for `optimize` (done). Left unblocked and decision-free: SIM-97 (P3, finite-capacity
+   battery), SIM-94 (P3, examples). The P1 items still open (SIM-38, SIM-70..72, SIM-76, SIM-82..84) carry behaviour MG
+   has not specified. SIM-20 still needs a Claude Code session with the server registered.
    Older next list (restart #5): read Telegram for MG's answers first. Then: SIM-126's schema build once Q-PROC-SCHEMA is answered;
    SIM-110's rest once Q-VIEW-PATH is answered (with option one it starts with SIM-70's extraction); SIM-93's defaults once
    Q-IVO-STATS is answered; SIM-140 once Q-PRIO sets it. Unblocked meanwhile, smaller: SIM-117 (P2, SIM-106 follow-ups),
