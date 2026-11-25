@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=SIM-110 (SIM-126 schema brief written; its build waits for Q-PROC-SCHEMA) - MG owes Q-PROC-SCHEMA Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=next unblocked P1 item (SIM-126 schema waits for Q-PROC-SCHEMA, SIM-110 rest waits for Q-VIEW-PATH) - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130 and SIM-67 done (2026-11-25 night); SIM-126's schema brief written, its build waits for Q-PROC-SCHEMA; next SIM-110
 
@@ -66,6 +66,19 @@ the private hand-off (see *Private material*).
     across nodes, but an activity needs three to five nodes and a forgotten release shows up as a deadlock.
   - **Scripted processes:** loops, conditions and variables in JSON; reaches the most models, loses the
     offered-load pre-check, a plain read-back and SIM-83's grammar.
+- **Q-VIEW-PATH** (new 2026-11-25, restart #5; brief `docs/plans/2026-11-25-sim-110-one-model-path.md`): how the
+  viewer builds its models, the rest of SIM-110 (one model path, JSON and MCP models in the viewer). Its pause,
+  cycle-safe layout and engine-measured numbers are done.
+  - **A `SimOpt.Topology` library, every viewer model through the schema builder (Recommended):** the topology
+    layer moves out of the MCP server (namespaces change, JSON and tools do not); `VizTopology` presets and
+    furkansim's glass line convert to schema documents plus a layout overlay; the schema gains `normal` arrivals
+    and a `batch` station for the Roland printer. You will see: reject decisions follow the seed (the same run
+    every time, other numbers than today), a queue drawn where a server fed a server directly, and furkansim's
+    glass-line numbers move (inbox item).
+  - **The viewer references the MCP server project directly:** one line, but the MCP SDK and the host ride into
+    the viewer and furkansim's app.
+  - **Two paths:** presets keep their own builder, JSON and MCP models use the schema builder; SIM-99's viewer
+    half stays open.
 - **Q-AUTO** (new 2026-11-25, restart #4): which search "auto" runs when the space is larger than the
   budget. **Recommended: the EA (built, unattended choice):** best or tied at the default budget with the
   best worst case. Alternatives: random search (the step-3 behaviour), or SA as D6 planned (measured last).
@@ -166,8 +179,12 @@ the private hand-off (see *Private material*).
    **Restart #5 (2026-11-25, early morning): SIM-126's schema brief written** (`docs/plans/2026-11-25-sim-126-process-schema.md`;
    Q-PROC-SCHEMA above). It carries one measurement: on the C# car wash, drawing step values on entry and at
    the step give the same interval for the 2-3 bay difference, and common random numbers halve it.
-   **Next, in order:** SIM-110, then SIM-126's schema build once Q-PROC-SCHEMA is answered, SIM-140 once
-   Q-PRIO sets it.
+   **Same restart, SIM-110 V1 in part** (test-first): SIM-108 cycle-safe layout (`c52c0a1`), SIM-107 Space pauses and
+   resumes (`0157dd2`, furkansim inbox item for its copy), SIM-92 every number on screen is the engine's measure
+   (`ea287b1`); suite 1348 passed, 1 skipped. Not yet seen on screen (no window opened while MG is away). The rest
+   of SIM-110 (one model path) waits for **Q-VIEW-PATH** (brief `docs/plans/2026-11-25-sim-110-one-model-path.md`).
+   **Next, in order:** the next unblocked P1 item; SIM-126's schema build once Q-PROC-SCHEMA is answered; SIM-110's
+   rest once Q-VIEW-PATH is answered; SIM-140 once Q-PRIO sets it.
    Older next list (before restart #5): SIM-126's schema part (brief first), SIM-110, SIM-140.
    **Housekeeping DONE 2026-11-25 (restart #5):** `docs/pending-commercial-track.md` deleted; its standing rules
    that still apply are in `docs/decisions.md` (2026-11-25, restart #5).
