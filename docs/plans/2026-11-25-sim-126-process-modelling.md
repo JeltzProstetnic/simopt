@@ -128,4 +128,6 @@ and a car waiting for soap keeps its bay. The supply is the bottleneck, which is
 optimiser is for. `CarWashExampleTests` (3) runs the same file: reproducible, every figure in range, and
 a third bay lowers both the share who give up and the wait.
 
-**Next:** the SIM-65 schema (SIM-126's last part), which waits for SIM-65 step 1.
+**Next:** the SIM-65 schema (SIM-126's last part). Its design brief is
+`docs/plans/2026-11-25-sim-126-process-schema.md` (2026-11-25, restart #5); building waits for MG's
+answer to Q-PROC-SCHEMA.

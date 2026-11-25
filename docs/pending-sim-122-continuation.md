@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=SIM-126 schema part (design brief of a declarative process vocabulary then Q-PROC-SCHEMA to MG before building) then SIM-110 - MG owes Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=open; next=SIM-110 (SIM-126 schema brief written; its build waits for Q-PROC-SCHEMA) - MG owes Q-PROC-SCHEMA Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126 -->
-# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130 and SIM-67 done (2026-11-25 night); next SIM-126's schema part
+# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130 and SIM-67 done (2026-11-25 night); SIM-126's schema brief written, its build waits for Q-PROC-SCHEMA; next SIM-110
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -52,9 +52,20 @@ the private hand-off (see *Private material*).
   - **Not now (Recommended):** `save_model`/`load_model` already let a model outlive the process (UN-005);
     a store changes what a plain server writes to disk. Revisit with the desktop app (SIM-71).
   - **Opt-in:** an environment variable `SIMOPT_MODEL_STORE` names the directory; unset, nothing changes.
-- **Q-PROC-SCHEMA** (to come with SIM-126's schema brief): the declarative process vocabulary in the JSON
-  schema (steps such as seize, delay, release, take from a stock, wait with a timeout) is the contract
-  the MCP tools and the Python package inherit, so the next session writes the brief and asks first.
+- **Q-PROC-SCHEMA** (new 2026-11-25, restart #5; brief `docs/plans/2026-11-25-sim-126-process-schema.md`,
+  with the car wash written as a document): which shape processes take in the topology schema, the
+  contract the MCP tools and the Python package inherit. Building SIM-126's last part waits for this.
+  - **Process node with a closed step list (Recommended):** `resource` and `stock` become nodes, and a
+    `process` node runs each item through `delay`, `seize`, `release`, `take`, `put` and `wait_until`
+    steps; an unfed process repeats its steps beside the flow (the supplier). Fixed with it: no loops or
+    conditions inside a process; an item leaving a process frees every unit it holds there (no leak, but no
+    holding a unit across nodes); patience on `seize`/`take` sends the item out by a named outlet; step values
+    are drawn on entry (measured on the car wash: no worse than at the step); schema version stays "1". Answer
+    "yes", or name the piece to change.
+  - **Flowchart blocks** (Arena style): `seize`, `release`, `take`, `put` as graph nodes; a unit can be held
+    across nodes, but an activity needs three to five nodes and a forgotten release shows up as a deadlock.
+  - **Scripted processes:** loops, conditions and variables in JSON; reaches the most models, loses the
+    offered-load pre-check, a plain read-back and SIM-83's grammar.
 - **Q-AUTO** (new 2026-11-25, restart #4): which search "auto" runs when the space is larger than the
   budget. **Recommended: the EA (built, unattended choice):** best or tied at the default budget with the
   best worst case. Alternatives: random search (the step-3 behaviour), or SA as D6 planned (measured last).
@@ -152,8 +163,12 @@ the private hand-off (see *Private material*).
    backlog entry for the count).
    **Restart #4 (same night): SIM-68 step 4 and SIM-59 done**, see the section above.
    **Later in restart #4: SIM-130 and SIM-67 done**, see the section above.
-   **Next, in order:** SIM-126's schema part (brief first, Q-PROC-SCHEMA to MG before building), SIM-110,
-   SIM-140 once Q-PRIO sets it.
+   **Restart #5 (2026-11-25, early morning): SIM-126's schema brief written** (`docs/plans/2026-11-25-sim-126-process-schema.md`;
+   Q-PROC-SCHEMA above). It carries one measurement: on the C# car wash, drawing step values on entry and at
+   the step give the same interval for the 2-3 bay difference, and common random numbers halve it.
+   **Next, in order:** SIM-110, then SIM-126's schema build once Q-PROC-SCHEMA is answered, SIM-140 once
+   Q-PRIO sets it.
+   Older next list (before restart #5): SIM-126's schema part (brief first), SIM-110, SIM-140.
    **Housekeeping task (tool-doable):** every item `docs/pending-commercial-track.md` tracks is now `[x]`
    (SIM-68 closed last), but the file still holds standing rules for unattended work ("Method —
    non-negotiable", "Do not do"). Move those rules into `docs/decisions.md` (or `.claude/CLAUDE.md` where
