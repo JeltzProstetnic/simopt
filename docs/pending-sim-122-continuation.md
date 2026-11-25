@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=SIM-130 (the Python package) then SIM-126 schema part and SIM-110 - MG owes Q-AUTO Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
-<!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-130 -->
-# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69 and SIM-59 done (2026-11-25 night); next SIM-130
+<!-- Work: stage=findings-written; status=open; next=SIM-126 schema part (design brief of a declarative process vocabulary then Q-PROC-SCHEMA to MG before building) then SIM-110 - MG owes Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126 -->
+# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130 and SIM-67 done (2026-11-25 night); next SIM-126's schema part
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -33,12 +33,28 @@ the private hand-off (see *Private material*).
 - **Measured the four searches** (fixed replications, 15 search seeds, four clinic spaces): SA last on every
   larger space, the EA best or tied at the default budget (170 points: optimum 12/15 against random 2/15).
   So "auto" now runs the EA on spaces larger than the budget (D6 had planned SA). Table in the brief.
+- **SIM-130 done** (`7565faf`, `986d073`, `f6ff031`): `python/` holds the `simopt` package (no required
+  dependency; its own small MCP client over stdio; `Topology` builder; `Model.run_experiment`/`optimize`;
+  results as rows and pandas frames). Acceptance against the real server: the clinic validates, a flu
+  scenario becomes a frame, `optimize` answers 7 rooms. pythonnet in process works only on the .NET 10
+  runtime (the build's System.Text.Json 10 is shadowed by .NET 9's own), documented in `python/README.md`.
+- **SIM-67 done** (`ad30ba2`): `save_model`, `load_model`, `export_model`; a model saved and reopened by
+  another server gives byte-identical results; Python `Model.save`/`export`, `Server.load_model`.
+  Suite 1331 passed, 1 skipped; Python 23 passed (`env -C python python3 -m pytest -q`).
 - **Filed:** SIM-140 (constraints on decision variables, UN-015's headcount limits); a furkansim inbox
   item (its Glass EA uses the default configuration, so its results change, and `GlassSolution` has the
   same wall-clock operators). No comment on his issue #30: his optimiser is his own Python code.
 
 ## Decisions for MG (stable IDs; recommended option first)
 
+- **Q-STORE** (new 2026-11-25, restart #4, SIM-67 D4): should the server keep every model in a directory and
+  reload it when it starts ("re-hydrate on reconnect" in the old backlog text)?
+  - **Not now (Recommended):** `save_model`/`load_model` already let a model outlive the process (UN-005);
+    a store changes what a plain server writes to disk. Revisit with the desktop app (SIM-71).
+  - **Opt-in:** an environment variable `SIMOPT_MODEL_STORE` names the directory; unset, nothing changes.
+- **Q-PROC-SCHEMA** (to come with SIM-126's schema brief): the declarative process vocabulary in the JSON
+  schema (steps such as seize, delay, release, take from a stock, wait with a timeout) is the contract
+  the MCP tools and the Python package inherit, so the next session writes the brief and asks first.
 - **Q-AUTO** (new 2026-11-25, restart #4): which search "auto" runs when the space is larger than the
   budget. **Recommended: the EA (built, unattended choice):** best or tied at the default budget with the
   best worst case. Alternatives: random search (the step-3 behaviour), or SA as D6 planned (measured last).
@@ -135,8 +151,10 @@ the private hand-off (see *Private material*).
    `docs/plans/2026-11-25-sim-68-69-topology-problem-optimize.md`. SIM-137: a 90-run hunt found nothing (see its
    backlog entry for the count).
    **Restart #4 (same night): SIM-68 step 4 and SIM-59 done**, see the section above.
-   **Next, in order:** SIM-130 (the Python package; every tool it needs now exists), SIM-126's schema part,
-   SIM-110, SIM-140 once Q-PRIO sets it.
+   **Later in restart #4: SIM-130 and SIM-67 done**, see the section above.
+   **Next, in order:** SIM-126's schema part (brief first, Q-PROC-SCHEMA to MG before building), SIM-110,
+   SIM-140 once Q-PRIO sets it.
+   Older next list (before SIM-130): SIM-130, SIM-126's schema part, SIM-110, SIM-140.
    Older next list (before step 4): SIM-68 step 4 with SIM-59, then SIM-130, SIM-126's schema part, SIM-110.
    SIM-139 waits for **Q-SRC-START**; SIM-137 stays open until it recurs.
    Older next list (before SIM-69): SIM-137, SIM-69, SIM-126's schema part, SIM-110 and SIM-130.
