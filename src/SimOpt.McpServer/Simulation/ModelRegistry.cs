@@ -196,12 +196,13 @@ namespace SimOpt.McpServer.Simulation
                         case "source":
                         {
                             var dist = TimeDistribution(node, label, "arrival", "mean_interval");
-                            int localCounter = entityCounter; // closure capture
+                            // SIM-142: one counter for every source of the model. Each source used to copy
+                            // it, so two sources both made E1, E2, ... and the second one's first item
+                            // threw on the duplicate id; a single source names its items as before.
                             Func<SimpleEntity> generator = () =>
                             {
-                                localCounter++;
-                                entityCounter = localCounter;
-                                return new SimpleEntity(model, $"E{localCounter}", $"E{localCounter}");
+                                entityCounter++;
+                                return new SimpleEntity(model, $"E{entityCounter}", $"E{entityCounter}");
                             };
 
                             // SIM-62/SIM-89: the node's random stream is keyed to its stable ID, not to

@@ -218,4 +218,46 @@ public class ModelRegistrySmokeTests
         // identical and reproducibility would be vacuously "true".
         ThroughputOf(b).Should().NotBe(ThroughputOf(a));
     }
+
+    /// <summary>
+    /// SIM-142: every source copied the item counter instead of sharing it, so two sources both named
+    /// their items E1, E2, ... and the second source's first item threw "An item with the same key has
+    /// already been added" in <c>Model.AddIdentifiable</c>. create_model's trial run reported it as
+    /// TRIAL_FAILED, so no model with two sources could be created at all.
+    /// </summary>
+    [Fact]
+    public void AModelWithTwoSources_IsCreated_AndRunsItemsFromBoth()
+    {
+        var registry = new ModelRegistry();
+        var tools = new SimulationTools(registry);
+        var topology = new TopologyDefinition
+        {
+            Name = "two sources",
+            Seed = 42,
+            Nodes =
+            {
+                new NodeDefinition { Id = "walk_in", Type = "source", Params = { ["mean_interval"] = 4.0 } },
+                new NodeDefinition { Id = "booked",  Type = "source", Params = { ["mean_interval"] = 4.0 } },
+                new NodeDefinition { Id = "queue",   Type = "queue" },
+                new NodeDefinition { Id = "desk",    Type = "station", Params = { ["service_time"] = 1.0 } },
+                new NodeDefinition { Id = "done",    Type = "sink" },
+            },
+            Connections =
+            {
+                new ConnectionDefinition { From = "walk_in", To = "queue" },
+                new ConnectionDefinition { From = "booked",  To = "queue" },
+                new ConnectionDefinition { From = "queue",   To = "desk" },
+                new ConnectionDefinition { From = "desk",    To = "done" },
+            },
+        };
+
+        JsonElement created = JsonDocument.Parse(tools.CreateModel(topology)).RootElement;
+        created.TryGetProperty("error", out JsonElement error).Should().BeFalse(error.ToString());
+        string id = created.GetProperty("model_id").GetString()!;
+        JsonElement run = JsonDocument.Parse(tools.RunSimulation(id, 4_000)).RootElement;
+
+        run.TryGetProperty("error", out error).Should().BeFalse(error.ToString());
+        run.GetProperty("stats").GetProperty("sinks").GetProperty("done").GetInt32()
+           .Should().BeInRange(1_800, 2_200, "two sources of one item per 4 time units over 4,000");
+    }
 }
