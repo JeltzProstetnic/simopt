@@ -64,8 +64,9 @@ runs are unaffected and no comment on his issue #30 is needed.
 - This is the hook for SIM-88, not SIM-88 itself: a hash in the file shows the file is consistent, not
   that nobody rewrote file and hash together. "Without trusting the storer" (UN-036) needs the hash held
   somewhere else (a signature or a timestamping service), which is SIM-88's job.
-- Python: `Model.run_experiment(..., record=path)`, `Server.reproduce_run(path)`, and
-  `Experiment.provenance` (the answer without its figures).
+- Python: `Model.run_experiment(..., record=path)`, `Server.reproduce_run(path)`,
+  `Experiment.provenance` (the answer without its figures), and `frame().attrs["provenance"]` so it stays
+  with a pandas frame (Python 25 passed).
 
 Tests: `RunRecordTests` (9), one Python acceptance test. Suite 1369 -> 1378 passed, 1 skipped; Python
 23 -> 24 passed.
@@ -86,7 +87,6 @@ its hash. They are not in each agent answer, to keep answers small (UN-023). Tes
 - **Slice C, the form for an expert report** (UN-034): a human-readable rendering of a record
   (provenance table, assumptions, results with intervals). Its language and format are MG's call
   (Q-PROV-REPORT).
-- **Python:** `Experiment.frame().attrs["provenance"]`, so provenance stays with a pandas frame.
 - **`optimize` records:** the same record for a search (its call, every evaluated point); not built yet.
 - **Known gap:** a document without `seed` is run with 42 (`TopologyDefinition.Seed` is a plain int),
   and that default cannot be told apart from a given 42, so it is not listed in `assumed`. Making the

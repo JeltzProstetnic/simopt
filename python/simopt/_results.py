@@ -53,7 +53,10 @@ class Experiment:
         return rows
 
     def frame(self):
-        return _frame(self.rows())
+        """rows() as a pandas DataFrame, carrying the answer's provenance in ``attrs["provenance"]``."""
+        frame = _frame(self.rows())
+        frame.attrs["provenance"] = self.provenance
+        return frame
 
 
 class Optimization:

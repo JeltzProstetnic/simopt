@@ -105,3 +105,15 @@ def test_rows_become_a_pandas_frame():
     assert list(frame.columns[:5]) == ["scenario", "metric", "mean", "ci_low", "ci_high"]
     assert frame.loc[(frame.scenario == "flu") & (frame.metric == "wait_exam"), "diff"].item() == 5.9
     assert list(Optimization(OPTIMIZATION).frame()["exam.servers"]) == [7, 8]
+
+
+def test_a_frame_keeps_the_answers_provenance():
+    # SIM-86: provenance travels with the figures, also once they are a DataFrame
+    pytest.importorskip("pandas")
+    answer = {**EXPERIMENT, "model_sha256": "ab" * 32, "seed": 7, "assumed": {"warmup": "a tenth of the duration"}}
+
+    frame = Experiment(answer).frame()
+
+    assert frame.attrs["provenance"]["model_sha256"] == "ab" * 32
+    assert frame.attrs["provenance"]["assumed"] == {"warmup": "a tenth of the duration"}
+    assert "scenarios" not in frame.attrs["provenance"]
