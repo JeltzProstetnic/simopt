@@ -76,5 +76,10 @@ namespace SimOpt.McpServer.Models
         public Dictionary<string, string>? Assumed { get; set; }
 
         [JsonPropertyName("summary")] public string Summary { get; set; } = string.Empty;
+
+        /// <summary>SIM-86: where the run record went, when one was asked for; not part of the record itself.</summary>
+        [JsonPropertyName("record")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public RecordWritten? Record { get; set; }
     }
 }

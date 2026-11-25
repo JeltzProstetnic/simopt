@@ -82,12 +82,22 @@ against the builder. `get_schema` publishes them as `limits`, and every run reco
 its hash. They are not in each agent answer, to keep answers small (UN-023). Tests: one in
 `SchemaCatalogTests`, one in `RunRecordTests`; suite 1378 -> 1380 passed, 1 skipped.
 
+## Records for `optimize` (done, test-first)
+
+`optimize(..., record: path)` writes the same `simopt-run/1` record with `tool_call` "optimize": the
+variables, the objective, the run length, the warm-up, replications per point, the evaluation budget,
+the strategy as resolved ("auto" written as what it chose) and the seed. `reproduce_run` repeats the
+search and compares `best`, `top`, `evaluations`, `space`, `stopped` and `strategy`; a forged best point
+is caught and named. A search with `max_seconds` is refused a record: where the clock stops it depends
+on the machine, so it cannot be repeated exactly (give `max_evaluations` instead). Python:
+`Model.optimize(..., record=path)`. Tests `OptimizeRecordTests` (4) plus one Python acceptance test;
+suite 1429 -> 1433 passed, 1 skipped; Python 26.
+
 ## Still open in SIM-86
 
 - **Slice C, the form for an expert report** (UN-034): a human-readable rendering of a record
   (provenance table, assumptions, results with intervals). Its language and format are MG's call
   (Q-PROV-REPORT).
-- **`optimize` records:** the same record for a search (its call, every evaluated point); not built yet.
 - **Known gap:** a document without `seed` is run with 42 (`TopologyDefinition.Seed` is a plain int),
   and that default cannot be told apart from a given 42, so it is not listed in `assumed`. Making the
   seed nullable changes the schema's C# contract; not done unattended.

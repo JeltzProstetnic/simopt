@@ -225,7 +225,8 @@ namespace SimOpt.McpServer.Tools
             "when the space fits max_evaluations, else the evolutionary algorithm), \"grid\", \"random\", \"sa\" (simulated annealing), " +
             "\"ea\" (evolutionary algorithm) or \"pso\" (particle swarm); each stops at the budget. Returns the best point with its " +
             "metrics and intervals, violations if no point is feasible, the five best points, provenance (as run_experiment, " +
-            "with model_sha256 and assumed; the decision variables are not listed as assumed) and a summary. " +
+            "with model_sha256 and assumed; the decision variables are not listed as assumed) and a summary; record writes " +
+            "a run record that reproduce_run repeats, as for run_experiment. " +
             "Example: fewest exam rooms keeping the mean wait under 15: variables [{\"path\":\"exam.servers\",\"type\":" +
             "\"integer\",\"min\":4,\"max\":12}], objective {\"metric\":\"exam.servers\",\"direction\":\"min\",\"constraints\":" +
             "[{\"metric\":\"wait_exam\",\"op\":\"<\",\"value\":15}]}.")]
@@ -251,14 +252,23 @@ namespace SimOpt.McpServer.Tools
             [Description("Seed of the replications and of the search (default the model's seed)")]
             int? seed = null,
             [Description("The model version to optimise (default the latest)")]
-            int? version = null)
+            int? version = null,
+            [Description("A new .json file to write the run record to (default none), as for run_experiment; not with max_seconds")]
+            string? record = null)
         {
             try
             {
+                if (record != null && max_seconds != null)
+                    return JsonSerializer.Serialize(new { error = "A search stopped by max_seconds depends on the machine's speed and " +
+                        "cannot be repeated exactly, so it cannot be recorded; give max_evaluations instead." }, Output);
+                string? target = record == null ? null : RunRecordFile.Target(record);
                 int run = version ?? _registry.Versions(model_id);
                 TopologyDefinition topology = _registry.Topology(model_id, run);
                 OptimizationResult result = Optimizer.Run(model_id, run, topology, variables ?? new(), objective ?? new(), duration,
                     warmup, replications_per_eval, max_evaluations, max_seconds, strategy, seed);
+                if (target != null)
+                    result.Record = new RecordWritten(target, RunRecordFile.Write(target, topology, variables ?? new(),
+                                                                                   objective ?? new(), max_evaluations, result));
                 return JsonSerializer.Serialize(result, Output);
             }
             catch (Exception ex)

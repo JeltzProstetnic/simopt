@@ -24,6 +24,22 @@ namespace SimOpt.McpServer.Models
         public List<ScenarioDefinition>? Scenarios { get; set; }
     }
 
+    /// <summary>
+    /// SIM-86: an <c>optimize</c> call as a run record keeps it: the strategy "auto" resolved, the seed (of
+    /// the replications and of the search), the warm-up and the replications per point written out.
+    /// </summary>
+    public sealed class OptimizationCall
+    {
+        [JsonPropertyName("variables")] public List<DecisionVariable> Variables { get; set; } = new();
+        [JsonPropertyName("objective")] public ObjectiveDefinition Objective { get; set; } = new();
+        [JsonPropertyName("duration")] public double Duration { get; set; }
+        [JsonPropertyName("warmup")] public double Warmup { get; set; }
+        [JsonPropertyName("replications_per_eval")] public int ReplicationsPerEval { get; set; }
+        [JsonPropertyName("max_evaluations")] public int MaxEvaluations { get; set; }
+        [JsonPropertyName("strategy")] public string Strategy { get; set; } = string.Empty;
+        [JsonPropertyName("seed")] public int Seed { get; set; }
+    }
+
     /// <summary>SIM-86 slice B: where <c>run_experiment</c> wrote its run record, and the record's own hash.</summary>
     public sealed record RecordWritten(
         [property: JsonPropertyName("path")] string Path,

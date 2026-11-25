@@ -72,6 +72,21 @@ def test_the_fewest_exam_rooms_keeping_the_wait_under_15_is_seven(server):
     assert found.rows()[0]["exam.servers"] == 7
 
 
+def test_a_recorded_search_reproduces_identically_on_another_server(server, tmp_path):
+    # SIM-86: optimize writes the same run record as run_experiment
+    model = server.create_model(clinic())
+    path = tmp_path / "search.json"
+
+    model.optimize(variables=[{"path": "exam.servers", "type": "integer", "min": 6, "max": 8}],
+                   objective={"metric": "exam.servers", "direction": "min",
+                              "constraints": [{"metric": "wait_exam", "op": "<", "value": 15}]},
+                   duration=540, replications_per_eval=3, record=path)
+
+    with Server(timeout=300) as another:
+        check = another.reproduce_run(path)
+    assert check["identical"] and check["record_intact"] and check["model_intact"], check
+
+
 def test_a_saved_model_reopens_in_another_server_and_runs_the_same(server, tmp_path):
     # SIM-67: a model outlives the server that built it
     model = server.create_model(clinic())

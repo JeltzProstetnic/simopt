@@ -10,12 +10,13 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ModelContextProtocol;
 using SimOpt.McpServer.Models;
+using SimOpt.McpServer.Optimization;
 
 namespace SimOpt.McpServer.Simulation
 {
     /// <summary>
     /// SIM-86 slice B (UN-033, UN-034): a run record, one JSON file holding everything needed to repeat a
-    /// <c>run_experiment</c> call without the server that made it: the model's schema v1 document, the call
+    /// <c>run_experiment</c> or <c>optimize</c> call without the server that made it: the model's schema v1 document, the call
     /// with every default resolved, the answer, and <c>record_sha256</c> over all of that, which is the hook
     /// SIM-88 (UN-036) builds on. <see cref="Reproduce"/> repeats a record and compares every figure.
     /// </summary>
@@ -62,14 +63,39 @@ namespace SimOpt.McpServer.Simulation
                 Metrics = metrics is { Count: > 0 } ? metrics.ToList() : null,
                 Scenarios = scenarios is { Count: > 0 } ? scenarios.ToList() : null,
             };
+            return WriteRecord(fullPath, "run_experiment", topology,
+                JsonSerializer.SerializeToNode(call, Options), JsonSerializer.SerializeToNode(result, Options));
+        }
+
+        /// <summary>Writes the record of a finished search and returns its <c>record_sha256</c>.</summary>
+        public static string Write(string fullPath, TopologyDefinition topology, IReadOnlyList<DecisionVariable> variables,
+                                   ObjectiveDefinition objective, int maxEvaluations, OptimizationResult result)
+        {
+            var call = new OptimizationCall
+            {
+                Variables = variables.ToList(),
+                Objective = objective,
+                Duration = result.Duration,
+                Warmup = result.Warmup,
+                ReplicationsPerEval = result.ReplicationsPerEval,
+                MaxEvaluations = maxEvaluations,
+                Strategy = result.Strategy,
+                Seed = result.Seed,
+            };
+            return WriteRecord(fullPath, "optimize", topology,
+                JsonSerializer.SerializeToNode(call, Options), JsonSerializer.SerializeToNode(result, Options));
+        }
+
+        private static string WriteRecord(string fullPath, string tool, TopologyDefinition topology, JsonNode? call, JsonNode? result)
+        {
             var record = new JsonObject
             {
                 ["record"] = Format,
-                ["tool_call"] = "run_experiment",
+                ["tool_call"] = tool,
                 ["model"] = JsonNode.Parse(ModelDocument.Write(topology)),
                 ["limits"] = JsonSerializer.SerializeToNode(SchemaCatalog.Limits, Options),
-                ["call"] = JsonSerializer.SerializeToNode(call, Options),
-                ["result"] = JsonSerializer.SerializeToNode(result, Options),
+                ["call"] = call,
+                ["result"] = result,
             };
             string hash = Sha256(record);
             record["record_sha256"] = hash;
@@ -103,13 +129,13 @@ namespace SimOpt.McpServer.Simulation
             string? stated = Text(record["record_sha256"]);
             record.Remove("record_sha256");
             TopologyDefinition topology = model.Deserialize<TopologyDefinition>(McpJsonUtilities.DefaultOptions)!;
-            ExperimentCall call = callNode.Deserialize<ExperimentCall>(Options)!;
-
-            ExperimentResult now = ExperimentRunner.Run("record", 1, topology, call.Duration, call.Replications, call.Warmup,
-                                                        call.Metrics, call.Scenarios, call.Seed);
-            JsonArray then = recorded["scenarios"] as JsonArray ?? new JsonArray();
-            JsonArray again = (JsonNode.Parse(JsonSerializer.Serialize(now.Scenarios, Options)) as JsonArray)!;
-            List<string> differences = Differences(then, again);
+            List<string> differences = Text(record["tool_call"]) switch
+            {
+                "run_experiment" => RepeatExperiment(topology, callNode.Deserialize<ExperimentCall>(Options)!, recorded),
+                "optimize" => RepeatSearch(topology, callNode.Deserialize<OptimizationCall>(McpJsonUtilities.DefaultOptions)!, recorded),
+                var other => throw new ArgumentException($"{full}: a record of \"{other}\" cannot be repeated; " +
+                                                         "run_experiment and optimize can."),
+            };
 
             var report = new ReproductionReport
             {
@@ -117,11 +143,33 @@ namespace SimOpt.McpServer.Simulation
                 ModelIntact = Text(recorded["model_sha256"]) == ModelDocument.Sha256(topology),
                 RecordedWith = Text(recorded["tool"]) ?? "unknown",
                 ReproducedWith = ExperimentRunner.ToolVersion,
-                Identical = Same(then, again),
+                Identical = differences.Count == 0,
                 Differences = differences.Count > 0 ? differences : null,
             };
             report.Summary = Summarise(report);
             return report;
+        }
+
+        private static List<string> RepeatExperiment(TopologyDefinition topology, ExperimentCall call, JsonObject recorded)
+        {
+            ExperimentResult now = ExperimentRunner.Run("record", 1, topology, call.Duration, call.Replications, call.Warmup,
+                                                        call.Metrics, call.Scenarios, call.Seed);
+            JsonArray then = recorded["scenarios"] as JsonArray ?? new JsonArray();
+            JsonArray again = (JsonNode.Parse(JsonSerializer.Serialize(now.Scenarios, Options)) as JsonArray)!;
+            return Differences(then, again);
+        }
+
+        /// <summary>The search's figures that came out differently: what it found, ranked and counted.</summary>
+        private static List<string> RepeatSearch(TopologyDefinition topology, OptimizationCall call, JsonObject recorded)
+        {
+            OptimizationResult now = Optimizer.Run("record", 1, topology, call.Variables, call.Objective, call.Duration,
+                call.Warmup, call.ReplicationsPerEval, call.MaxEvaluations, maxSeconds: null, call.Strategy, call.Seed);
+            JsonObject again = (JsonNode.Parse(JsonSerializer.Serialize(now, Options)) as JsonObject)!;
+            var found = new List<string>();
+            foreach (string key in new[] { "best", "top", "evaluations", "space", "stopped", "strategy" })
+                if (!Same(recorded[key], again[key]))
+                    found.Add($"{key}: recorded {recorded[key]?.ToJsonString() ?? "nothing"}, now {again[key]?.ToJsonString() ?? "nothing"}");
+            return found;
         }
 
         private static string Sha256(JsonObject withoutHash) =>

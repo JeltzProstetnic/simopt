@@ -111,11 +111,13 @@ class Model:
             scenarios=scenarios, version=version, seed=seed, record=None if record is None else str(record))))
 
     def optimize(self, variables, objective, duration, warmup=None, replications_per_eval=None,
-                 max_evaluations=None, max_seconds=None, strategy=None, seed=None, version=None):
+                 max_evaluations=None, max_seconds=None, strategy=None, seed=None, version=None, record=None):
+        """optimize; record (SIM-86) names a new .json file for the run record, not with max_seconds."""
         return Optimization(self.server.call("optimize", _arguments(
             model_id=self.id, variables=list(variables), objective=objective, duration=duration, warmup=warmup,
             replications_per_eval=replications_per_eval, max_evaluations=max_evaluations,
-            max_seconds=max_seconds, strategy=strategy, seed=seed, version=version)))
+            max_seconds=max_seconds, strategy=strategy, seed=seed, version=version,
+            record=None if record is None else str(record))))
 
     def save(self, path, version=None, overwrite=None):
         """save_model (SIM-67): writes the version (default the latest) as topology JSON; an existing file
