@@ -1,0 +1,28 @@
+name: Nightly analytic gate
+
+# SIM-96: the checks that cost minutes rather than seconds (AnalyticNightlyTests): the nightly M/M/1
+# design at a 2 % half-width, coverage over 200 seed sets, and Welch's curve against the warm-up.
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SIMOPT_NIGHTLY: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Nightly tests
+        run: >
+          dotnet test tests/SimOpt.Tests/SimOpt.Tests.csproj --configuration Release
+          --filter "Category=Nightly" --logger "console;verbosity=detailed"

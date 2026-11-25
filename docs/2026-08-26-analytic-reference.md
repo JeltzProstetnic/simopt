@@ -252,7 +252,11 @@ Prediction and measurement agree to under 1%, so any other ρ can be sized direc
 half-width of 0.16. Two conditions on reusing it: **it is ρ-specific** (relaxation time grows as
 1/(1−√ρ)², so ρ=0.9 needs 379 time units — rescale, do not copy), and a Welch moving-average plot
 should be produced once, kept in `docs/`, and cited, because "10 relaxation times" is defensible
-only when someone has looked at the curve.
+only when someone has looked at the curve. **Done 2026-11-25 (SIM-96):**
+`docs/plans/2026-11-25-sim-96/welch-mm1-rho08.png` (30 replications, first 2,400 customers, window 201;
+curve and generator in the same folder): the sojourn rises from about 1.2 to the steady state within
+about 4 relaxation times (≈ 290 customers) and stays there, inside the noise of 30 replications, so the
+1,000-unit (≈ 800-customer) warm-up has room to spare. Regenerated nightly by `AnalyticNightlyTests`.
 
 ### Three things that decide flaky vs stable, none of them run length
 
