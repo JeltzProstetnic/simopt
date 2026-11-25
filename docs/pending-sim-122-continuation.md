@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=SIM-129 speed (top section), then SIM-126 slices 4+; MG still owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=blocked; next=SIM-129 speed (top section), then SIM-126 slices 4+, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
 # SimPy-gap section: SIM-124, 125, 127, 128, 131 done, SIM-126 slices 1-3 done; next SIM-129
 

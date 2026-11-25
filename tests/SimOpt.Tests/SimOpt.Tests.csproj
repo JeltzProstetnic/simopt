@@ -37,4 +37,9 @@
     <ProjectReference Include="../../src/SimOpt.McpServer/SimOpt.McpServer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- SIM-129: EngineFingerprintTests pins the speed harness's cases, compiled from the same file. -->
+    <Compile Include="../../benchmarks/SimOpt.Benchmarks/BenchmarkCases.cs" Link="Simulation/Engine/BenchmarkCases.cs" />
+  </ItemGroup>
+
 </Project>

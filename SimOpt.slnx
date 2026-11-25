@@ -16,6 +16,9 @@
   <Folder Name="/tests/">
     <Project Path="tests/SimOpt.Tests/SimOpt.Tests.csproj" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/SimOpt.Benchmarks/SimOpt.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/examples/">
     <Project Path="examples/SimOpt.Examples.DiningPhilosophers/SimOpt.Examples.DiningPhilosophers.csproj" />
     <Project Path="examples/SimOpt.Examples.EmergencyDepartment/SimOpt.Examples.EmergencyDepartment.csproj" />

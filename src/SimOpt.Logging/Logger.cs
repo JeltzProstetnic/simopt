@@ -17,6 +17,8 @@ namespace SimOpt.Logging
 
         private static bool autoDispatch;
         private static bool isDispatcherRunning;
+        // SIM-129: read on every log call; ConcurrentDictionary.IsEmpty takes all its locks when empty
+        private static volatile bool isActive;
 
         private static Thread dispatcherThread;
         private static AutoResetEvent dataAvailableEvent;
@@ -81,7 +83,13 @@ namespace SimOpt.Logging
         public static IEnumerable<ILogger> Loggers { get { return loggers.Keys; } }
 
         /// <summary>
-        /// if this is set to true, the logging will occure instantly, 
+        /// True while at least one logger is registered. Every log call returns at once while it is
+        /// false, so a headless run builds no message nobody can receive (SIM-129).
+        /// </summary>
+        public static bool IsActive { get { return isActive; } }
+
+        /// <summary>
+        /// if this is set to true, the logging will occure instantly,
         /// meaning that no threading will be used to dispatch messages.
         /// this makes your code wait until all loggers have consumed
         /// the message. if this is false, threading will be used to
@@ -255,6 +263,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(string message, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
 
             tmp[Sender] = "UndefinedSender";
@@ -287,6 +296,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(object sender, string message, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
             
             tmp[Sender] = sender;
@@ -320,6 +330,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log<T>(string message, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
 
             tmp[Sender] = "UndefinedSender";
@@ -356,6 +367,7 @@ namespace SimOpt.Logging
         /// </param>
         public static void Log<T>(object sender, string message, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
             
             tmp[Sender] = sender;
@@ -390,6 +402,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
 
             tmp[Sender] = "UndefinedSender";
@@ -423,6 +436,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(object sender, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
 
             tmp[Sender] = sender;
@@ -457,6 +471,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log<T>(Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
 
             tmp[Sender] = "UndefinedSender";
@@ -492,6 +507,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log<T>(object sender, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
 
             tmp[Sender] = sender;
@@ -528,6 +544,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(string message, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             string msg;
             if (Logger.ConcatExceptionMessage)
                 msg = message + ConcatExceptionMessageSeparator + exception.Message;
@@ -567,6 +584,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(object sender, string message, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             string msg;
             if (Logger.ConcatExceptionMessage)
                 msg = message + ConcatExceptionMessageSeparator + exception.Message;
@@ -607,6 +625,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log<T>(string message, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             string msg;
             if (Logger.ConcatExceptionMessage)
                 msg = message + ConcatExceptionMessageSeparator + exception.Message;
@@ -648,6 +667,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log<T>(object sender, string message, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!isActive) return;
             string msg;
             if (Logger.ConcatExceptionMessage)
                 msg = message + ConcatExceptionMessageSeparator + exception.Message;
@@ -687,8 +707,8 @@ namespace SimOpt.Logging
         /// <param name="settings">logger settings</param>
         public static void Add(ILogger logger, ILoggerSettings settings = null)
         {
-            if (settings == null) loggers[logger] = new DefaultLoggerSettings();
-            else loggers[logger] = settings;
+            if (settings == null) Register(logger, new DefaultLoggerSettings());
+            else Register(logger, settings);
         }
 
         /// <summary>
@@ -699,7 +719,7 @@ namespace SimOpt.Logging
         /// <param name="whiteList">a number of message classes which will be fed to the logger</param>
         public static void Add(ILogger logger, params Type[] whiteList)
         {
-            loggers[logger] = new DefaultLoggerSettings(whiteList);
+            Register(logger, new DefaultLoggerSettings(whiteList));
         }
 
         /// <summary>
@@ -710,7 +730,7 @@ namespace SimOpt.Logging
         /// <param name="minimumSeverity">a minimum severity below which messages are hidden from the logger</param>
         public static void Add(ILogger logger, int minimumSeverity)
         {
-            loggers[logger] = new DefaultLoggerSettings(minimumSeverity);
+            Register(logger, new DefaultLoggerSettings(minimumSeverity));
         }
 
         /// <summary>
@@ -720,7 +740,7 @@ namespace SimOpt.Logging
         /// <param name="logger">the log message consumer</param>
         public static void Add<T>(ILogger logger)
         {
-            loggers[logger] = new DefaultLoggerSettings(typeof(T));
+            Register(logger, new DefaultLoggerSettings(typeof(T)));
         }
 
         /// <summary>
@@ -731,7 +751,7 @@ namespace SimOpt.Logging
         /// <param name="logger">the log message consumer</param>
         public static void Add<T1, T2>(ILogger logger)
         {
-            loggers[logger] = new DefaultLoggerSettings(typeof(T1), typeof(T2));
+            Register(logger, new DefaultLoggerSettings(typeof(T1), typeof(T2)));
         }
 
         /// <summary>
@@ -743,7 +763,7 @@ namespace SimOpt.Logging
         /// <param name="logger">the log message consumer</param>
         public static void Add<T1, T2, T3>(ILogger logger)
         {
-            loggers[logger] = new DefaultLoggerSettings(typeof(T1), typeof(T2), typeof(T3));
+            Register(logger, new DefaultLoggerSettings(typeof(T1), typeof(T2), typeof(T3)));
         }
 
         /// <summary>
@@ -756,7 +776,7 @@ namespace SimOpt.Logging
         /// <param name="logger">the log message consumer</param>
         public static void Add<T1, T2, T3, T4>(ILogger logger)
         {
-            loggers[logger] = new DefaultLoggerSettings(typeof(T1), typeof(T2), typeof(T3), typeof(T4));
+            Register(logger, new DefaultLoggerSettings(typeof(T1), typeof(T2), typeof(T3), typeof(T4)));
         }
 
         /// <summary>
@@ -770,7 +790,7 @@ namespace SimOpt.Logging
         /// </param>
         public static void Add(ILogger logger, Func<Dictionary<string, object>, bool> filter)
         {
-            loggers[logger] = new DefaultLoggerSettings();
+            Register(logger, new DefaultLoggerSettings());
         }
 
         /// <summary>
@@ -781,7 +801,15 @@ namespace SimOpt.Logging
         public static bool Remove(ILogger logger)
         {
             ILoggerSettings nothing;
-            return loggers.TryRemove(logger, out nothing);
+            bool removed = loggers.TryRemove(logger, out nothing);
+            isActive = !loggers.IsEmpty;
+            return removed;
+        }
+
+        private static void Register(ILogger logger, ILoggerSettings settings)
+        {
+            loggers[logger] = settings;
+            isActive = true;
         }
 
         #endregion

@@ -40,11 +40,8 @@ namespace SimOpt.Simulation
         /// <param name="data"></param>
         public static void Log(this object sender, string message, IModel model, params Expression<Func<object, object>>[] data)
         {
-            DateTime currentSimTime;
-            if (model.CurrentTime >= DateTime.MaxValue.ToDouble()) currentSimTime = DateTime.MaxValue;
-            else currentSimTime = model.CurrentTime.ToDateTime();
-
-            Expression<Func<object, object>>[] simData = { Model => model, TimeStamp => currentSimTime };
+            if (!SimOpt.Logging.Logger.IsActive) return;
+            Expression<Func<object, object>>[] simData = SimData(model);
             Logging.Logger.Log(sender, message, data.Concat(simData).ToArray());
         }
 
@@ -59,11 +56,8 @@ namespace SimOpt.Simulation
         /// <param name="data"></param>
         public static void Log<T>(this object sender, string message, IModel model, params Expression<Func<object, object>>[] data)
         {
-            DateTime currentSimTime;
-            if (model.CurrentTime >= DateTime.MaxValue.ToDouble()) currentSimTime = DateTime.MaxValue;
-            else currentSimTime = model.CurrentTime.ToDateTime();
-
-            Expression<Func<object, object>>[] simData = { Model => model, TimeStamp => currentSimTime };
+            if (!SimOpt.Logging.Logger.IsActive) return;
+            Expression<Func<object, object>>[] simData = SimData(model);
             Logging.Logger.Log<T>(sender, message, data.Concat(simData).ToArray());
         }
 
@@ -76,11 +70,8 @@ namespace SimOpt.Simulation
         /// <param name="data"></param>
         public static void Log(this object sender, string message, Exception exception, IModel model, params Expression<Func<object, object>>[] data)
         {
-            DateTime currentSimTime;
-            if (model.CurrentTime >= DateTime.MaxValue.ToDouble()) currentSimTime = DateTime.MaxValue;
-            else currentSimTime = model.CurrentTime.ToDateTime();
-
-            Expression<Func<object, object>>[] simData = { Model => model, TimeStamp => currentSimTime };
+            if (!SimOpt.Logging.Logger.IsActive) return;
+            Expression<Func<object, object>>[] simData = SimData(model);
             Logging.Logger.Log(sender, message, exception, data.Concat(simData).ToArray());
         }
 
@@ -95,11 +86,8 @@ namespace SimOpt.Simulation
         /// <param name="data"></param>
         public static void Log<T>(this object sender, string message, Exception exception, IModel model, params Expression<Func<object, object>>[] data)
         {
-            DateTime currentSimTime;
-            if (model.CurrentTime >= DateTime.MaxValue.ToDouble()) currentSimTime = DateTime.MaxValue;
-            else currentSimTime = model.CurrentTime.ToDateTime();
-
-            Expression<Func<object, object>>[] simData = { Model => model, TimeStamp => currentSimTime };
+            if (!SimOpt.Logging.Logger.IsActive) return;
+            Expression<Func<object, object>>[] simData = SimData(model);
             Logging.Logger.Log<T>(sender, message, exception, data.Concat(simData).ToArray());
         }
 
@@ -112,11 +100,8 @@ namespace SimOpt.Simulation
         /// <param name="data"></param>
         public static void Log(this object sender, Exception exception, IModel model, params Expression<Func<object, object>>[] data)
         {
-            DateTime currentSimTime;
-            if (model.CurrentTime >= DateTime.MaxValue.ToDouble()) currentSimTime = DateTime.MaxValue;
-            else currentSimTime = model.CurrentTime.ToDateTime();
-
-            Expression<Func<object, object>>[] simData = { Model => model, TimeStamp => currentSimTime };
+            if (!SimOpt.Logging.Logger.IsActive) return;
+            Expression<Func<object, object>>[] simData = SimData(model);
             Logging.Logger.Log(sender, exception, data.Concat(simData).ToArray());
         }
 
@@ -131,11 +116,8 @@ namespace SimOpt.Simulation
         /// <param name="data"></param>
         public static void Log<T>(this object sender, Exception exception, IModel model, params Expression<Func<object, object>>[] data)
         {
-            DateTime currentSimTime;
-            if (model.CurrentTime >= DateTime.MaxValue.ToDouble()) currentSimTime = DateTime.MaxValue;
-            else currentSimTime = model.CurrentTime.ToDateTime();
-
-            Expression<Func<object, object>>[] simData = { Model => model, TimeStamp => currentSimTime };
+            if (!SimOpt.Logging.Logger.IsActive) return;
+            Expression<Func<object, object>>[] simData = SimData(model);
             Logging.Logger.Log<T>(sender, exception, data.Concat(simData).ToArray());
         }
 
@@ -268,5 +250,15 @@ namespace SimOpt.Simulation
         }
 
         #endregion
+
+        // SIM-129: the lambdas capture model, and a captured parameter is hoisted into a closure at
+        // method entry, so building them here keeps the inactive-logger return free of allocation.
+        private static Expression<Func<object, object>>[] SimData(IModel model)
+        {
+            DateTime currentSimTime;
+            if (model.CurrentTime >= DateTime.MaxValue.ToDouble()) currentSimTime = DateTime.MaxValue;
+            else currentSimTime = model.CurrentTime.ToDateTime();
+            return new Expression<Func<object, object>>[] { Model => model, TimeStamp => currentSimTime };
+        }
     }
 }

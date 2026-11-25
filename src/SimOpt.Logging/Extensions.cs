@@ -41,6 +41,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(this object sender, string message, params Expression<Func<object, object>>[] data) 
         {
+            if (!Logger.IsActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
             
             tmp[Logger.Sender] = sender;
@@ -75,6 +76,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log<T>(this object sender, string message, params Expression<Func<object, object>>[] data) 
         {
+            if (!Logger.IsActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
             
             tmp[Logger.Sender] = sender;
@@ -108,6 +110,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(this object sender, string message, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!Logger.IsActive) return;
             string msg;
             if (Logger.ConcatExceptionMessage)
                 msg = message + Logger.ConcatExceptionMessageSeparator + exception.Message;
@@ -149,6 +152,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log<T>(this object sender, string message, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!Logger.IsActive) return;
             string msg;
             if (Logger.ConcatExceptionMessage)
                 msg = message + Logger.ConcatExceptionMessageSeparator + exception.Message;
@@ -187,6 +191,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log(this object sender, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!Logger.IsActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
 
             tmp[Logger.Sender] = sender;
@@ -222,6 +227,7 @@ namespace SimOpt.Logging
         /// example: <code>Log("Hello World!", Weather => "Nice");</code></param>
         public static void Log<T>(this object sender, Exception exception, params Expression<Func<object, object>>[] data)
         {
+            if (!Logger.IsActive) return;
             Dictionary<string, object> tmp = new Dictionary<string, object>();
 
             tmp[Logger.Sender] = sender;
