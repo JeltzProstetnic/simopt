@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=blocked; next=SIM-126 slice 4 (wait on a template's event), while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Work: stage=findings-written; status=blocked; next=SIM-65 step 1 (ParamValue), then SIM-126's schema part and SIM-110, while MG owes Q-PRIV-RULE and Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125 -->
-# SimPy-gap section: SIM-124, 125, 127, 128, 129, 131 done, SIM-126 slices 1-3 done; next SIM-126 slice 4
+# SimPy-gap section: SIM-124, 125, 127, 128, 129, 131 done, SIM-126 slices 1-6 done; next SIM-65 step 1
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -77,7 +77,11 @@ the private hand-off (see *Private material*).
    **SIM-129 done 2026-11-25 (night, unattended):** `5cb47a1`..`576f156`, results byte-identical, 997 -> 179 ns per
    event, SIM-122 case 5.3 s -> 1.55 s (SimPy 2.77 s); brief `docs/plans/2026-11-25-sim-129-speed-per-event.md`;
    suite 1067 passed, 1 skipped. No comment on his issue #30 needed: no result moved.
-   **Next, in order:** SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
+   **SIM-126 slices 4-6 done the same night:** `e789e5a` (a process waits for the next raise of a template's event,
+   `Wait.Next`), `6a228ef` (named random streams per process, `p.Random(name, distribution)`), `be58575` (the car wash
+   example, `examples/SimOpt.Examples.CarWash`); suite 1081 passed, 1 skipped. Left of SIM-126: the SIM-65 schema.
+   **Next, in order:** SIM-65 step 1 (`ParamValue`, `docs/pending-sim-65-continuation.md`), then SIM-126's schema part,
+   SIM-110 and SIM-130. Older plan, kept for reference: SIM-126's remaining slices (waiting on a template's event, a random-draw helper per
    process, an example in `examples/`), then SIM-130 after SIM-65/66. SIM-65 step 1 (`ParamValue`) and SIM-110
    follow, unless MG orders otherwise.
    **Q-ASYNC** (new): the process layer uses C# iterators; an `async` front end over the same waits stays
