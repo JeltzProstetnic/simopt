@@ -1,0 +1,88 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using ModelContextProtocol;
+using SimOpt.McpServer.Models;
+using SimOpt.McpServer.Optimization;
+using Xunit;
+
+namespace SimOpt.Tests.McpServer;
+
+// SIM-68 step 4 (D6 "auto"): measures random, sa, ea and pso against each other under fixed replications
+// (seed 7) with search seeds 1..15. To reproduce, copy into tests/SimOpt.Tests/McpServer/ as a .cs file and run
+//   SIM68_OUT=<file> dotnet test tests/SimOpt.Tests --filter FullyQualifiedName~ScratchStrategyMeasurement
+// This copy is the second run (run2-budget-50.txt: P2 and the continuous P4 at budget 50). The first run
+// (run1-budgets-20-40.txt) used P1 (triage 1-6 x exam 4-12, fewest rooms with wait < 15), P2, and P3 (exam
+// 4-12 x arrival mean 3-10 step 0.25, max util_exam with wait < 5) at budgets 20 and 40.
+public class ScratchStrategyMeasurement
+{
+    private const string Clinic = """
+        {"schema_version":"1","name":"clinic","seed":7,
+         "nodes":[
+          {"id":"arrivals","type":"source","params":{"arrival":{"type":"exponential","mean":5.0}}},
+          {"id":"triage_q","type":"queue"},
+          {"id":"triage","type":"station","params":{"servers":3,"service":{"type":"triangular","min":3,"mode":5,"max":10}}},
+          {"id":"exam_q","type":"queue"},
+          {"id":"exam","type":"station","params":{"servers":8,"service":{"type":"triangular","min":20,"mode":30,"max":40}}},
+          {"id":"exit","type":"sink"}],
+         "connections":[["arrivals","triage_q"],["triage_q","triage"],["triage","exam_q"],["exam_q","exam"],["exam","exit"]],
+         "metrics":[{"id":"wait_exam","kind":"wait_time","node":"exam_q"},
+                    {"id":"util_exam","kind":"utilization","node":"exam"},
+                    {"id":"los","kind":"cycle_time"}]}
+        """;
+
+    private static DecisionVariable V(string path, string type, double min, double max, double? step = null) =>
+        new() { Path = path, Type = type, Min = min, Max = max, Step = step };
+
+    private static ObjectiveDefinition O(string metric, string direction, string cMetric, string op, double value) => new()
+    {
+        Metric = metric, Direction = direction,
+        Constraints = { new ConstraintDefinition { Metric = cMetric, Op = op, Value = value } },
+    };
+
+    [Fact]
+    public void Measure()
+    {
+        string outPath = Environment.GetEnvironmentVariable("SIM68_OUT") ?? throw new InvalidOperationException("no SIM68_OUT");
+        TopologyDefinition topology = JsonSerializer.Deserialize<TopologyDefinition>(Clinic, McpJsonUtilities.DefaultOptions)!;
+        var problems = new (string Name, DecisionVariable[] Vars, ObjectiveDefinition Obj)[]
+        {
+            ("P2 max util_exam s.t. wait<5, triage 1-10 x exam 4-20 (170)", new[] { V("triage.servers", "integer", 1, 10), V("exam.servers", "integer", 4, 20) },
+                O("util_exam", "max", "wait_exam", "<", 5)),
+            ("P4 max util_exam s.t. wait<5, exam 4-12 x arrival mean 3-10 CONTINUOUS", new[] { V("exam.servers", "integer", 4, 12), V("arrivals.arrival.mean", "real", 3, 10) },
+                O("util_exam", "max", "wait_exam", "<", 5)),
+        };
+        var sb = new StringBuilder();
+        foreach (var p in problems)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            OptimizationResult? grid = p.Name.Contains("CONTINUOUS") ? null : Optimizer.Run("m", 1, topology, p.Vars, p.Obj, 540, 60, 5, 1000, null, "grid", 7);
+            sb.AppendLine($"## {p.Name}: grid best {(grid == null ? "none" : Show(grid))}");
+            foreach (int budget in new[] { 50 })
+            foreach (string s in new[] { "random", "sa", "ea", "pso" })
+            {
+                int hits = 0; var objectives = new List<double>(); var evals = new List<int>();
+                sw.Restart();
+                for (int seed = 1; seed <= 15; seed++)
+                {
+                    OptimizationResult r = Optimizer.Run("m", 1, topology, p.Vars, p.Obj, 540, 60, 5, budget, null, s, 7, seed);
+                    if (grid != null && r.Best.Feasible && r.Best.Objective == grid.Best.Objective) hits++;
+                    objectives.Add(r.Best.Feasible ? r.Best.Objective ?? double.NaN : double.NaN);
+                    evals.Add(r.Evaluations);
+                }
+                sb.AppendLine($"budget {budget,2} {s,-6}: optimum {hits,2}/15, objective mean {objectives.Where(double.IsFinite).DefaultIfEmpty(double.NaN).Average():G4} " +
+                              $"worst {(p.Obj.Direction == "min" ? objectives.Where(double.IsFinite).DefaultIfEmpty(double.NaN).Max() : objectives.Where(double.IsFinite).DefaultIfEmpty(double.NaN).Min()):G4} (infeasible {objectives.Count(o => !double.IsFinite(o))}), " +
+                              $"evaluations mean {evals.Average():G3}, {sw.ElapsedMilliseconds} ms");
+                File.WriteAllText(outPath, sb.ToString());
+            }
+        }
+        sb.AppendLine("DONE");
+        File.WriteAllText(outPath, sb.ToString());
+    }
+
+    private static string Show(OptimizationResult r) =>
+        $"{string.Join(", ", r.Best.Point.Select(kv => $"{kv.Key}={kv.Value}"))} objective {r.Best.Objective} feasible {r.Best.Feasible}";
+}

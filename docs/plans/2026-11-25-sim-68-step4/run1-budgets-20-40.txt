@@ -1,0 +1,28 @@
+## P1 fewest rooms, triage 1-6 x exam 4-12 (54): grid best triage.servers=1, exam.servers=6 objective 6 feasible True (54 points, 284 ms)
+budget 20 random: optimum  4/15, objective mean 6.733 worst 7 (infeasible 0), evaluations mean 20, 1312 ms
+budget 20 sa    : optimum  7/15, objective mean 6.533 worst 7 (infeasible 0), evaluations mean 17.7, 820 ms
+budget 20 ea    : optimum  4/15, objective mean 6.733 worst 7 (infeasible 0), evaluations mean 20, 879 ms
+budget 20 pso   : optimum  7/15, objective mean 6.533 worst 7 (infeasible 0), evaluations mean 19.6, 897 ms
+budget 40 random: optimum 10/15, objective mean 6.333 worst 7 (infeasible 0), evaluations mean 40, 1728 ms
+budget 40 sa    : optimum 15/15, objective mean 6 worst 6 (infeasible 0), evaluations mean 20.8, 896 ms
+budget 40 ea    : optimum 15/15, objective mean 6 worst 6 (infeasible 0), evaluations mean 30.3, 1298 ms
+budget 40 pso   : optimum 10/15, objective mean 6.333 worst 7 (infeasible 0), evaluations mean 25.1, 1064 ms
+## P2 max util_exam s.t. wait<5, triage 1-10 x exam 4-20 (170): grid best triage.servers=1, exam.servers=6 objective 0.8347 feasible True (170 points, 534 ms)
+budget 20 random: optimum  0/15, objective mean 0.7127 worst 0.6349 (infeasible 0), evaluations mean 20, 1019 ms
+budget 20 sa    : optimum  1/15, objective mean 0.6233 worst 0.3821 (infeasible 0), evaluations mean 19.4, 929 ms
+budget 20 ea    : optimum  0/15, objective mean 0.7124 worst 0.6349 (infeasible 0), evaluations mean 20, 1058 ms
+budget 20 pso   : optimum  2/15, objective mean 0.7323 worst 0.6369 (infeasible 0), evaluations mean 20, 927 ms
+budget 40 random: optimum  1/15, objective mean 0.7432 worst 0.7149 (infeasible 0), evaluations mean 40, 2051 ms
+budget 40 sa    : optimum  4/15, objective mean 0.764 worst 0.5735 (infeasible 0), evaluations mean 34.7, 1603 ms
+budget 40 ea    : optimum  9/15, objective mean 0.8001 worst 0.7151 (infeasible 0), evaluations mean 38.5, 1778 ms
+budget 40 pso   : optimum  6/15, objective mean 0.7763 worst 0.7149 (infeasible 0), evaluations mean 38, 1705 ms
+## P3 max util_exam s.t. wait<5, exam 4-12 x arrival mean 3-10 step 0.25 (261): grid best exam.servers=10, arrivals.arrival.mean=3.25 objective 0.8634 feasible True (261 points, 670 ms)
+budget 20 random: optimum  1/15, objective mean 0.7749 worst 0.6446 (infeasible 0), evaluations mean 20, 819 ms
+budget 20 sa    : optimum  1/15, objective mean 0.7329 worst 0.5884 (infeasible 0), evaluations mean 18.6, 666 ms
+budget 20 ea    : optimum  1/15, objective mean 0.7682 worst 0.6871 (infeasible 0), evaluations mean 20, 779 ms
+budget 20 pso   : optimum  2/15, objective mean 0.7757 worst 0.624 (infeasible 0), evaluations mean 19.9, 836 ms
+budget 40 random: optimum  4/15, objective mean 0.8282 worst 0.7455 (infeasible 0), evaluations mean 40, 1559 ms
+budget 40 sa    : optimum  2/15, objective mean 0.7701 worst 0.6739 (infeasible 0), evaluations mean 28.9, 1110 ms
+budget 40 ea    : optimum  3/15, objective mean 0.8212 worst 0.7837 (infeasible 0), evaluations mean 37.9, 1601 ms
+budget 40 pso   : optimum  3/15, objective mean 0.8085 worst 0.7467 (infeasible 0), evaluations mean 37.5, 1614 ms
+DONE

@@ -1,0 +1,11 @@
+## P2 max util_exam s.t. wait<5, triage 1-10 x exam 4-20 (170): grid best triage.servers=1, exam.servers=6 objective 0.8347 feasible True
+budget 50 random: optimum  2/15, objective mean 0.7512 worst 0.7149 (infeasible 0), evaluations mean 50, 2683 ms
+budget 50 sa    : optimum  3/15, objective mean 0.7854 worst 0.7149 (infeasible 0), evaluations mean 39.9, 1922 ms
+budget 50 ea    : optimum 12/15, objective mean 0.824 worst 0.7151 (infeasible 0), evaluations mean 42.8, 2153 ms
+budget 50 pso   : optimum 10/15, objective mean 0.8147 worst 0.7149 (infeasible 0), evaluations mean 43.7, 1971 ms
+## P4 max util_exam s.t. wait<5, exam 4-12 x arrival mean 3-10 CONTINUOUS: grid best none
+budget 50 random: optimum  0/15, objective mean 0.8313 worst 0.7358 (infeasible 0), evaluations mean 50, 1927 ms
+budget 50 sa    : optimum  0/15, objective mean 0.7705 worst 0.6814 (infeasible 0), evaluations mean 50, 1892 ms
+budget 50 ea    : optimum  0/15, objective mean 0.8355 worst 0.7916 (infeasible 0), evaluations mean 50, 2260 ms
+budget 50 pso   : optimum  0/15, objective mean 0.8326 worst 0.7661 (infeasible 0), evaluations mean 48.6, 2174 ms
+DONE

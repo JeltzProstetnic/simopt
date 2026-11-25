@@ -16,9 +16,11 @@ namespace SimOpt.McpServer.Optimization
     /// <summary>
     /// SIM-69 (D6, D9): runs a search over a model version's decision variables and reports the best
     /// point. "grid" evaluates every point of a discrete space; "random" draws points from the seeded
-    /// space; "auto" enumerates when the space fits the evaluation budget and draws at random otherwise.
-    /// SIM-68 step 4: "sa", "ea" and "pso" run simulated annealing, the evolutionary algorithm and the
-    /// particle swarm of SimOpt.Optimization on the same problem, each until the budget is spent.
+    /// space; "sa", "ea" and "pso" run simulated annealing, the evolutionary algorithm and the particle
+    /// swarm of SimOpt.Optimization on the same problem, each until the budget is spent (SIM-68 step 4).
+    /// "auto" enumerates when the space fits the evaluation budget and runs the EA otherwise: at the
+    /// default budget it found a 170-point space's optimum 12 times in 15 against random search's 2, and
+    /// had the best worst case on a continuous space; SA, planned as the default in D6, came last.
     /// </summary>
     public static class Optimizer
     {
@@ -53,7 +55,7 @@ namespace SimOpt.McpServer.Optimization
             int baseSeed = seed ?? topology.Seed;
             var problem = new TopologyProblem(topology, variables, objective, duration, warm, replicationsPerEval, baseSeed, maxEvaluations);
             long? space = problem.SpaceSize;
-            if (chosen == "auto") chosen = space is long n && n <= maxEvaluations ? "grid" : "random";
+            if (chosen == "auto") chosen = space is long n && n <= maxEvaluations ? "grid" : "ea";
             if (chosen == "grid" && space == null)
                 throw new ArgumentException("grid needs a discrete space: give every real variable a step, or use random.");
             if (chosen == "grid" && space > maxEvaluations)

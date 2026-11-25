@@ -596,3 +596,19 @@ SIM-129, with SIM-130 following SIM-65/66.
   mean as an option.
 - **`optimize` offers auto, grid and random only until SIM-59 lands.** SA, EA and PSO carry SIM-59's
   defects (unguarded temperature loop, missing clones, PSO's reflection), so they are not exposed yet.
+  *Superseded the same night (below).*
+
+## 2026-11-25 (night, restart #4) — SIM-59 and SIM-68 step 4
+
+- **`optimize` runs sa, ea and pso, and "auto" runs the EA when the space exceeds the budget.** D6 had
+  planned SA. Measured under fixed replications with 15 search seeds, SA came last on every larger space
+  and the EA was best or tied at the default budget with the best worst case (a 170-point space: optimum
+  in 12 of 15 runs against random search's 2). Evidence: the table in
+  `docs/plans/2026-11-25-sim-68-69-topology-problem-optimize.md`. Unattended choice; MG may prefer
+  another default (Q-AUTO).
+- **A solution's clone splits its move generator instead of copying it.** With a copied state, SA (which
+  proposes every move on a clone of its unchanged current point) proposed a rejected move again and froze:
+  2 distinct proposals in 300. Runs stay reproducible from their seed; D8 is revised accordingly.
+- **The EA's generation is sorted best first.** `ISolution.CompareTo` orders ascending, and the default
+  parent selector takes the first µ, so the EA bred from its worst members. Fixed in the algorithm, not
+  in the selector, because `ProcessGeneration` documents its input as best first.

@@ -95,7 +95,7 @@ public class OptimizeToolTests
     }
 
     [Fact]
-    public async Task AContinuousSpace_IsSearchedAtRandom_WithinTheBudget()
+    public async Task AContinuousSpace_IsSearchedByTheEvolutionaryAlgorithm_WithinTheBudget()
     {
         var (tools, id) = await Created();
 
@@ -106,7 +106,8 @@ public class OptimizeToolTests
              "duration": 540, "max_evaluations": 12}
             """));
 
-        result.GetProperty("strategy").GetString().Should().Be("random");
+        // SIM-68 step 4: at the default budget the EA beat random search on every space measured
+        result.GetProperty("strategy").GetString().Should().Be("ea");
         result.GetProperty("evaluations").GetInt32().Should().BeLessThanOrEqualTo(12);
         result.GetProperty("stopped").GetString().Should().Be("budget");
         result.GetProperty("best").GetProperty("feasible").GetBoolean().Should().BeTrue();
