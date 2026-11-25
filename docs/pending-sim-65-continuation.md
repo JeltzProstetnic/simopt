@@ -51,7 +51,18 @@ raced across threads, `fa1fba8`) and SIM-134 (the logger's dispatcher thread kil
 tests, about 1 in 30). **A single red run is not a regression signal until SIM-137/138 are fixed;
 re-run before concluding.**
 
-**Resume at step 5 (declared metrics), below.** What the builder now knows that step 5 needs: a
+**Step 5 done too (`9712792`):** `metrics: [{id, kind, node?}]`, `ActiveModel.Metrics` maps metric id ->
+collector id (the `ReplicationResult` key); new `ObservePoolUtilization`, `CountCollector`
+(`ObserveCount`/`ObserveThroughput`), `ObserveCycleTime`. SIM-134 is proven (60 clean runs) and SIM-138
+(allocation tests) is fixed with `Helpers/Allocations.Least`, awaiting its 40-run proof. Suite **1185 passed,
+1 skipped**. Found: SIM-139 (a source's first item at t = 1 fresh, t = 0 after a reset).
+
+**Resume at step 6 (`SchemaCatalog` + `get_schema`), then the clinic acceptance test.** The clinic JSON
+in the readiness review writes connections as arrays (`["a","b"]`) and carries `"schema_version":"1"`;
+`ConnectionDefinition` binds only `{from,to,weight?}` objects, so either accept both shapes with a
+converter or change the walkthrough JSON (accepting both is kinder to a client LLM).
+
+(Older note, kept: resume at step 5 (declared metrics), below.) What the builder now knows that step 5 needs: a
 station is a pool `stations[nodeId]` of `SimpleServer`s (`<id>#k` for c > 1), so a station's
 `utilization` is the pool's busy count over c; `queue_length` and `wait_time` attach to
 `buffers[queueId]` (`Instrumentation.ObserveQueueLength`/`ObserveWaitingTime`); `count`/`throughput`
@@ -79,7 +90,7 @@ read a sink. ActiveModel has `Delays` and `Routers` besides the old four.
    it on `StochasticEntity(model, seedID, id, name)` so its stream is a function of (model seed,
    node id) and resets with the model. **Do not extend `SimpleRejectServer`** — SIM-99 is exactly
    why.
-5. **Declared metrics** — `metrics: [{id, kind, node?}]`. `wait_time`, `queue_length` and
+5. ~~**Declared metrics**~~ **done 2026-11-25 (step 5)** — `metrics: [{id, kind, node?}]`. `wait_time`, `queue_length` and
    `utilization` have collectors already (`Instrumentation`); `count`/`throughput` read the sink;
    `cycle_time` needs a new `Instrumentation.ObserveCycleTime` (unblocked now that SIM-90 preserves
    entity identity through servers). Attaching them is this item; **reporting them is SIM-66** (D6).
