@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=decided; status=open; next=build SIM-126's process schema (Q-PROC-SCHEMA, brief docs/plans/2026-11-25-sim-126-process-schema.md), then SIM-110 via SIM-70 and SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=SIM-110's rest starting with SIM-70's extraction (brief docs/plans/2026-11-25-sim-110-one-model-path.md), then SIM-86 slice C; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -102,6 +102,18 @@ the private hand-off (see *Private material*).
   shape in `docs/decisions.md`), then SIM-110's rest starting with SIM-70's extraction (brief
   `docs/plans/2026-11-25-sim-110-one-model-path.md`), then SIM-86 slice C (`report_run`, Markdown, English or German).
   SIM-117/95/119 wait for his SIM-122 results. Check the first nightly CI run (2026-11-26 02:17 UTC).
+
+## Session 2026-11-25 morning, after the decisions (WSL, MG at the console)
+
+- **SIM-126 done**, all six schema slices test-first (`120ed99`, `9ad8890`, `6295e50`, `9d47545`, `b12c848`, `a487e2b`):
+  `resource`, `stock` and `process` nodes with `delay`, `seize`, `release`, `take`, `put`, `wait_until`; patience with
+  outlets and the `share` metric; processes nothing feeds repeat beside the flow; resource offered load and
+  `STOCK_RUNS_OUT`; step patch paths; Python `simopt.steps`. Measured: M/M/3 as a process Wq 1.098 +- 0.023 against
+  Erlang-C 1.079; Erlang B 0.26711 +- 0.00116 against 0.26841; the brief's car-wash document agrees with the C# example
+  on all four figures; 234 ns per event against the station's 205. Every number is in the brief's § Built.
+- **SIM-142 found and fixed** (`69476ff`): no topology with two sources could be created (both named their items E1, E2
+  ...; `TRIAL_FAILED`). P1 proposed; MG to confirm.
+- Suite 1448 -> 1565 passed, 4 skipped; Python 26 -> 30. No template result moved, so nothing for his issue #30.
 
 ## Decisions for MG (stable IDs; recommended option first)
 
