@@ -9,6 +9,7 @@ using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
 using SimOpt.Simulation.Enum;
 using SimOpt.Simulation.Interfaces;
+using SimOpt.Simulation.Statistics;
 using SimOpt.Simulation.Templates;
 using SimOpt.Basics.Utilities;
 
@@ -422,12 +423,14 @@ namespace SimOpt.McpServer.Simulation
                 }
             }
 
+            IReadOnlyDictionary<string, string> metrics = AttachMetrics(model, topology, sources, buffers, stations, sinks);
+
             // Apply the real seed. This is the reset that makes every SeedID assignment above take
             // effect; from here on the per-node streams are a pure function of (topology.Seed,
             // node.Id) and survive both a process restart and a reordering of the node list.
             model.Reset(topology.Seed);
 
-            return new ActiveModel(model, sources, buffers, servers, delays, routers, sinks, topology);
+            return new ActiveModel(model, sources, buffers, servers, delays, routers, sinks, topology, metrics);
         }
 
         /// <summary>
@@ -509,6 +512,95 @@ namespace SimOpt.McpServer.Simulation
                         $"{label} '{node.Id}': discipline must be \"fifo\" or \"lifo\", not {given?.ToString() ?? "null"}.");
             }
         }
+
+        /// <summary>
+        /// SIM-65 step 5 (D6): attaches a collector for every declared metric and returns each
+        /// metric's id mapped to its collector's identifier. Metrics of one kind at one node share a
+        /// collector, because a collector's identifier is its node's and its kind's.
+        /// </summary>
+        private static IReadOnlyDictionary<string, string> AttachMetrics(Model model, TopologyDefinition topology,
+            Dictionary<string, SimpleSource> sources, Dictionary<string, SimpleBuffer> buffers,
+            Dictionary<string, List<SimpleServer>> stations, Dictionary<string, SimpleSink> sinks)
+        {
+            var keys = new Dictionary<string, string>();
+            var attached = new HashSet<string>();
+            foreach (MetricDefinition metric in topology.Metrics)
+            {
+                string id = (metric.Id ?? string.Empty).Trim();
+                if (id.Length == 0)
+                    throw new InvalidOperationException("Every metric needs an id.");
+                if (keys.ContainsKey(id))
+                    throw new InvalidOperationException($"Metric '{id}' is declared twice; metric ids are unique.");
+                string kind = (metric.Kind ?? string.Empty).Trim().ToLowerInvariant();
+                string? node = string.IsNullOrWhiteSpace(metric.Node) ? null : metric.Node.Trim();
+
+                T At<T>(Dictionary<string, T> nodes, string needs) where T : class
+                {
+                    if (node == null)
+                        throw new InvalidOperationException(
+                            $"Metric '{id}': {kind} is measured at a {needs}; give its node.");
+                    if (!nodes.TryGetValue(node, out T? found))
+                        throw new InvalidOperationException(
+                            $"Metric '{id}': {kind} is measured at a {needs}, and '{node}' is not one in this topology.");
+                    return found;
+                }
+
+                string key;
+                switch (kind)
+                {
+                    case Instrumentation.WaitTime:
+                    case Instrumentation.QueueLength:
+                    {
+                        SimpleBuffer queue = At(buffers, "queue");
+                        key = $"{queue.Identifier}.stat.{kind}";
+                        if (attached.Add(key))
+                        {
+                            if (kind == Instrumentation.WaitTime) Instrumentation.ObserveWaitingTime(queue);
+                            else Instrumentation.ObserveQueueLength(queue);
+                        }
+                        break;
+                    }
+                    case Instrumentation.Utilization:
+                    {
+                        List<SimpleServer> pool = At(stations, "station");
+                        key = $"{node}.stat.{kind}";
+                        if (attached.Add(key)) Instrumentation.ObservePoolUtilization(pool, node!);
+                        break;
+                    }
+                    case Instrumentation.ItemCount:
+                    case Instrumentation.Throughput:
+                    {
+                        SimpleSink sink = At(sinks, "sink");
+                        key = $"{sink.Identifier}.stat.{kind}";
+                        if (attached.Add(key))
+                        {
+                            if (kind == Instrumentation.ItemCount) Instrumentation.ObserveCount(sink);
+                            else Instrumentation.ObserveThroughput(sink);
+                        }
+                        break;
+                    }
+                    case Instrumentation.CycleTime:
+                    {
+                        // without a node: from any source to any sink
+                        IEnumerable<SimpleSink> at = node == null ? sinks.Values : new[] { At(sinks, "sink") };
+                        string owner = node ?? AllSinks;
+                        key = $"{owner}.stat.{kind}";
+                        if (attached.Add(key))
+                            Instrumentation.ObserveCycleTime(model, owner, sources.Values.Cast<IItemSource<SimpleEntity>>(), at);
+                        break;
+                    }
+                    default:
+                        throw new InvalidOperationException(
+                            $"Metric '{id}': kind must be one of wait_time, queue_length, utilization, count, throughput, " +
+                            $"cycle_time, not \"{metric.Kind}\".");
+                }
+                keys[id] = key;
+            }
+            return keys;
+        }
+
+        /// <summary>The owner of a cycle time measured at every sink, in its collector's identifier.</summary>
+        private const string AllSinks = "all_sinks";
 
         /// <summary>
         /// SIM-65 (D3, corrected 2026-11-25): every station takes its work from a queue. A push reaches

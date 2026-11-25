@@ -24,6 +24,31 @@ namespace SimOpt.McpServer.Models
         [Description("Directed connections between nodes (from -> to)")]
         [JsonPropertyName("connections")]
         public List<ConnectionDefinition> Connections { get; set; } = new();
+
+        [Description("Declared metrics: [{id, kind, node?}], kind one of wait_time, queue_length (at a queue), " +
+                     "utilization (at a station), count, throughput (at a sink), cycle_time (at a sink, or all sinks without a node)")]
+        [JsonPropertyName("metrics")]
+        public List<MetricDefinition> Metrics { get; set; } = new();
+    }
+
+    /// <summary>
+    /// SIM-65 step 5 (D6): a metric the model measures, addressable by its id. Attaching the
+    /// collector is the builder's job; reporting it is SIM-66's.
+    /// </summary>
+    public sealed class MetricDefinition
+    {
+        [Description("Unique identifier of this metric within the model")]
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [Description("wait_time | queue_length | utilization | count | throughput | cycle_time")]
+        [JsonPropertyName("kind")]
+        public string Kind { get; set; } = string.Empty;
+
+        [Description("The node it is measured at; optional for cycle_time only")]
+        [JsonPropertyName("node")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Node { get; set; }
     }
 
     /// <summary>

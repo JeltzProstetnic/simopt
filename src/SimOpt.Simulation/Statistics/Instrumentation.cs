@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SimOpt.Simulation.Engine;
+using SimOpt.Simulation.Interfaces;
 using SimOpt.Simulation.Enum;
 using SimOpt.Simulation.Templates;
 
@@ -38,6 +39,15 @@ namespace SimOpt.Simulation.Statistics
 
         /// <summary>Statistic-name constant for the fraction of time a stock was empty (SIM-127).</summary>
         public const string StockEmpty = "stock_empty";
+
+        /// <summary>SIM-65 step 5: items that reached a sink after the warm-up.</summary>
+        public const string ItemCount = "count";
+
+        /// <summary>SIM-65 step 5: items that reached a sink after the warm-up, per unit of time.</summary>
+        public const string Throughput = "throughput";
+
+        /// <summary>SIM-65 step 5: time from an item's creation at a source to its arrival at a sink.</summary>
+        public const string CycleTime = "cycle_time";
 
         /// <summary>
         /// Records a stock's level as a time-persistent statistic (SIM-127).
@@ -168,6 +178,108 @@ namespace SimOpt.Simulation.Statistics
 
             server.WorkingChangedEvent.AddHandler((_, working) => collector.Record(working ? 1d : 0d));
             return collector;
+        }
+
+        /// <summary>
+        /// SIM-65 step 5: the busy share of a pool of servers (a station of c servers, step 3), as a
+        /// time-persistent statistic under <paramref name="id"/>. A pool of one measures what
+        /// <see cref="ObserveUtilization"/> measures for its server.
+        /// </summary>
+        public static TimeWeightedCollector ObservePoolUtilization<TMaterial, TProduct, TData>(
+            IReadOnlyList<Server<TMaterial, TProduct, TData>> pool, string id, double warmup = 0d)
+            where TProduct : new()
+        {
+            if (pool == null || pool.Count == 0)
+                throw new System.ArgumentException("A pool has at least one server.", nameof(pool));
+
+            // A server sets its flag before it raises WorkingChangedEvent, so counting the flags in
+            // the handler sees the change that raised it.
+            double BusyShare()
+            {
+                int busy = 0;
+                for (int i = 0; i < pool.Count; i++) if (pool[i].Working) busy++;
+                return busy / (double)pool.Count;
+            }
+
+            var collector = new TimeWeightedCollector(
+                pool[0].Model, Utilization, BusyShare,
+                id: id + ".stat." + Utilization,
+                name: id + " utilization")
+            { WarmupTime = warmup };
+
+            foreach (Server<TMaterial, TProduct, TData> server in pool)
+                server.WorkingChangedEvent.AddHandler((_, _) => collector.Record(BusyShare()));
+            return collector;
+        }
+
+        /// <summary>SIM-65 step 5: the items that reached the sink after the warm-up.</summary>
+        public static CountCollector ObserveCount<T>(Sink<T> sink, double warmup = 0d)
+            => ObserveArrivals(sink, ItemCount, perUnitTime: false, warmup);
+
+        /// <summary>SIM-65 step 5: the items that reached the sink after the warm-up, per unit of time.</summary>
+        public static CountCollector ObserveThroughput<T>(Sink<T> sink, double warmup = 0d)
+            => ObserveArrivals(sink, Throughput, perUnitTime: true, warmup);
+
+        private static CountCollector ObserveArrivals<T>(Sink<T> sink, string statistic, bool perUnitTime, double warmup)
+        {
+            var collector = new CountCollector(
+                sink.Model, statistic, perUnitTime,
+                id: sink.Identifier + ".stat." + statistic,
+                name: sink.EntityName + " " + statistic)
+            { WarmupTime = warmup };
+
+            sink.ItemReceived.AddHandler((_, _) => collector.Increment());
+            return collector;
+        }
+
+        /// <summary>
+        /// SIM-65 step 5: the time from an item's creation at one of <paramref name="sources"/> to
+        /// its arrival at one of <paramref name="sinks"/>, as an observation-based statistic under
+        /// <paramref name="id"/>. It relies on the item that reaches the sink being the item the
+        /// source made, which SIM-90 established for stations; an item made elsewhere is not timed.
+        /// </summary>
+        public static TallyCollector ObserveCycleTime<T>(IModel model, string id,
+            IEnumerable<IItemSource<T>> sources, IEnumerable<Sink<T>> sinks, double warmup = 0d)
+        {
+            var collector = new TallyCollector(model, CycleTime,
+                id: id + ".stat." + CycleTime,
+                name: id + " cycle time")
+            { WarmupTime = warmup };
+
+            var stamps = new CreationStamps<T>(model);
+
+            // Stamped before any other handler, as in ObserveWaitingTime: a source wired straight to
+            // a sink delivers the item while its creation event is still being raised.
+            foreach (IItemSource<T> source in sources)
+                source.EntityCreatedEvent.AddHandler(
+                    (_, item) => stamps.Stamp(item),
+                    new Priority(type: PriorityType.LowLevelBeforeOthers));
+
+            foreach (Sink<T> sink in sinks)
+                sink.ItemReceived.AddHandler((_, item) =>
+                {
+                    if (stamps.Take(item, out double created)) collector.Observe(model.CurrentTime - created);
+                });
+
+            return collector;
+        }
+
+        /// <summary>
+        /// The creation times of the items in the system. An entity, so Model.Reset empties it with
+        /// everything else: items still in flight at the end of a replication would otherwise stay
+        /// here for the life of the model.
+        /// </summary>
+        private sealed class CreationStamps<T> : Entity
+        {
+            private readonly Dictionary<T, double> created = new Dictionary<T, double>();
+
+            public CreationStamps(IModel model) : base(model) { }
+
+            public void Stamp(T item) => created[item] = Model.CurrentTime;
+
+            public bool Take(T item, out double time) => created.Remove(item, out time);
+
+            public override void Reset() => created.Clear();
         }
     }
 }

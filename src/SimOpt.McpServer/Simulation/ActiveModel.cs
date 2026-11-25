@@ -19,7 +19,8 @@ namespace SimOpt.McpServer.Simulation
             Dictionary<string, SimpleDelay> delays,
             Dictionary<string, SimpleRouter> routers,
             Dictionary<string, SimpleSink> sinks,
-            TopologyDefinition topology)
+            TopologyDefinition topology,
+            IReadOnlyDictionary<string, string>? metrics = null)
         {
             Model = model;
             Sources = sources;
@@ -29,6 +30,7 @@ namespace SimOpt.McpServer.Simulation
             Routers = routers;
             Sinks = sinks;
             Topology = topology;
+            Metrics = metrics ?? new Dictionary<string, string>();
         }
 
         public Model Model { get; }
@@ -39,5 +41,12 @@ namespace SimOpt.McpServer.Simulation
         public Dictionary<string, SimpleRouter> Routers { get; }
         public Dictionary<string, SimpleSink> Sinks { get; }
         public TopologyDefinition Topology { get; }
+
+        /// <summary>
+        /// SIM-65 step 5: each declared metric's id, mapped to the identifier of its collector, which
+        /// is the key a <c>ReplicationResult</c> is indexed by. Metrics of one kind at one node share
+        /// a collector.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> Metrics { get; }
     }
 }

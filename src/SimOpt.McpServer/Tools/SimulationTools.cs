@@ -47,6 +47,8 @@ namespace SimOpt.McpServer.Tools
             "or in service at the station it feeds; a tie goes to the connection listed first); " +
             "a router is fed like a delay and feeds a queue, delay, sink or router. " +
             "Sink has no params. " +
+            "Metrics: an optional list [{id, kind, node?}] of what the model measures: wait_time and queue_length at a queue, " +
+            "utilization at a station, count and throughput at a sink, cycle_time at a sink or, without a node, at all sinks. " +
             "Example: {\"name\":\"SQSS\",\"seed\":42," +
             "\"nodes\":[{\"id\":\"src\",\"type\":\"source\",\"params\":{\"mean_interval\":2.0}}," +
             "{\"id\":\"buf\",\"type\":\"buffer\",\"params\":{\"capacity\":10}}," +
