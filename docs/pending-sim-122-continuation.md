@@ -1,6 +1,6 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=read MG's answers, then SIM-117 or SIM-86 while SIM-126 schema, SIM-110 rest and SIM-93 defaults wait for Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
-<!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93 -->
+<!-- Work: stage=findings-written; status=open; next=read MG's answers, then SIM-36 or SIM-96 while SIM-126 schema, SIM-110 rest, SIM-93 defaults, SIM-86 slice C and SIM-95/117/119 wait - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-PROV-REPORT Q-ENGINE-MOVES Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
@@ -70,9 +70,24 @@ the private hand-off (see *Private material*).
   patch path) and echo each scenario's patch. `run_experiment(record: path)` writes a `simopt-run/1` record and
   `reproduce_run(path)` repeats it anywhere: a forged figure or a changed model is caught. Python follows. Suite 1378
   passed, 1 skipped; Python 24. No template result moved.
-- Slice C (the expert-report form) waits for **Q-PROV-REPORT**.
+- Slice C (the expert-report form) waits for **Q-PROV-REPORT**. The limits of schema v1 (`5de51ce`) and the Python frame
+  provenance (`cc25966`) are done too; open in SIM-86: slice C and records for `optimize`.
+- **SIM-98 done** (`a0bec8f`): the LCG matches the JDK's `java.util.Random`, the subtractive generator matches Knuth's
+  published algorithm (renamed from "Multiplicative"). **R250_521 was grossly biased** (top bit almost never set: 0.4 % of
+  the first 1,000 doubles reached 0.5) and is fixed; nothing in SimOpt constructs it. Telegram #1681.
+- **SIM-121 done** (`596ec4e`): an Ivotion cancellation always returns a cancelled result; the test no longer uses the clock.
+- Suite 1413 passed, 1 skipped; Python 25. Telegram #1680 (SIM-86 + Q-PROV-REPORT), #1681 (SIM-98).
 
 ## Decisions for MG (stable IDs; recommended option first)
+
+- **Q-ENGINE-MOVES** (new 2026-11-25, restart #6): when to fix the three open engine items that move results of runs with
+  failures or antithetic sampling: SIM-117 (P2, when a failure that fell due during a batch takes effect, near-tie
+  tolerance), SIM-95 (P2, the failure-continue path resumes with a null product) and SIM-119 (P2, antithetic streams are
+  not mirrored). His SIM-122 comparison is about exactly his failure-bearing cases.
+  - **After his SIM-122 results arrive (Recommended):** otherwise a rerun at the latest commit differs for two reasons at
+    once, and the comparison cannot say which.
+  - **Now, with one comment on his issue #30 listing what moved:** the fixes land sooner; his rerun then has to pin
+    `96f979c` to isolate SIM-115.
 
 - **Q-PROV-REPORT** (new 2026-11-25, restart #6, SIM-86 slice C, UN-034 "exportable in a form that goes into an
   expert report"): what form a run record takes for a report.
@@ -232,7 +247,12 @@ the private hand-off (see *Private material*).
    (`ea287b1`); suite 1348 passed, 1 skipped. Not yet seen on screen (no window opened while MG is away). The rest
    of SIM-110 (one model path) waits for **Q-VIEW-PATH** (brief `docs/plans/2026-11-25-sim-110-one-model-path.md`).
    **Later in restart #5:** SIM-93 in part (Q-IVO-STATS) and SIM-118 done, see the section above.
-   **Next, in order:** read Telegram for MG's answers first. Then: SIM-126's schema build once Q-PROC-SCHEMA is answered;
+   **Restart #6:** SIM-86 slices A, B, the limits and Python provenance, SIM-98 and SIM-121 done, see the section above.
+   **Next after restart #6, in order:** read Telegram for MG's answers first. Then whichever of SIM-126's schema,
+   SIM-110's rest, SIM-93's defaults, SIM-86 slice C or SIM-95/117/119 his answers unblock. Unblocked meanwhile: SIM-36
+   (P1, Ivotion PSO through a real-valued view, plus Sphere/Rosenbrock validation), SIM-96 (P2, nightly analytic gate),
+   records for `optimize` (SIM-86). SIM-20 still needs a Claude Code session with the server registered.
+   Older next list (restart #5): read Telegram for MG's answers first. Then: SIM-126's schema build once Q-PROC-SCHEMA is answered;
    SIM-110's rest once Q-VIEW-PATH is answered (with option one it starts with SIM-70's extraction); SIM-93's defaults once
    Q-IVO-STATS is answered; SIM-140 once Q-PRIO sets it. Unblocked meanwhile, smaller: SIM-117 (P2, SIM-106 follow-ups),
    SIM-86 (P1, check what `run_experiment`'s provenance already covers before building). SIM-20 needs a Claude Code session
