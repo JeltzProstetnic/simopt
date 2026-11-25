@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using SimOpt.Mathematics.Stochastics.Distributions;
 using SimOpt.Mathematics.Stochastics.Interfaces;
 using SimOpt.McpServer.Models;
@@ -63,7 +64,8 @@ namespace SimOpt.McpServer.Simulation
 
             var sources = new Dictionary<string, SimpleSource>();
             var buffers = new Dictionary<string, SimpleBuffer>();
-            var servers = new Dictionary<string, SimpleServer>();
+            var servers = new Dictionary<string, SimpleServer>();               // by server id
+            var stations = new Dictionary<string, List<SimpleServer>>();       // by node id
             var delays = new Dictionary<string, SimpleDelay>();
             var sinks = new Dictionary<string, SimpleSink>();
 
@@ -121,27 +123,37 @@ namespace SimOpt.McpServer.Simulation
 
                     case "station":
                     {
-                        if (TryGetNumber(node, label, "servers", out double count) && count != 1d)
-                            throw new InvalidOperationException(
-                                $"{label} '{node.Id}': servers = {count} is not supported yet; a station has one server in this version.");
-                        var dist = TimeDistribution(node, label, "service", "service_time");
-                        var server = new SimpleServer(
-                            model,
-                            StableHash.Of(node.Id),   // see the source case above
-                            dist,
-                            id: node.Id,
-                            name: node.Id,
-                            // SIM-90: pass the input entity through instead of manufacturing a
-                            // fresh SimpleEntity with a null Identifier. `Buffer.Put` keys on
-                            // Identifier, so with the default generator any server feeding a
-                            // downstream buffer threw — every multi-stage topology was unbuildable.
-                            // It also destroys entity identity, which makes an end-to-end cycle
-                            // time unmeasurable: the thing reaching the sink was not the thing that
-                            // left the source. For a flow model the part that leaves a station is
-                            // the part that entered it.
-                            createProduct: m => m[0]);
-                        server.AutoContinue = true;
-                        servers[node.Id] = server;
+                        int count = ServerCount(node, label);
+                        // SIM-65 (D2): c servers are a pool of single servers behind the upstream
+                        // queue, the construction AnalyticBatteryTests.RunMMc validates against
+                        // Erlang-C. One server keeps the node id, so its seed, and every result built
+                        // on it, stays where it was; pool members are "<id>#1" .. "<id>#c".
+                        var pool = new List<SimpleServer>(count);
+                        for (int k = 1; k <= count; k++)
+                        {
+                            string memberId = count == 1 ? node.Id : $"{node.Id}#{k}";
+                            var server = new SimpleServer(
+                                model,
+                                StableHash.Of(memberId),   // see the source case above
+                                // a distribution object belongs to one random stream, so each
+                                // member gets its own
+                                TimeDistribution(node, label, "service", "service_time"),
+                                id: memberId,
+                                name: memberId,
+                                // SIM-90: pass the input entity through instead of manufacturing a
+                                // fresh SimpleEntity with a null Identifier. `Buffer.Put` keys on
+                                // Identifier, so with the default generator any server feeding a
+                                // downstream buffer threw — every multi-stage topology was unbuildable.
+                                // It also destroys entity identity, which makes an end-to-end cycle
+                                // time unmeasurable: the thing reaching the sink was not the thing that
+                                // left the source. For a flow model the part that leaves a station is
+                                // the part that entered it.
+                                createProduct: m => m[0]);
+                            server.AutoContinue = true;
+                            servers[memberId] = server;
+                            pool.Add(server);
+                        }
+                        stations[node.Id] = pool;
                         break;
                     }
 
@@ -187,17 +199,43 @@ namespace SimOpt.McpServer.Simulation
             //
             // Valid connection patterns:
             //   Source  → Buffer  : buffer.ConnectTo(source)    source is IItemSource<SimpleEntity>
-            //   Source  → Server  : server.ConnectTo(source)    source is IItemSource<SimpleEntity>
             //   Source  → Sink    : sink.ConnectTo(source)      source is IItemSource<SimpleEntity>
             //   Buffer  → Server  : server.ConnectTo(buffer)    buffer is IItemBuffer<SimpleEntity>
             //   Server  → Sink    : sink.ConnectTo(server)      server is IItemSource<SimpleEntity>
-            //   Server  → Server  : server.ConnectTo(source)    server is IItemSource<SimpleEntity>
             //   Source, Server or Delay → Delay : delay.ConnectTo(upstream)   pushed, one timer per item
-            //   Delay   → Buffer, Server, Delay or Sink : downstream.ConnectTo(delay)
+            //   Server  → Buffer  : buffer.ConnectTo(server)    server is IItemSource<SimpleEntity>
+            //   Delay   → Buffer, Delay or Sink : downstream.ConnectTo(delay)
+            //
+            // A station is a pool of servers (SIM-65 D2): every server of the pool is wired, and a
+            // station of any size is fed only by a queue (D3).
             //
             // Buffer → Sink directly is not supported (Buffer is IItemBuffer, Sink needs IItemSource).
             // Use Buffer → Server → Sink instead. Buffer → Delay is refused: a delay takes every item at
             // once, so the queue would stay empty.
+
+            // A node that pushes what it releases (a source, a station's server, a delay) into the
+            // node downstream. False when the destination is not a node that takes a push.
+            bool Push(IItemSource<SimpleEntity> upstream, string from, string to)
+            {
+                if (buffers.TryGetValue(to, out SimpleBuffer? buffer)) return buffer.ConnectTo(upstream);
+                if (stations.TryGetValue(to, out List<SimpleServer>? pool))
+                {
+                    // SIM-65 (D3, corrected 2026-11-25): every station takes its work from a queue.
+                    // A push reaches every server of a pool at once, which is not a c-server station.
+                    // A single server refuses a push (PushAllowed is false), and the builder used to
+                    // ignore that refusal, so a source or station wired straight to a station built
+                    // without error and delivered nothing. Allowing the push does not help: a busy
+                    // server gathers what is pushed meanwhile and starts its next job with all of it
+                    // as one batch, of which createProduct keeps the first item.
+                    string servers = pool.Count > 1 ? $"has {pool.Count} servers and " : "";
+                    throw new InvalidOperationException(
+                        $"Connection '{from}' → '{to}': station '{to}' {servers}takes its work from a queue, " +
+                        $"and '{from}' is not one. Insert a queue between '{from}' and '{to}'.");
+                }
+                if (sinks.TryGetValue(to, out SimpleSink? sink)) return sink.ConnectTo(upstream);
+                if (delays.TryGetValue(to, out SimpleDelay? delay)) return delay.ConnectTo(upstream);
+                return false;
+            }
 
             foreach (ConnectionDefinition conn in topology.Connections)
             {
@@ -217,33 +255,14 @@ namespace SimOpt.McpServer.Simulation
                 // ── from=Source ──────────────────────────────────────────────
                 if (sources.TryGetValue(from, out SimpleSource? upSrc))
                 {
-                    if (buffers.TryGetValue(to, out SimpleBuffer? downBuf))
-                    {
-                        downBuf.ConnectTo(upSrc);
-                        connected = true;
-                    }
-                    else if (servers.TryGetValue(to, out SimpleServer? downSrv))
-                    {
-                        downSrv.ConnectTo((IItemSource<SimpleEntity>)upSrc);
-                        connected = true;
-                    }
-                    else if (sinks.TryGetValue(to, out SimpleSink? downSnk))
-                    {
-                        downSnk.ConnectTo(upSrc);
-                        connected = true;
-                    }
-                    else if (delays.TryGetValue(to, out SimpleDelay? downDly))
-                    {
-                        downDly.ConnectTo((IItemSource<SimpleEntity>)upSrc);
-                        connected = true;
-                    }
+                    connected = Push(upSrc, from, to);
                 }
                 // ── from=Buffer ──────────────────────────────────────────────
                 else if (buffers.TryGetValue(from, out SimpleBuffer? upBuf))
                 {
-                    if (servers.TryGetValue(to, out SimpleServer? downSrv))
+                    if (stations.TryGetValue(to, out List<SimpleServer>? pool))
                     {
-                        downSrv.ConnectTo(upBuf);
+                        foreach (SimpleServer member in pool) member.ConnectTo(upBuf);
                         // SIM-89: a server *pulls* from its buffer, so connecting the two is only
                         // half the wiring — an idle server has nothing telling it that work has
                         // arrived. Without this handler the buffer fills and never drains, the run
@@ -252,11 +271,9 @@ namespace SimOpt.McpServer.Simulation
                         // IvotionTopologyBuilder.cs:106, and both example programs); ModelRegistry
                         // was the only one that did not, which is why no MCP-built model has ever
                         // produced throughput.
-                        SimpleServer pulling = downSrv;
-                        upBuf.ItemReceivedEvent.AddHandler((_, _) =>
-                        {
-                            if (pulling.Idle) pulling.Start();
-                        });
+                        // SIM-65 (D2): one arrival wakes exactly one idle server, the first, as in
+                        // AnalyticBatteryTests.RunMMc; a busy server takes the next item itself.
+                        upBuf.ItemReceivedEvent.AddHandler((_, _) => pool.FirstOrDefault(s => s.Idle)?.Start());
                         connected = true;
                     }
                     else if (sinks.TryGetValue(to, out _))
@@ -278,54 +295,15 @@ namespace SimOpt.McpServer.Simulation
                             $"directly, or put a station between '{from}' and '{to}'.");
                     }
                 }
-                // ── from=Server ──────────────────────────────────────────────
-                else if (servers.TryGetValue(from, out SimpleServer? upSrv))
+                // ── from=Station ─────────────────────────────────────────────
+                else if (stations.TryGetValue(from, out List<SimpleServer>? upPool))
                 {
-                    if (sinks.TryGetValue(to, out SimpleSink? downSnk))
-                    {
-                        downSnk.ConnectTo(upSrv);
-                        connected = true;
-                    }
-                    else if (servers.TryGetValue(to, out SimpleServer? downSrv2))
-                    {
-                        downSrv2.ConnectTo((IItemSource<SimpleEntity>)upSrv);
-                        connected = true;
-                    }
-                    else if (buffers.TryGetValue(to, out SimpleBuffer? downBuf2))
-                    {
-                        downBuf2.ConnectTo(upSrv);
-                        connected = true;
-                    }
-                    else if (delays.TryGetValue(to, out SimpleDelay? downDly2))
-                    {
-                        downDly2.ConnectTo((IItemSource<SimpleEntity>)upSrv);
-                        connected = true;
-                    }
+                    foreach (SimpleServer member in upPool) connected = Push(member, from, to);
                 }
                 // ── from=Delay ───────────────────────────────────────────────
                 else if (delays.TryGetValue(from, out SimpleDelay? upDly))
                 {
-                    var released = (IItemSource<SimpleEntity>)upDly;
-                    if (sinks.TryGetValue(to, out SimpleSink? downSnk3))
-                    {
-                        downSnk3.ConnectTo(released);
-                        connected = true;
-                    }
-                    else if (buffers.TryGetValue(to, out SimpleBuffer? downBuf3))
-                    {
-                        downBuf3.ConnectTo(released);
-                        connected = true;
-                    }
-                    else if (servers.TryGetValue(to, out SimpleServer? downSrv3))
-                    {
-                        downSrv3.ConnectTo(released);
-                        connected = true;
-                    }
-                    else if (delays.TryGetValue(to, out SimpleDelay? downDly3))
-                    {
-                        downDly3.ConnectTo(released);
-                        connected = true;
-                    }
+                    connected = Push(upDly, from, to);
                 }
                 // ── from=Sink (invalid) ──────────────────────────────────────
                 else if (sinks.ContainsKey(from))
@@ -438,6 +416,18 @@ namespace SimOpt.McpServer.Simulation
                         $"{label} '{node.Id}': discipline must be \"fifo\" or \"lifo\", not {given?.ToString() ?? "null"}.");
             }
         }
+
+        /// <summary>SIM-65 (D2): a station's <c>servers</c>, a whole number from 1 (the default) to 10,000.</summary>
+        private static int ServerCount(NodeDefinition node, string label)
+        {
+            if (!TryGetNumber(node, label, "servers", out double count)) return 1;
+            if (count < 1 || count > MaxServers || count != Math.Floor(count))
+                throw new InvalidOperationException(
+                    $"{label} '{node.Id}': servers must be a whole number from 1 to {MaxServers:N0}, not {count}.");
+            return (int)count;
+        }
+
+        private const int MaxServers = 10_000;
 
         /// <summary>
         /// SIM-65: reads a parameter that must be a number. False when it is absent; a string or a

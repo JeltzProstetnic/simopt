@@ -36,7 +36,9 @@ namespace SimOpt.McpServer.Tools
             "(types: exponential, triangular, uniform, lognormal, gamma, constant, empirical), " +
             "or mean_interval, an exponential mean (default 1.0). " +
             "Queue params: capacity (default unlimited), discipline \"fifo\" (default) or \"lifo\". " +
-            "Station params: service, a distribution object, or service_time, an exponential mean (default 1.0); one server. " +
+            "Station params: service, a distribution object, or service_time, an exponential mean (default 1.0); " +
+            "servers, a whole number (default 1); a station with more than one server must be fed by a queue, " +
+            "and its servers are reported as <id>#1 .. <id>#c. " +
             "Delay params: duration, a distribution object, or delay_time, an exponential mean; every item gets its own timer, " +
             "so a delay holds any number of items (it is fed by a source, station or delay, not by a queue). " +
             "Sink has no params. " +

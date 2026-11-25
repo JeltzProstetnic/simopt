@@ -50,6 +50,10 @@ a named fix.** The dispatcher hangs off the upstream queue's `ItemReceivedEvent`
 `source → station` push reaches every server in the pool at once, which silently is not a c-server
 station. Rejecting it with *"station 'exam' has 3 servers and no upstream queue — insert a queue
 between 'arrivals' and 'exam'"* is what UN-008 asks for. `servers: 1` keeps working unqueued.
+*Corrected 2026-11-25 (step 3):* it never worked unqueued over MCP. A `SimpleServer` refuses a push,
+the builder ignored that, and such a model delivered nothing (SIM-135); enabling the push would batch
+and drop items that arrive while the server is busy. Every station is now fed by a queue, and a push
+into any station is refused with the queue to insert named (`docs/decisions.md`).
 
 **D4 — the router is a new engine template (`SimpleRouter`), not a builder-level closure.** It needs
 a random stream that (a) is derived from the model seed and the node id, and (b) resets with the

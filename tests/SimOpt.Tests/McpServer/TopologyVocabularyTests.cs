@@ -15,7 +15,8 @@ namespace SimOpt.Tests.McpServer;
 /// <c>server</c> kept as aliases (D1); arrival and service times as distributions
 /// (<c>arrival</c>, <c>service</c>), with the old <c>mean_interval</c> and <c>service_time</c> still
 /// read as exponential means; a queue's <c>discipline</c>. What the builder cannot honour yet is
-/// refused rather than silently built differently.
+/// refused rather than silently built differently. (Stations with more than one server: step 3,
+/// <see cref="TopologyMultiServerTests"/>.)
 /// </summary>
 public class TopologyVocabularyTests
 {
@@ -131,13 +132,5 @@ public class TopologyVocabularyTests
 
         build.Should().Throw<InvalidOperationException>()
              .Where(e => e.Message.Contains("'q'") && e.Message.Contains("fifo") && e.Message.Contains("lifo"));
-    }
-
-    [Fact]
-    public void MoreThanOneServer_IsRefusedUntilMultiServerStationsExist()
-    {
-        Action build = () => new ModelRegistry().Create(Line(stationType: "station", station: p => { p["service_time"] = 1.0; p["servers"] = 3; }));
-
-        build.Should().Throw<InvalidOperationException>().Where(e => e.Message.Contains("'s'") && e.Message.Contains("servers"));
     }
 }

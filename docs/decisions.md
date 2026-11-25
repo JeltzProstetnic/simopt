@@ -21,6 +21,16 @@ Full statements and the evidence behind each: `docs/plans/2026-08-26-sim-65-topo
   SIM-64's analytic battery already validates against Erlang-C on both Wq and Lq. A generalised
   engine class is the better end state and will have to earn the same evidence before it replaces
   this.
+  *Built 2026-11-25 (step 3):* the dispatcher wakes the first idle server, exactly as the battery's
+  `RunMMc` does, and the builder's pool passes the same Erlang-C check (`TopologyMultiServerTests`).
+  A one-server station keeps its node id as its server id, so no existing seed or result moves.
+- **Every station takes its work from a queue (D3, corrected 2026-11-25).** D3 said a pool needs a
+  queue in front and `servers: 1` keeps working unqueued. The second half was never true over MCP: a
+  `SimpleServer` refuses a push (`PushAllowed` is false), the builder ignored the `false` that
+  `ConnectTo` returned, and a source or station wired straight to a station built without error and
+  delivered nothing (SIM-135). Allowing the push is no fix either: a busy server gathers what is
+  pushed meanwhile and starts its next job with all of it as one batch, of which `createProduct`
+  keeps the first. So a push into any station is refused, naming the queue to insert.
 - **Router weights live on the connection, not the node.** A weight describes an edge, and putting
   it there keeps the node parameter bag free of nested maps.
 - **The router is a new template rather than an extension of `SimpleRejectServer`,** because that
