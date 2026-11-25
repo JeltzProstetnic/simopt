@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next= MG looks at the viewer (SIM-110 [?]) and the German sample report, check the first nightly CI run; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=check the 2026-11-26 02:17 UTC nightly (both steps green), then MG looks at the viewer (SIM-110 [?]) and the German sample report; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -171,6 +171,15 @@ the private hand-off (see *Private material*).
   Ciw on all 12 metrics (|z| at most 0.90); a 2 % slower station fails its three metrics at z +16 to +25. Python 42
   passed, 1 skipped (the nightly module). **Closed:** the nightly's Ciw step ran green on GitHub (run 45607417670,
   figures identical to the local run). The scheduled 02:17 UTC run now carries both gates.
+- **SIM-144 done on MG's order** (`8e993c5`): a model without a seed runs at 42 as before and its results say
+  `assumed.seed` = "the default; the model gives none"; a seedless document saves without `seed` (its hash changes,
+  stored records keep theirs). Suite 1655 passed, 4 skipped; Python 42.
+- **Stopped here on MG's "then end".** Next session, in order: (1) check the scheduled nightly of 2026-11-26 02:17 UTC
+  went green with both steps (`curl -s "https://api.github.com/repos/JeltzProstetnic/simopt/actions/workflows/nightly.yml/runs?per_page=1"`);
+  (2) what is left waits for MG: his look at the viewer (SIM-110 `[?]`), the wording of
+  `docs/plans/2026-11-25-sim-86/sample-report-de.md`, and the behaviour of the P1 items he has not specified (SIM-38,
+  SIM-70's tool half, SIM-71..76, SIM-82..84); SIM-117/95/119 and SIM-99's engine half wait for his colleague's
+  SIM-122 results (his repo silent since 2026-11-04, pin still `b171eb8`). No question is open for MG.
 
 ## Decisions for MG (stable IDs; recommended option first)
 
