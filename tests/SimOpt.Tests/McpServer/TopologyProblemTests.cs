@@ -222,6 +222,25 @@ public class TopologyProblemTests
         moved.Distinct().Should().HaveCount(20);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void ASearchSeed_MovesTheSearch_NotTheNoise(int searchSeed)
+    {
+        // the tool's seed drives both; comparing strategies needs the replications fixed while the search varies
+        var variables = new[] { Rooms(), new DecisionVariable { Path = "triage.servers", Type = "integer", Min = 1, Max = 6 } };
+        OptimizationResult grid = Optimizer.Run("m", 1, ClinicTopology(), variables, FewestRoomsWaitUnder15(), 540, 60, 5, 54,
+                                                strategy: "grid", seed: 7);
+
+        OptimizationResult every = Optimizer.Run("m", 1, ClinicTopology(), variables, FewestRoomsWaitUnder15(), 540, 60, 5, 54,
+                                                 strategy: "random", seed: 7, searchSeed: searchSeed);
+
+        every.Evaluations.Should().Be(54);
+        every.Best.Point.Should().Equal(grid.Best.Point);
+        every.Seed.Should().Be(7);
+    }
+
     [Fact]
     public void SettingThePoint_KeepsItInsideTheBounds()
     {

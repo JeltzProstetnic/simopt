@@ -32,11 +32,16 @@ namespace SimOpt.McpServer.Optimization
         /// </summary>
         private const int ProposalsPerEvaluation = 20;
 
+        /// <param name="seed">The replications' base seed, and the search's unless <paramref name="searchSeed"/> is given.</param>
+        /// <param name="searchSeed">
+        /// The search's own seed (start points, moves), so that searches can be compared under the same
+        /// replications; the optimize tool passes only <paramref name="seed"/>.
+        /// </param>
         /// <exception cref="ArgumentException">The request cannot be searched; the message says why.</exception>
         public static OptimizationResult Run(string modelId, int version, TopologyDefinition topology,
             IReadOnlyList<DecisionVariable> variables, ObjectiveDefinition objective, double duration, double? warmup = null,
             int replicationsPerEval = DefaultReplications, int maxEvaluations = DefaultEvaluations, double? maxSeconds = null,
-            string strategy = "auto", int? seed = null)
+            string strategy = "auto", int? seed = null, int? searchSeed = null)
         {
             string chosen = (strategy ?? "auto").Trim().ToLowerInvariant();
             if (!Strategies.Contains(chosen))
@@ -57,13 +62,14 @@ namespace SimOpt.McpServer.Optimization
 
             if (maxSeconds is double seconds) problem.Deadline = DateTime.UtcNow.AddSeconds(seconds);
             int proposals = maxEvaluations * ProposalsPerEvaluation;
+            int search = searchSeed ?? baseSeed;
             switch (chosen)
             {
                 case "grid": SearchGrid(problem); break;
-                case "sa": Search(new AnnealingAlgorithm(), Annealing(proposals, baseSeed), problem); break;
-                case "ea": Search(new EvolutionaryAlgorithm(), Evolution(proposals, baseSeed), problem); break;
-                case "pso": Search(new ParticleSwarmOptimization(), Swarm(proposals, baseSeed), problem); break;
-                default: SearchRandom(problem, maxEvaluations, baseSeed); break;
+                case "sa": Search(new AnnealingAlgorithm(), Annealing(proposals, search), problem); break;
+                case "ea": Search(new EvolutionaryAlgorithm(), Evolution(proposals, search), problem); break;
+                case "pso": Search(new ParticleSwarmOptimization(), Swarm(proposals, search), problem); break;
+                default: SearchRandom(problem, maxEvaluations, search); break;
             }
 
             return Report(modelId, version, chosen, problem, topology, objective, duration, warm, replicationsPerEval, baseSeed);
