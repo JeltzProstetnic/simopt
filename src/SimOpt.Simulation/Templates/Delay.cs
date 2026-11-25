@@ -60,25 +60,18 @@ namespace SimOpt.Simulation.Templates
 
             // SIM-58 (DES-1): initialItem is null whenever T is a reference type and no initial
             // item was supplied — the ordinary case — and Reset runs on every evaluation.
-            hasItem = !object.Equals(initialItem, default(T));
-            currentItem = initialItem;
+            // SIM-132: Model.Reset() clears the event scheduler before resetting entities, so the
+            // items in flight are dropped with their release events; only the initial item is back.
+            count = object.Equals(initialItem, default(T)) ? 0 : 1;
+            refusedCount = 0;
 
             // SIM-58 (DES-2): InitializeDelay schedules the initial item's release, but Reset used
-            // to restore hasItem without re-scheduling it. The item then sat here forever and
+            // to restore the item without re-scheduling it. The item then sat here forever and
             // blocked every Put, so evaluation #2 of the same model behaved differently from
             // evaluation #1 — silently, which is what makes it dangerous to an optimizer.
-            // Model.Reset() clears the event scheduler before resetting entities, so re-scheduling
-            // from here lands in a freshly cleared calendar.
-            if (hasItem && intervalInitialized)
-            {
-                double delay = randomIntervalGenerator.Next();
-
-                nextItemReleasedSimpleInstance = itemReleasedSimple.GetInstance(this, currentItem);
-                nextItemReleasedInstance = itemReleased.GetInstance(this, currentItem, delay);
-
-                Model.AddEvent(delay, nextItemReleasedInstance);
-                Model.AddEvent(delay, nextItemReleasedSimpleInstance);
-            }
+            // Re-scheduling from here lands in the freshly cleared calendar.
+            if (count == 1 && intervalInitialized)
+                ScheduleRelease(initialItem);
         }
 
         #endregion
@@ -92,14 +85,16 @@ namespace SimOpt.Simulation.Templates
         #endregion
         #region cvar
 
-        private bool hasItem;
         private T initialItem;
-        private T currentItem;
+
+        // SIM-132: the items inside, each on its own timer, against how many the delay may hold.
+        private int count;
+        private int capacity = 1;
+        private int refusedCount;
+        private Action<T> notifyItemNotAccepted = Noop;
 
         private BinaryEvent<IEntity, T> itemReleasedSimple;
         private TernaryEvent<IEntity, T, double> itemReleased;
-        private BinaryEventInstance<IEntity, T> nextItemReleasedSimpleInstance;
-        private TernaryEventInstance<IEntity, T, double> nextItemReleasedInstance;
 
         private bool intervalInitialized;
         private Random<double> randomIntervalGenerator;
@@ -143,6 +138,40 @@ namespace SimOpt.Simulation.Templates
         public bool LogReceive { get; set; }
 
         public bool LogReject { get; set; }
+
+        /// <summary>
+        /// SIM-132: how many items the delay holds at once, each on its own timer. The default, 1, is
+        /// the old behaviour; int.MaxValue sets no limit. An item put while the delay is full is
+        /// refused: Put returns false, RefusedCount goes up and NotifyItemNotAccepted is called,
+        /// because a source wired with ConnectTo ignores the return value.
+        /// </summary>
+        public int Capacity
+        {
+            get { return capacity; }
+            set
+            {
+                if (value < 1) throw new ArgumentOutOfRangeException(nameof(value), value,
+                    "A delay holds at least one item.");
+                if (value < count) throw new InvalidOperationException(
+                    EntityName + " holds " + count + " items, so its capacity cannot be set to " + value + ".");
+                capacity = value;
+            }
+        }
+
+        /// <summary>The items inside, each waiting for its own release.</summary>
+        public int Count { get { return count; } }
+
+        public bool IsFull { get { return count >= capacity; } }
+
+        /// <summary>SIM-132: the items refused because the delay was full, since the last reset.</summary>
+        public int RefusedCount { get { return refusedCount; } }
+
+        /// <summary>Called with every item the delay refuses because it is full.</summary>
+        public Action<T> NotifyItemNotAccepted
+        {
+            get { return notifyItemNotAccepted; }
+            set { notifyItemNotAccepted = value ?? Noop; }
+        }
 
         #endregion
         #region ctor
@@ -191,12 +220,8 @@ namespace SimOpt.Simulation.Templates
             if (intervalInitialized) throw new InitializationException("This instance was already initialized!");
 
             this.initialItem = initialItem;
-            if (!object.Equals(initialItem, default(T)))
-            {
-                currentItem = initialItem;
-                hasItem = true;
-            }
-            
+            count = object.Equals(initialItem, default(T)) ? 0 : 1;
+
             // TODO: default states
 
             itemReleased = new TernaryEvent<IEntity, T, double>(EntityName + ".ItemReleased");
@@ -208,17 +233,9 @@ namespace SimOpt.Simulation.Templates
             this.randomIntervalGenerator = new Random<double>(this, interval, Model.Antithetic, Model.NonStochasticMode);
             intervalInitialized = true;
 
-            // setup initial item
-            if (hasItem) // TODO: test this.
-            {
-                double delay = randomIntervalGenerator.Next();
-
-                nextItemReleasedSimpleInstance = itemReleasedSimple.GetInstance(this, currentItem);
-                nextItemReleasedInstance = itemReleased.GetInstance(this, currentItem, delay);
-
-                Model.AddEvent(delay, nextItemReleasedInstance);
-                Model.AddEvent(delay, nextItemReleasedSimpleInstance);
-            }
+            // setup initial item (tested in DelayTests, SIM-132)
+            if (count == 1)
+                ScheduleRelease(initialItem);
 
             OnQueueInitialized();
         }
@@ -228,8 +245,7 @@ namespace SimOpt.Simulation.Templates
 
         private void InternalReleasedItemHandler(IEntity sender, T item, double time)
         {
-            hasItem = false;
-            currentItem = default(T);
+            count--;
             if (LogRelease)
                 this.Log<SIM_INFO>(item.ToString() + " was released after a delay of " + time.ToTimeSpan().ToString() + ".", Model);
         }
@@ -239,28 +255,38 @@ namespace SimOpt.Simulation.Templates
 
         public bool Put(T item)
         {
-            if (hasItem)
+            if (count >= capacity)
             {
+                // SIM-132: a source wired with ConnectTo ignores the false, so the refusal is
+                // counted and reported here, or the item would vanish without a trace.
+                refusedCount++;
                 if (LogReject)
-                    this.Log<SIM_INFO>(item.ToString() + " was rejected because " + currentItem.ToString() + " is currently in " + EntityName + ".", Model);
+                    this.Log<SIM_INFO>(item.ToString() + " was rejected because " + EntityName + " is full (" + count + " of " + capacity + ").", Model);
+                notifyItemNotAccepted.Invoke(item);
                 return false;
             }
-            hasItem = true;
-            currentItem = item;
+            count++;
 
-            double delay = randomIntervalGenerator.Next();
-            
-            nextItemReleasedSimpleInstance = itemReleasedSimple.GetInstance(this, item);
-            nextItemReleasedInstance = itemReleased.GetInstance(this, item, delay);
-
-            Model.AddEvent(delay, nextItemReleasedInstance);
-            Model.AddEvent(delay, nextItemReleasedSimpleInstance);
+            double delay = ScheduleRelease(item);
 
             if (LogReceive)
                 this.Log<SIM_INFO>(item.ToString() + " was received and will be delayed for " + delay.ToTimeSpan().ToString() + ".", Model);
 
             return true;
         }
+
+        /// <summary>Draws the item's own delay and schedules its release; returns the delay.</summary>
+        private double ScheduleRelease(T item)
+        {
+            double delay = randomIntervalGenerator.Next();
+
+            Model.AddEvent(delay, itemReleased.GetInstance(this, item, delay));
+            Model.AddEvent(delay, itemReleasedSimple.GetInstance(this, item));
+
+            return delay;
+        }
+
+        private static void Noop(T ignore) { }
 
         #region connections
 
