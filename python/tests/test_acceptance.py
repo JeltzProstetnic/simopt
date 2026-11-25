@@ -72,6 +72,24 @@ def test_the_fewest_exam_rooms_keeping_the_wait_under_15_is_seven(server):
     assert found.rows()[0]["exam.servers"] == 7
 
 
+def test_a_saved_model_reopens_in_another_server_and_runs_the_same(server, tmp_path):
+    # SIM-67: a model outlives the server that built it
+    model = server.create_model(clinic())
+    model.patch([{"op": "set", "path": "exam.servers", "value": 7}])
+    path = tmp_path / "clinic-7.json"
+
+    saved = model.save(path)
+
+    assert saved["version"] == 2 and path.is_file()
+    assert model.export()["nodes"][4]["params"]["servers"] == 7
+    with Server(timeout=300) as another:
+        reopened = another.load_model(path)
+        assert reopened.run_experiment(duration=540, warmup=60, replications=5).rows() == \
+            model.run_experiment(duration=540, warmup=60, replications=5).rows()
+    with pytest.raises(SimOptError, match="overwrite"):
+        model.save(path)
+
+
 def test_a_patch_makes_a_new_version(server):
     model = server.create_model(clinic())
     assert model.version == 1

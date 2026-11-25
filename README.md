@@ -100,7 +100,7 @@ dotnet build SimOpt.slnx
 
 ## Testing
 
-1325 tests across simulation, optimization, mathematics, statistics and the MCP server (xUnit +
+1331 tests across simulation, optimization, mathematics, statistics and the MCP server (xUnit +
 FluentAssertions; 1 skipped, as of 2026-11-25):
 
 ```bash

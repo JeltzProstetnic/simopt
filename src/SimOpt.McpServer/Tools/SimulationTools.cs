@@ -2,9 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.ComponentModel;
+using System.IO;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using SimOpt.McpServer.Models;
 using SimOpt.McpServer.Optimization;
@@ -27,6 +31,14 @@ namespace SimOpt.McpServer.Tools
         /// arrows are written as themselves rather than as \u0027-style escapes that cost tokens.
         /// </summary>
         private static readonly JsonSerializerOptions Output = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+        /// <summary>SIM-67: a saved topology, indented and without empty optional fields.</summary>
+        private static readonly JsonSerializerOptions Document = new()
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
 
         public SimulationTools(ModelRegistry registry)
         {
@@ -254,6 +266,102 @@ namespace SimOpt.McpServer.Tools
             {
                 return JsonSerializer.Serialize(new { error = ex.Message }, Output);
             }
+        }
+
+        // ── save_model, load_model, export_model (SIM-67) ─────────────────────
+
+        [McpServerTool]
+        [Description(
+            "Saves a version of a model to a file as its topology JSON (schema v1), the same document create_model " +
+            "takes, so that it can be reopened with load_model, shared, and run by any later server. path must end " +
+            "in .json; an existing file is kept unless overwrite is true. Returns {model_id, version, path, bytes}.")]
+        public string SaveModel(
+            [Description("The model_id returned by create_model")]
+            string model_id,
+            [Description("The file to write, ending in .json")]
+            string path,
+            [Description("The version to save (default the latest)")]
+            int? version = null,
+            [Description("Replace an existing file (default false)")]
+            bool overwrite = false)
+        {
+            try
+            {
+                int saved = version ?? _registry.Versions(model_id);
+                string json = Saved(_registry.Topology(model_id, saved));
+                if (!path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                    return JsonSerializer.Serialize(new { error = $"path must end in .json, not \"{path}\"." }, Output);
+                string full = Path.GetFullPath(path);
+                if (File.Exists(full) && !overwrite)
+                    return JsonSerializer.Serialize(new { error = $"{full} exists; pass overwrite: true to replace it." }, Output);
+                File.WriteAllText(full, json);
+                return JsonSerializer.Serialize(new { model_id, version = saved, path = full, bytes = new FileInfo(full).Length }, Output);
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
+            }
+        }
+
+        [McpServerTool]
+        [Description(
+            "Opens a model saved with save_model, or any topology JSON file, and registers it exactly as create_model " +
+            "would: the same checks, every fault reported at once, and the same answer with a new model_id.")]
+        public string LoadModel(
+            [Description("The .json file to open")]
+            string path)
+        {
+            try
+            {
+                string full = Path.GetFullPath(path);
+                if (!File.Exists(full)) return JsonSerializer.Serialize(new { error = $"No file {full}." }, Output);
+                TopologyDefinition? topology;
+                try
+                {
+                    topology = JsonSerializer.Deserialize<TopologyDefinition>(File.ReadAllText(full), McpJsonUtilities.DefaultOptions);
+                }
+                catch (JsonException ex)
+                {
+                    return JsonSerializer.Serialize(new { error = $"{full} is not topology JSON: {ex.Message}" }, Output);
+                }
+                return topology == null
+                    ? JsonSerializer.Serialize(new { error = $"{full} holds no topology." }, Output)
+                    : CreateModel(topology);
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
+            }
+        }
+
+        [McpServerTool]
+        [Description(
+            "Returns a version of a model as its topology JSON (schema v1), for a client that does not share the " +
+            "server's disk. Returns {model_id, version, topology}.")]
+        public string ExportModel(
+            [Description("The model_id returned by create_model")]
+            string model_id,
+            [Description("The version to export (default the latest)")]
+            int? version = null)
+        {
+            try
+            {
+                int exported = version ?? _registry.Versions(model_id);
+                JsonNode? topology = JsonNode.Parse(Saved(_registry.Topology(model_id, exported)));
+                return JsonSerializer.Serialize(new { model_id, version = exported, topology }, Output);
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
+            }
+        }
+
+        /// <summary>SIM-67 (D1): the topology as a schema v1 document, stamped "1" when it carried no version.</summary>
+        private static string Saved(TopologyDefinition topology)
+        {
+            TopologyDefinition copy = TopologyPatcher.Copy(topology);
+            copy.SchemaVersion ??= "1";
+            return JsonSerializer.Serialize(copy, Document);
         }
 
         // ── run_simulation ────────────────────────────────────────────────────

@@ -106,6 +106,16 @@ class Model:
             replications_per_eval=replications_per_eval, max_evaluations=max_evaluations,
             max_seconds=max_seconds, strategy=strategy, seed=seed, version=version)))
 
+    def save(self, path, version=None, overwrite=None):
+        """save_model (SIM-67): writes the version (default the latest) as topology JSON; an existing file
+        is kept unless overwrite is true."""
+        return self.server.call("save_model", _arguments(model_id=self.id, path=str(path), version=version,
+                                                         overwrite=overwrite))
+
+    def export(self, version=None):
+        """export_model (SIM-67): the version's topology as a dict, the document create_model takes."""
+        return self.server.call("export_model", _arguments(model_id=self.id, version=version))["topology"]
+
     def run(self, duration):
         """run_simulation: one run of the latest version, without replications or intervals."""
         return self.server.call("run_simulation", {"model_id": self.id, "duration": duration})

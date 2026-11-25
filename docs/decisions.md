@@ -609,6 +609,13 @@ SIM-129, with SIM-130 following SIM-65/66.
 - **A solution's clone splits its move generator instead of copying it.** With a copied state, SA (which
   proposes every move on a clone of its unchanged current point) proposed a rejected move again and froze:
   2 distinct proposals in 300. Runs stay reproducible from their seed; D8 is revised accordingly.
+- **A saved model is its topology file (SIM-67).** `save_model` writes one version as schema v1 JSON, the
+  document `create_model` takes, so the file is portable and runs on any later server; the version history
+  stays in the session. No automatic store: writing every model to a directory and reloading it at start
+  would change what a plain server does on disk (Q-STORE). Unattended choice.
+- **The Python package talks MCP itself (SIM-130).** About a hundred lines of synchronous JSON-RPC instead of
+  the `mcp` SDK, so the package has no required dependency and no async API; pythonnet in process needs the
+  .NET 10 runtime (measured) and is documented as the alternative. Unattended choice.
 - **The EA's generation is sorted best first.** `ISolution.CompareTo` orders ascending, and the default
   parent selector takes the first µ, so the EA bred from its worst members. Fixed in the algorithm, not
   in the selector, because `ProcessGeneration` documents its input as best first.

@@ -121,6 +121,11 @@ class Server:
         answer = self.call("create_model", {"topology": topology})
         return Model(self, answer["model_id"], 1, answer)
 
+    def load_model(self, path):
+        """load_model (SIM-67): opens a saved topology file as create_model would and returns its Model."""
+        answer = self.call("load_model", {"path": str(path)})
+        return Model(self, answer["model_id"], 1, answer)
+
     def schema(self):
         """get_schema: node types, parameters, metric kinds, distributions and the JSON Schema."""
         return self.call("get_schema")
