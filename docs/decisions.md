@@ -703,3 +703,12 @@ closed, and was deleted. Its standing rules for unattended work that still apply
 - **`STOCK_RUNS_OUT` kept** after measuring it on the car wash (reorder level 5, warned: empty 0.199 of the day; 20, not
   warned: 0.0046).
 
+
+## 2026-11-25 (midday) — four owner decisions after the unattended morning (MG at the console)
+
+- **Q-VIEW-WARMUP → keep as built.** The viewer shows "warming up until t = …" for an opened `simopt-run/1` record,
+  whose call declares the warm-up and run length; a plain model document has no warm-up field and runs without one.
+  No schema field is added: a run record is what carries a run's settings.
+- **Q-SIM143-PRIO → P3.** SIM-143 (the factory preset is overloaded and its staging queue refuses parts).
+- **Q-SIM144-PRIO → P3.** SIM-144 (a topology without `seed` runs at 42 and is not listed as assumed).
+- **Q-SIM142-PRIO → P1.** SIM-142 (no topology with two sources could be created; fixed in `69476ff`).

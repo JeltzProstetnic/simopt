@@ -1,5 +1,5 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=building; status=open; next=MG looks at the viewer on screen (SIM-110 [?]) and the German sample report, answers Q-VIEW-WARMUP and the priority questions; then check the first nightly CI run; approved=2026-11-25 MG (all 17 open decisions) -->
+<!-- Work: stage=building; status=open; next=ask MG Q-CIW-WHERE and Q-CIW-CASES then build SIM-141 (ciw installed), MG looks at the viewer (SIM-110 [?]) and the German sample report, check the first nightly CI run; approved=2026-11-25 MG (all 17 open decisions) -->
 <!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93, SIM-86 -->
 # SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
@@ -163,17 +163,18 @@ the private hand-off (see *Private material*).
 
 ## Decisions for MG (stable IDs; recommended option first)
 
-- **Q-VIEW-WARMUP (open, 2026-11-25):** the viewer shows "warming up until t = ..." for a run record, whose call
-  declares the warm-up (and the run length); a plain model document has no warm-up field, so it runs without one.
-  **Recommended: keep it so** (no schema change; a run record is what carries a run's settings). The alternative is an
-  optional top-level `warmup` in the topology document, read by the viewer and by `run_experiment` when the call gives
-  none, which changes the schema and the MCP head.
-- **Q-SIM143-PRIO (open, 2026-11-25):** SIM-143 (the factory preset is overloaded and loses items at staging, now shown
-  as warnings) was filed at **P3 (recommended)**; the alternative is P2. Fixing it means rebalancing a demo preset.
-- **Q-SIM144-PRIO (open, 2026-11-25):** SIM-144 (a topology without `seed` runs at 42 and is not listed as assumed;
-  fixing it makes `Seed` nullable in the schema's C# contract) was filed at **P3 (recommended)**; the alternative is P2.
-- **Q-SIM142-PRIO (open, 2026-11-25):** SIM-142 (no topology with two sources could be created; fixed in `69476ff`) was
-  filed at **P1 (recommended)**; the alternative is P2. It is done either way, so the answer only sets its record.
+- **Q-CIW-WHERE (open, 2026-11-25, SIM-141; ask at the start of the next session):** where the Ciw cross-check runs.
+  **Recommended: in the nightly workflow** (`.github/workflows/nightly.yml` installs Python and ciw, a pytest in
+  `python/` runs each network in Ciw and in SimOpt and compares intervals), so the per-commit suite stays .NET-only and
+  fast. Alternatives: a per-commit pytest (every push needs Python and ciw, about a minute more), or a manual script whose
+  results are committed under `docs/plans/` (no automation; a regression goes unseen).
+- **Q-CIW-CASES (open, 2026-11-25, SIM-141):** which networks first. **Recommended: a finite tandem with blocking**
+  (two stations, a small buffer between; no closed form, both engines have it) **and a non-Jackson network** (lognormal
+  or deterministic service, probabilistic routing with rework). Priorities cannot be cross-checked yet: SimOpt has no
+  priority discipline (SIM-100).
+
+- **Q-VIEW-WARMUP, Q-SIM143-PRIO, Q-SIM144-PRIO, Q-SIM142-PRIO: DECIDED 2026-11-25 (midday) by MG at the console,** all as
+  recommended: the warm-up stays a run-record setting; SIM-143 P3, SIM-144 P3, SIM-142 P1 (`docs/decisions.md`).
 
 - **Q-ENGINE-MOVES: DECIDED 2026-11-25 by MG at the console:** after his SIM-122 results arrive (`docs/decisions.md`, 2026-11-25 morning).
 - **Q-PROV-REPORT: DECIDED 2026-11-25 by MG at the console:** a Markdown appendix via `report_run`, English or German; SIM-86 slice C is unblocked (`docs/decisions.md`, 2026-11-25 morning).
