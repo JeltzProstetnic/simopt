@@ -213,6 +213,23 @@ namespace SimOpt.McpServer.Models
         /// <summary>The distribution families, in the order they are advertised.</summary>
         public static IReadOnlyList<string> DistributionTypes => DistributionFactory.KnownTypes;
 
+        /// <summary>
+        /// SIM-126: the ids of a process's steps, in order: a step's own id, or <c>&lt;type&gt;#&lt;n&gt;</c> for
+        /// the n-th step of its type. The builder, the offered load and the patch paths all name steps by it.
+        /// </summary>
+        public static IReadOnlyList<string> StepIds(IReadOnlyList<StepDefinition> steps)
+        {
+            var perType = new Dictionary<string, int>();
+            var ids = new List<string>(steps.Count);
+            foreach (StepDefinition step in steps)
+            {
+                string type = (step?.Type ?? string.Empty).Trim().ToLowerInvariant();
+                perType[type] = perType.GetValueOrDefault(type) + 1;
+                ids.Add(string.IsNullOrWhiteSpace(step?.Id) ? $"{type}#{perType[type]}" : step!.Id!.Trim());
+            }
+            return ids;
+        }
+
         /// <summary>The v1 name of a node type or one of its aliases, ignoring case; null when unknown.</summary>
         public static string? Canonical(string? type)
         {

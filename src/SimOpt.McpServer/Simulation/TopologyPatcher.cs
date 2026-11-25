@@ -99,6 +99,7 @@ namespace SimOpt.McpServer.Simulation
                     $"Its nodes are {string.Join(", ", t.Nodes.Select(n => $"'{n.Id}'"))}.");
 
             string[] rest = segments.Skip(taken).ToArray();
+            if (rest[0] == "steps" && node.Steps != null) return SetStep(node, rest.Skip(1).ToArray(), path, op.Value);   // SIM-126
             if (rest.Length == 1) return SetParameter(node, rest[0], op.Value);
             if (rest.Length == 2) return SetField(node, rest[0], rest[1], op.Value);
             throw Fault("PATCH_BAD_PATH", node.Id, $"path \"{path}\" goes deeper than a field of a distribution.",
@@ -126,42 +127,73 @@ namespace SimOpt.McpServer.Simulation
             }
         }
 
-        private static string SetParameter(NodeDefinition node, string param, JsonElement? value)
+        private static string SetParameter(NodeDefinition node, string param, JsonElement? value) =>
+            SetValue(node.Params, node.Id, $"{node.Id}.{param}", param, value);
+
+        private static string SetField(NodeDefinition node, string param, string field, JsonElement? value) =>
+            SetDistributionField(node.Params, node.Id, $"'{node.Id}'", $"{node.Id}.{param}", param, field, value);
+
+        /// <summary>
+        /// SIM-126 schema, slice 5: <c>&lt;node&gt;.steps.&lt;step id&gt;.&lt;field&gt;[.&lt;distribution field&gt;]</c>,
+        /// a step named as the builder names it (its id, or <c>&lt;type&gt;#&lt;n&gt;</c>); an id may contain dots.
+        /// </summary>
+        private static string SetStep(NodeDefinition node, string[] rest, string path, JsonElement? value)
         {
-            node.Params.TryGetValue(param, out ParamValue? old);
+            IReadOnlyList<string> ids = SchemaCatalog.StepIds(node.Steps!);
+            for (int k = rest.Length - 1; k >= 1; k--)
+            {
+                int at = ids.ToList().IndexOf(string.Join(".", rest.Take(k)));
+                if (at < 0) continue;
+                StepDefinition step = node.Steps![at];
+                string[] field = rest.Skip(k).ToArray();
+                string label = $"{node.Id}.steps.{ids[at]}.{field[0]}";
+                if (field.Length == 1) return SetValue(step.Fields, node.Id, label, field[0], value);
+                if (field.Length == 2)
+                    return SetDistributionField(step.Fields, node.Id, $"step '{ids[at]}' of '{node.Id}'", label, field[0], field[1], value);
+                break;
+            }
+            throw Fault("PATCH_BAD_PATH", node.Id, $"path \"{path}\" names no field of a step of process '{node.Id}'.",
+                $"Write \"{node.Id}.steps.<step>.<field>\" or \"{node.Id}.steps.<step>.<field>.<distribution field>\"; " +
+                $"its steps are {string.Join(", ", ids.Select(i => $"'{i}'"))}.");
+        }
+
+        private static string SetValue(Dictionary<string, ParamValue> values, string node, string label, string param, JsonElement? value)
+        {
+            values.TryGetValue(param, out ParamValue? old);
             if (value == null || value.Value.ValueKind == JsonValueKind.Null)
             {
-                node.Params.Remove(param);
-                return old == null ? $"{node.Id}.{param}: not set, nothing removed" : $"{node.Id}.{param}: {old} → removed";
+                values.Remove(param);
+                return old == null ? $"{label}: not set, nothing removed" : $"{label}: {old} → removed";
             }
             ParamValue parameter = value.Value.ValueKind switch
             {
                 JsonValueKind.Number => value.Value.GetDouble(),
                 JsonValueKind.String => value.Value.GetString()!,
-                JsonValueKind.Object => Read<DistributionSpec>(value.Value, node.Id, "a distribution object"),
-                _ => throw Fault("PATCH_BAD_VALUE", node.Id,
-                    $"{node.Id}.{param} takes a number, a string or a distribution object, not {Show(value)}."),
+                JsonValueKind.Object => Read<DistributionSpec>(value.Value, node, "a distribution object"),
+                _ => throw Fault("PATCH_BAD_VALUE", node,
+                    $"{label} takes a number, a string or a distribution object, not {Show(value)}."),
             };
-            node.Params[param] = parameter;
-            return $"{node.Id}.{param}: {old?.ToString() ?? "not set"} → {parameter}";
+            values[param] = parameter;
+            return $"{label}: {old?.ToString() ?? "not set"} → {parameter}";
         }
 
-        private static string SetField(NodeDefinition node, string param, string field, JsonElement? value)
+        private static string SetDistributionField(Dictionary<string, ParamValue> values, string node, string owner, string label,
+                                                   string param, string field, JsonElement? value)
         {
-            if (!node.Params.TryGetValue(param, out ParamValue? old) || old?.Distribution == null)
-                throw Fault("PATCH_BAD_PATH", node.Id, $"'{node.Id}' has no distribution '{param}' whose field could be set" +
-                                                       (old == null ? "." : $"; it is {old}."),
-                    $"Set the whole parameter with the path \"{node.Id}.{param}\" and a distribution object.");
+            if (!values.TryGetValue(param, out ParamValue? old) || old?.Distribution == null)
+                throw Fault("PATCH_BAD_PATH", node, $"{owner} has no distribution '{param}' whose field could be set" +
+                                                   (old == null ? "." : $"; it is {old}."),
+                    $"Set the whole parameter with the path \"{label}\" and a distribution object.");
             if (!DistributionFields.Contains(field))
-                throw Fault("PATCH_BAD_PATH", node.Id, $"a distribution has no field '{field}'.",
+                throw Fault("PATCH_BAD_PATH", node, $"a distribution has no field '{field}'.",
                     $"Its fields are {string.Join(", ", DistributionFields)}.");
 
             JsonObject spec = JsonSerializer.SerializeToNode(old.Distribution, Json)!.AsObject();
             if (value == null || value.Value.ValueKind == JsonValueKind.Null) spec.Remove(field);
             else spec[field] = JsonNode.Parse(value.Value.GetRawText());
-            DistributionSpec changed = Read<DistributionSpec>(spec, node.Id, $"a value for the field '{field}'");
-            node.Params[param] = changed;
-            return $"{node.Id}.{param}.{field}: {old} → {(ParamValue)changed}";
+            DistributionSpec changed = Read<DistributionSpec>(spec, node, $"a value for the field '{field}'");
+            values[param] = changed;
+            return $"{label}.{field}: {old} → {(ParamValue)changed}";
         }
 
         // ── nodes ───────────────────────────────────────────────────────────

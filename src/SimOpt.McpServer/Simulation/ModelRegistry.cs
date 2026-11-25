@@ -985,7 +985,7 @@ namespace SimOpt.McpServer.Simulation
             }
 
             var steps = new List<ProcessStep>();
-            var perType = new Dictionary<string, int>();
+            IReadOnlyList<string> stepIds = SchemaCatalog.StepIds(node.Steps);
             var ids = new HashSet<string>();
             var held = new Dictionary<string, int>();
             bool blocked = false;   // a step names a resource or stock that failed: its own error says why
@@ -1001,8 +1001,7 @@ namespace SimOpt.McpServer.Simulation
                         $"Use one of: {string.Join(", ", SchemaCatalog.StepTypes.Select(t => t.Name))}."));
                     continue;
                 }
-                perType[type] = perType.GetValueOrDefault(type) + 1;
-                string id = string.IsNullOrWhiteSpace(definition.Id) ? $"{type}#{perType[type]}" : definition.Id.Trim();
+                string id = stepIds[i];
                 if (!ids.Add(id))
                 {
                     faults.Add(new ValidationIssue("DUPLICATE_STEP_ID",
