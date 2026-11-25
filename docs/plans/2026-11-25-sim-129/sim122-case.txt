@@ -1,0 +1,17 @@
+# SIM-122 case (M/G/1 with breakdowns), 100 replications, base seed 42, WSL, 2026-11-25 ~01:20
+# harness docs/plans/2026-11-24-sim-122 (CiExp built against e3bb9e8 and against SIM-129 step 4; simpy_mg1.py on SimPy 4.1.2)
+# /usr/bin/time -f '%e s wall, %M kB max RSS'
+base  round 1: 5.36 s wall, 66544 kB max RSS
+now   round 1: 1.55 s wall, 65564 kB max RSS
+simpy round 1: 2.77 s wall, 24340 kB max RSS
+base  round 2: 5.27 s wall, 67680 kB max RSS
+now   round 2: 1.56 s wall, 65784 kB max RSS
+simpy round 2: 2.77 s wall, 24372 kB max RSS
+# the same run with a smaller GC gen0 budget (no engine change), DOTNET_gcConcurrent=0:
+now   default gen0:              1.49 s wall, 65376 kB max RSS
+now   DOTNET_GCgen0size=0x400000: 1.39 s wall, 51356 kB max RSS
+now   DOTNET_GCgen0size=0x100000: 1.44 s wall, 49244 kB max RSS
+# summary lines (base and now print identical per-replication rows; compared with cmp)
+base:  replications_ok=100 mean=243.70 sd=23.57 ci95_halfwidth=4.68 rel_halfwidth=1.9 % pollaczek_khinchine=242.31 bias=0.6 %
+now:   replications_ok=100 mean=243.70 sd=23.57 ci95_halfwidth=4.68 rel_halfwidth=1.9 % pollaczek_khinchine=242.31 bias=0.6 %
+simpy: replications=100 mean=240.68 sd=23.86 ci95_halfwidth=4.73 rel_halfwidth=2.0% pollaczek_khinchine=242.31 bias=-0.7%

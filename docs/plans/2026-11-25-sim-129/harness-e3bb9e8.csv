@@ -1,0 +1,12 @@
+# SIM-129 harness: scale 0.3, 10 replications, best of 3, base seed 20260826
+case,events,best_s,ns_per_event,bytes_per_event,fingerprint
+mm1,303235,0.251,828,931,96b460d61e198b72
+md1,182059,0.213,1170,932,a50fff5d0791bfb9
+mg1u,181441,0.195,1076,933,ffbd57040766fea6
+mmc,908044,0.861,948,948,0401631718809386
+jackson,556546,0.718,1290,988,54eb866599ae529e
+mg1-breakdowns,160653,0.139,864,934,d24843f961d23015
+process-mm1,202806,0.153,755,1720,c473da1be2f4719d
+process-stock,283555,0.126,446,1069,7efcbe17e98a3ec1
+mm1-overload,395821,0.507,1282,1159,bcf0d33213e1f501
+# total: 3174160 events in 3.164 s, 997 ns per event
