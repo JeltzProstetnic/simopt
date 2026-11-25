@@ -151,7 +151,8 @@ namespace SimOpt.McpServer.Tools
             "model_sha256 = sha256sum of the file save_model writes for that version, seed, duration, warmup, replications, " +
             "confidence, tool), assumed (every value the run used without being given it, call arguments by name and node " +
             "parameters by patch path, with the value used), each scenario's patch, and a one-line summary. Reproducible: " +
-            "the same call gives the same result.")]
+            "the same call gives the same result. record: a new .json file to write the run record to (the model document, " +
+            "the call with every default resolved, the answer and record_sha256 over them); reproduce_run repeats it anywhere.")]
         public string RunExperiment(
             [Description("The model_id returned by create_model")]
             string model_id,
@@ -168,15 +169,42 @@ namespace SimOpt.McpServer.Tools
             [Description("The model version to run (default the latest)")]
             int? version = null,
             [Description("Base seed of the replications (default the model's seed)")]
-            int? seed = null)
+            int? seed = null,
+            [Description("A new .json file to write the run record to (default none); an existing file is never replaced")]
+            string? record = null)
         {
             try
             {
+                string? target = record == null ? null : RunRecordFile.Target(record);
                 int run = version ?? _registry.Versions(model_id);
                 TopologyDefinition topology = _registry.Topology(model_id, run);
                 ExperimentResult result = ExperimentRunner.Run(model_id, run, topology, duration, replications, warmup,
                                                                metrics, scenarios, seed);
+                if (target != null)
+                    result.Record = new RecordWritten(target, RunRecordFile.Write(target, topology, metrics, scenarios, result));
                 return JsonSerializer.Serialize(result, Output);
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
+            }
+        }
+
+        // ── reproduce_run (SIM-86) ────────────────────────────────────────────
+
+        [McpServerTool]
+        [Description(
+            "Repeats a run record written by run_experiment's record argument, on this server, from the record alone. " +
+            "Reports record_intact (the record still hashes to its record_sha256), model_intact (its model still hashes to " +
+            "the model_sha256 the answer named), identical (every recorded figure came out the same), the differences if " +
+            "not, the tool versions then and now, and a summary.")]
+        public string ReproduceRun(
+            [Description("The run record (.json) to repeat")]
+            string path)
+        {
+            try
+            {
+                return JsonSerializer.Serialize(RunRecordFile.Reproduce(path), Output);
             }
             catch (Exception ex)
             {

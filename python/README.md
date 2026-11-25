@@ -54,9 +54,9 @@ returns the node types, parameters, metric kinds and distributions with a JSON S
 
 | | |
 |---|---|
-| `Server(command=None, timeout=3600)` | starts the server; use it in a `with` block. `validate`, `create_model`, `load_model(path)`, `schema`, `models`, and `call(tool, arguments)` for any tool |
-| `Model` | `patch(operations)` (a new version), `run_experiment(...)`, `optimize(...)`, `save(path)` and `export()` (the topology as a file or a dict, which `load_model` reopens in any later server), `run(duration)`; keyword arguments carry the MCP tools' own names |
-| `Experiment` | `raw` (the tool's answer), `rows()`, `frame()`, `errors`, `summary` |
+| `Server(command=None, timeout=3600)` | starts the server; use it in a `with` block. `validate`, `create_model`, `load_model(path)`, `reproduce_run(path)` (repeats a run record, SIM-86), `schema`, `models`, and `call(tool, arguments)` for any tool |
+| `Model` | `patch(operations)` (a new version), `run_experiment(..., record=path)` (`record` writes a run record), `optimize(...)`, `save(path)` and `export()` (the topology as a file or a dict, which `load_model` reopens in any later server), `run(duration)`; keyword arguments carry the MCP tools' own names |
+| `Experiment` | `raw` (the tool's answer), `provenance` (everything but the figures: `model_sha256`, seed, warm-up, `assumed`, ...), `rows()`, `frame()`, `errors`, `summary` |
 | `Optimization` | `raw`, `best`, `rows()` (one per ranked point), `frame()`, `summary` |
 | `Topology` | `source`, `queue`, `station`, `delay`, `router`, `sink`, `node`, `connect(*path, weight=None)`, `metric` |
 | distributions | `exponential`, `triangular`, `uniform`, `lognormal`, `gamma`, `constant`, `empirical` |

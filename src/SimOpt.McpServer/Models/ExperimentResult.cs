@@ -119,5 +119,10 @@ namespace SimOpt.McpServer.Models
 
         [JsonPropertyName("scenarios")] public List<ScenarioResult> Scenarios { get; set; } = new();
         [JsonPropertyName("summary")] public string Summary { get; set; } = string.Empty;
+
+        /// <summary>SIM-86 slice B: where the run record went, when one was asked for; not part of the record itself.</summary>
+        [JsonPropertyName("record")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public RecordWritten? Record { get; set; }
     }
 }

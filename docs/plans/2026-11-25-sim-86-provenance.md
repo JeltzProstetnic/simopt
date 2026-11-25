@@ -45,12 +45,33 @@ Python package 23 passed.
 Not changed: no template's results moved (nothing in the engine was touched), so his frozen reference
 runs are unaffected and no comment on his issue #30 is needed.
 
+## Slice B (done, test-first): a run record a third party can repeat
+
+- `run_experiment(..., record: "run.json")` writes one file, format `simopt-run/1`: `model` (the schema
+  v1 document), `call` (duration, replications, warm-up and seed resolved, the metrics asked for, the
+  scenarios with their patches), `result` (the answer as returned), and `record_sha256` over all of it.
+  The answer gains `record: {path, record_sha256}`. The path is checked before anything runs: it must end
+  in `.json`, its folder must exist, and an existing file is never replaced (no overwrite flag: a record
+  is evidence).
+- `reproduce_run(path)` repeats a record on any server from the record alone and reports
+  `record_intact` (the content still hashes to `record_sha256`), `model_intact` (the model still hashes
+  to the answer's `model_sha256`), `identical` (every recorded figure came out the same), `differences`
+  ("baseline los: recorded 39.2 [..], now 38.2 [..]"), the tool versions then and now, and a summary
+  that says when a difference may come from a different tool version.
+- The hash is taken through `JsonNode` on both sides, indented with line feeds, without the
+  `record_sha256` field; numbers keep their written text, so re-serialising the parsed file gives the
+  same bytes. A forged figure and a changed model parameter are both caught (tests).
+- This is the hook for SIM-88, not SIM-88 itself: a hash in the file shows the file is consistent, not
+  that nobody rewrote file and hash together. "Without trusting the storer" (UN-036) needs the hash held
+  somewhere else (a signature or a timestamping service), which is SIM-88's job.
+- Python: `Model.run_experiment(..., record=path)`, `Server.reproduce_run(path)`, and
+  `Experiment.provenance` (the answer without its figures).
+
+Tests: `RunRecordTests` (9), one Python acceptance test. Suite 1369 -> 1378 passed, 1 skipped; Python
+23 -> 24 passed.
+
 ## Still open in SIM-86
 
-- **Slice B, a run record a third party can re-run** (UN-033, UN-034): `run_experiment` with a
-  `record` path writes one JSON file holding the model document, the call with every default resolved,
-  the answer, and a SHA-256 over the record's content (SIM-88's hook); a `reproduce_run` tool re-runs a
-  record and reports "identical" or the first figure that differs. Low regret: machine format, opt-in.
 - **Slice C, the form for an expert report** (UN-034): a human-readable rendering of a record
   (provenance table, assumptions, results with intervals). Its language and format are MG's call
   (Q-PROV-REPORT).
@@ -59,6 +80,7 @@ runs are unaffected and no comment on his issue #30 is needed.
   each replication starts empty and idle. These belong in the record and in `get_schema`, not in every
   agent answer.
 - **Python:** `Experiment.frame().attrs["provenance"]`, so provenance stays with a pandas frame.
+- **`optimize` records:** the same record for a search (its call, every evaluated point); not built yet.
 - **Known gap:** a document without `seed` is run with 42 (`TopologyDefinition.Seed` is a plain int),
   and that default cannot be told apart from a given 42, so it is not listed in `assumed`. Making the
   seed nullable changes the schema's C# contract; not done unattended.

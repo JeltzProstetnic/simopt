@@ -126,6 +126,11 @@ class Server:
         answer = self.call("load_model", {"path": str(path)})
         return Model(self, answer["model_id"], 1, answer)
 
+    def reproduce_run(self, path):
+        """reproduce_run (SIM-86): repeats a run record on this server and reports record_intact,
+        model_intact, identical and any differences."""
+        return self.call("reproduce_run", {"path": str(path)})
+
     def schema(self):
         """get_schema: node types, parameters, metric kinds, distributions and the JSON Schema."""
         return self.call("get_schema")

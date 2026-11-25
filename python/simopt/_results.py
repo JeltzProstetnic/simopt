@@ -25,6 +25,12 @@ class Experiment:
         return self.raw.get("summary", "")
 
     @property
+    def provenance(self):
+        """SIM-86: everything in the answer except the figures: version, model_sha256, seed, run length,
+        warm-up, replications, confidence, tool, what was assumed, and the record if one was written."""
+        return {key: value for key, value in self.raw.items() if key not in ("scenarios", "summary")}
+
+    @property
     def errors(self):
         """The scenarios that could not run, with why."""
         return {s["name"]: s["errors"] for s in self.raw.get("scenarios", []) if s.get("errors")}
@@ -94,10 +100,12 @@ class Model:
         return answer
 
     def run_experiment(self, duration, replications=None, warmup=None, metrics=None, scenarios=None,
-                       version=None, seed=None):
+                       version=None, seed=None, record=None):
+        """run_experiment; record (SIM-86) names a new .json file for the run record, which
+        Server.reproduce_run repeats on any server."""
         return Experiment(self.server.call("run_experiment", _arguments(
             model_id=self.id, duration=duration, replications=replications, warmup=warmup, metrics=metrics,
-            scenarios=scenarios, version=version, seed=seed)))
+            scenarios=scenarios, version=version, seed=seed, record=None if record is None else str(record))))
 
     def optimize(self, variables, objective, duration, warmup=None, replications_per_eval=None,
                  max_evaluations=None, max_seconds=None, strategy=None, seed=None, version=None):
