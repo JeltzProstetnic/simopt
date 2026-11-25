@@ -46,6 +46,7 @@ namespace SimOpt.McpServer.Optimization
         private readonly int? budget;
         private readonly Dictionary<string, CandidateEvaluation> cache = new();
         private readonly List<CandidateEvaluation> evaluations = new();
+        private readonly List<(ConstraintDefinition Constraint, VariableExpression Expression)> limits = new();
         private bool exhausted;
 
         /// <param name="duration">Simulated time per replication, warm-up included.</param>
@@ -83,6 +84,9 @@ namespace SimOpt.McpServer.Optimization
 
         /// <summary>Every point evaluated, in order; a cached answer adds none.</summary>
         public IReadOnlyList<CandidateEvaluation> Evaluations => evaluations;
+
+        /// <summary>SIM-140: distinct points refused by a constraint on the variables, without a run or a cost.</summary>
+        public int Skipped { get; private set; }
 
         /// <summary>Unknown in general; a strategy that stops at it never does.</summary>
         public double OptimumFitness => double.PositiveInfinity;
@@ -171,7 +175,12 @@ namespace SimOpt.McpServer.Optimization
 
             double[] point = Quantise(solution.Parameters);
             string key = string.Join("|", point.Select(x => x.ToString("R", CultureInfo.InvariantCulture)));
-            if (!cache.TryGetValue(key, out CandidateEvaluation? evaluation))
+            if (!cache.TryGetValue(key, out CandidateEvaluation? evaluation) && Refused(point) is CandidateEvaluation refused)
+            {
+                cache[key] = evaluation = refused;   // SIM-140: never run, so it costs no evaluation
+                Skipped++;
+            }
+            if (evaluation == null)
             {
                 if (evaluations.Count > 0 && Deadline is DateTime deadline && DateTime.UtcNow >= deadline) Stop("time");
                 if (StopReason != null)
@@ -200,6 +209,29 @@ namespace SimOpt.McpServer.Optimization
 
         // ── evaluation ──────────────────────────────────────────────────────
 
+        /// <summary>
+        /// SIM-140: the point's breaches of the constraints on the variables, ranked like a breached metric bound,
+        /// or null when it keeps them all and is to be run.
+        /// </summary>
+        private CandidateEvaluation? Refused(double[] point)
+        {
+            var violations = new List<string>();
+            double violation = 0d;
+            foreach (var (c, expression) in limits)
+            {
+                double value = expression.Evaluate(point);
+                double excess = c.Op.StartsWith("<") ? value - c.Value : c.Value - value;
+                double tolerance = 1e-9 * Math.Max(1d, Math.Abs(c.Value));
+                bool broken = c.Op.Length == 1 ? excess > -tolerance : excess > tolerance;
+                if (!broken) continue;
+                violations.Add($"{expression.Text} = {Fmt(value)} is not {c.Op} {Fmt(c.Value)}");
+                violation += Math.Max(excess, 0d) / Math.Max(Math.Abs(c.Value), 1d) + 1e-9;
+            }
+            return violations.Count == 0
+                ? null
+                : new CandidateEvaluation(0, point, Infeasible - violation, false, new Dictionary<string, MetricSummary>(), violations, null);
+        }
+
         private CandidateEvaluation Run(double[] point)
         {
             int number = evaluations.Count + 1;
@@ -219,9 +251,9 @@ namespace SimOpt.McpServer.Optimization
             // D4, measured: a bound is kept only when the metric's whole 95 % interval keeps it. On the mean,
             // five replications passed 6 exam rooms (wait 12.3 ± 8.0 against < 15) that twenty failed
             // (19.7 ± 6.6), so the answer flipped with the noise; the interval does not.
-            foreach (ConstraintDefinition c in objective.Constraints)
+            foreach (ConstraintDefinition c in objective.Constraints.Where(c => c.Expression == null))
             {
-                MetricSummary m = metrics[c.Metric];
+                MetricSummary m = metrics[c.Metric!];
                 if (double.IsNaN(m.Mean))
                 {
                     violations.Add($"{c.Metric} has no data");
@@ -295,10 +327,50 @@ namespace SimOpt.McpServer.Optimization
                 problems.Add($"The objective's direction must be \"min\" or \"max\", not \"{objective.Direction}\".");
             foreach (ConstraintDefinition c in objective.Constraints)
             {
-                if (!metricIds.Contains(c.Metric ?? "")) problems.Add($"The constraint on '{c.Metric}' names no metric. {known}");
                 if (!Ops.Contains(c.Op)) problems.Add($"A constraint's op must be one of {string.Join(" ", Ops)}, not \"{c.Op}\".");
+                if ((c.Metric == null) == (c.Expression == null))
+                    problems.Add($"A constraint names a metric or an expression over the variables, one of the two; " +
+                                 $"this one names {(c.Metric == null ? "neither" : "both")}.");
+                else if (c.Metric != null)
+                {
+                    if (!metricIds.Contains(c.Metric)) problems.Add($"The constraint on '{c.Metric}' names no metric. {known}");
+                }
+                else problems.AddRange(CheckLimit(c));
             }
             return problems;
+        }
+
+        /// <summary>SIM-140: reads a constraint's expression, and refuses a bound no point within the variables' bounds keeps.</summary>
+        private IEnumerable<string> CheckLimit(ConstraintDefinition c)
+        {
+            VariableExpression expression;
+            try
+            {
+                expression = VariableExpression.Parse(c.Expression, variables.Select(v => v.Path).ToList());
+            }
+            catch (ArgumentException e)
+            {
+                return new[] { $"The constraint \"{c.Expression}\": {e.Message}" };
+            }
+            if (Ops.Contains(c.Op) && variables.All(v => double.IsFinite(v.Min) && double.IsFinite(v.Max) && v.Min <= v.Max))
+            {
+                var (least, greatest) = expression.Range(variables);
+                bool kept = c.Op switch
+                {
+                    "<" => least < c.Value,
+                    "<=" => least <= c.Value,
+                    ">" => greatest > c.Value,
+                    _ => greatest >= c.Value,
+                };
+                if (!kept)
+                    return new[]
+                    {
+                        $"With these bounds no point keeps {expression.Text} {c.Op} {Fmt(c.Value)}: it is " +
+                        (c.Op.StartsWith("<") ? $"at least {Fmt(least)}." : $"at most {Fmt(greatest)}."),
+                    };
+            }
+            limits.Add((c, expression));
+            return Array.Empty<string>();
         }
 
         private IEnumerable<string> CheckVariable(DecisionVariable v)

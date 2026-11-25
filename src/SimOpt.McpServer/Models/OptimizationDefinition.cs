@@ -31,12 +31,25 @@ namespace SimOpt.McpServer.Models
         public double? Step { get; set; }
     }
 
-    /// <summary>SIM-68 (D4): a bound a metric's mean must keep.</summary>
+    /// <summary>
+    /// SIM-68 (D4): a bound a metric's mean must keep, or (SIM-140) a bound on an expression over the decision
+    /// variables, checked before a point is run.
+    /// </summary>
     public sealed class ConstraintDefinition
     {
-        [Description("A metric id")]
+        [Description("A metric id; give this or expression")]
         [JsonPropertyName("metric")]
-        public string Metric { get; set; } = string.Empty;
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Metric { get; set; }
+
+        [Description("A sum over the decision variables' paths, e.g. \"triage.servers + exam.servers\" or \"2 * exam.servers - 1\"; give this or metric")]
+        [JsonPropertyName("expression")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Expression { get; set; }
+
+        /// <summary>The left side as written: the metric, or the expression.</summary>
+        [JsonIgnore]
+        public string Subject => Metric ?? Expression ?? string.Empty;
 
         [Description("\"<\", \"<=\", \">\" or \">=\"")]
         [JsonPropertyName("op")]
@@ -58,7 +71,7 @@ namespace SimOpt.McpServer.Models
         [JsonPropertyName("direction")]
         public string Direction { get; set; } = "min";
 
-        [Description("Bounds on metric means a solution must keep: [{metric, op, value}]")]
+        [Description("Bounds a solution must keep: on a metric's mean, [{metric, op, value}], or on the decision variables, [{expression, op, value}]")]
         [JsonPropertyName("constraints")]
         public List<ConstraintDefinition> Constraints { get; set; } = new();
     }

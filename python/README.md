@@ -47,6 +47,10 @@ with Server() as server:
     print(found.best["point"], found.summary)   # {'exam.servers': 7} ...
 ```
 
+A constraint may also bound a sum over the decision variables instead of a metric, such as a headcount
+(SIM-140): `{"expression": "triage.servers + exam.servers", "op": "<=", "value": 12}`. A point that breaks it
+is never run and costs no evaluation; the answer counts such points in `skipped`.
+
 A topology is a plain dict in the SIM-65 schema; `Topology` only saves typing, and `server.schema()`
 returns the node types, parameters, step types, metric kinds and distributions with a JSON Schema.
 

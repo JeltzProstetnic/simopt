@@ -285,7 +285,7 @@ namespace SimOpt.McpServer.Simulation
                 string text = $"{direction} `{Text(objective["metric"])}`";
                 if (objective["constraints"] is JsonArray constraints && constraints.Count > 0)
                     text += $", {w.SubjectTo}: " + string.Join("; ", constraints.OfType<JsonObject>()
-                        .Select(k => $"`{Text(k["metric"])} {Text(k["op"])} {Number(k["value"], c)}`"));
+                        .Select(k => $"`{Text(k["metric"]) ?? Text(k["expression"])} {Text(k["op"])} {Number(k["value"], c)}`"));
                 Line(text);
                 Line();
             }

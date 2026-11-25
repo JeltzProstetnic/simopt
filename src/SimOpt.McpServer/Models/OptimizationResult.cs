@@ -58,6 +58,11 @@ namespace SimOpt.McpServer.Models
         /// <summary>"done" (the strategy finished), "budget" or "time".</summary>
         [JsonPropertyName("stopped")] public string Stopped { get; set; } = "done";
 
+        /// <summary>SIM-140: distinct points refused by a constraint on the variables without a run; absent when none were.</summary>
+        [JsonPropertyName("skipped")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? Skipped { get; set; }
+
         [JsonPropertyName("best")] public OptimizedPoint Best { get; set; } = new();
 
         /// <summary>The five best points, best first, without their metrics.</summary>

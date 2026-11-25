@@ -256,7 +256,9 @@ namespace SimOpt.McpServer.Tools
             "Searches a model's decision variables for the best point that keeps the constraints. variables: " +
             "[{path, type: \"integer\"|\"real\", min, max, step?}], each path as for patch_model (e.g. \"exam.servers\"). " +
             "objective: {metric, direction: \"min\"|\"max\", constraints?: [{metric, op: \"<\"|\"<=\"|\">\"|\">=\", value}]}; " +
-            "metric is a metric id or a variable's path (\"exam.servers\" with min = use as few as possible). Every point is " +
+            "metric is a metric id or a variable's path (\"exam.servers\" with min = use as few as possible). A constraint may " +
+            "instead bound a sum over the variables' paths, {expression: \"triage.servers + exam.servers\", op, value} (factors " +
+            "as \"2 * exam.servers\"); a point that breaks it is never run, costs no evaluation and is counted in skipped. Every point is " +
             "run with replications_per_eval replications at one seed, so points differ only where their settings do; a " +
             "constraint counts as kept only when the metric's whole 95% interval keeps it. strategy: \"auto\" (every point " +
             "when the space fits max_evaluations, else the evolutionary algorithm), \"grid\", \"random\", \"sa\" (simulated annealing), " +

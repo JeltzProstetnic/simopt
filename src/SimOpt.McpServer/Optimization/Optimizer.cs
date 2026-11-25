@@ -156,6 +156,10 @@ namespace SimOpt.McpServer.Optimization
             TopologyDefinition topology, ObjectiveDefinition objective, double duration, double warmup, int replications, int seed)
         {
             List<CandidateEvaluation> ranked = problem.Evaluations.OrderByDescending(e => e.Fitness).ThenBy(e => e.Number).ToList();
+            string bounds = string.Join(", ", objective.Constraints.Select(c => $"{c.Subject} {c.Op} {Fmt(c.Value)}"));
+            if (ranked.Count == 0)
+                throw new ArgumentException($"No point the search proposed keeps {bounds}; {problem.Skipped} were refused without a run. " +
+                                            "Widen the variables' bounds or the constraints on them.");
             CandidateEvaluation best = ranked[0];
             var result = new OptimizationResult
             {
@@ -166,6 +170,7 @@ namespace SimOpt.McpServer.Optimization
                 Evaluations = problem.Evaluations.Count,
                 Space = problem.SpaceSize,
                 Stopped = problem.StopReason ?? "done",
+                Skipped = problem.Skipped > 0 ? problem.Skipped : null,
                 Best = Point(problem, objective, best, detailed: true),
                 Top = ranked.Take(5).Select(e => Point(problem, objective, e, detailed: false)).ToList(),
                 Duration = duration,
@@ -177,13 +182,14 @@ namespace SimOpt.McpServer.Optimization
             result.Best.Saturated = Saturated(problem, topology, best);
 
             string at = string.Join(", ", result.Best.Point.Select(p => $"{p.Key} = {Fmt(p.Value)}"));
-            string bounds = string.Join(", ", objective.Constraints.Select(c => $"{c.Metric} {c.Op} {Fmt(c.Value)}"));
             result.Summary = best.Feasible
                 ? $"{at} is the best of {result.Evaluations} points evaluated ({strategy}" +
                   $"{(result.Stopped == "done" ? "" : $", stopped by {result.Stopped}")})" +
                   $"{(bounds.Length > 0 ? $", keeping {bounds} on its whole 95% interval" : "")}. " +
                   "Confirm it with run_experiment at more replications."
                 : $"No point of the {result.Evaluations} evaluated keeps {bounds}; the nearest is {at}.";
+            if (problem.Skipped > 0)
+                result.Summary += $" {problem.Skipped} points broke a constraint on the variables and were refused without a run.";
             if (result.Best.Saturated != null)
                 result.Summary += $" At this point {string.Join(", ", result.Best.Saturated)} is offered a load of 1 or more, " +
                                   "so its figures grow with the run length.";
