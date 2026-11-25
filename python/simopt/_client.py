@@ -131,6 +131,11 @@ class Server:
         model_intact, identical and any differences."""
         return self.call("reproduce_run", {"path": str(path)})
 
+    def report_run(self, path, language="en"):
+        """report_run (SIM-86 slice C): a run record as a Markdown appendix for an expert report, "en" or "de";
+        returns language, record_intact, model_intact and markdown. Runs nothing."""
+        return self.call("report_run", {"path": str(path), "language": language})
+
     def schema(self):
         """get_schema: node types, parameters, metric kinds, distributions and the JSON Schema."""
         return self.call("get_schema")

@@ -93,11 +93,25 @@ on the machine, so it cannot be repeated exactly (give `max_evaluations` instead
 `Model.optimize(..., record=path)`. Tests `OptimizeRecordTests` (4) plus one Python acceptance test;
 suite 1429 -> 1433 passed, 1 skipped; Python 26.
 
-## Still open in SIM-86
+## Slice C, the form for an expert report (done, test-first)
 
-- **Slice C, the form for an expert report** (UN-034): a human-readable rendering of a record
-  (provenance table, assumptions, results with intervals). Its language and format are MG's call
-  (Q-PROV-REPORT).
-- **Known gap:** a document without `seed` is run with 42 (`TopologyDefinition.Seed` is a plain int),
-  and that default cannot be told apart from a given 42, so it is not listed in `assumed`. Making the
-  seed nullable changes the schema's C# contract; not done unattended.
+MG chose a Markdown appendix (Q-PROV-REPORT, 2026-11-25): `report_run(path, language)` renders a run
+record, English ("en") or German ("de"), and he turns it into PDF or Word with his own tools; the server
+gains no rendering dependency. The report has six parts: provenance (record file and format, both
+hashes and whether each still holds, the model's name and version, the tool call, the tool that
+recorded it), run settings, results (each scenario's figures with 95 % intervals, its patch and its
+paired differences; for a search the objective, variables, best point and ranking), what the run
+assumed (the recorded rule with the value used, "a tenth of the duration: 54"), the limits of schema
+v1 as recorded, and how to repeat it. It reads the record and checks its hashes but runs nothing;
+`reproduce_run` repeats it. Figures are printed as recorded (four significant digits), in German with
+decimal commas (de-AT) and intervals as "[a; b]". Every limit of the catalogue has a German text
+(`RunReport.GermanLimits`), and a test fails when a limit is added without one; a recorded limit the
+catalogue no longer has is printed in English and marked so. `RunRecordFile.Open` now reads and
+checks a record for both `reproduce_run` and `report_run`. Python: `Server.report_run`. Tests
+`RunReportTests` (7) and one Python acceptance test; suite 1627 -> 1634 passed, 4 skipped; Python 31.
+
+## Known gap, filed
+
+A document without `seed` is run with 42 (`TopologyDefinition.Seed` is a plain int), and that default
+cannot be told apart from a given 42, so it is not listed in `assumed`. Making the seed nullable changes
+the schema's C# contract; not done unattended. Filed as SIM-144.

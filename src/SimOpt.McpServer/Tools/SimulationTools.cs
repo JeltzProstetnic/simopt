@@ -224,6 +224,31 @@ namespace SimOpt.McpServer.Tools
             }
         }
 
+        // ── report_run (SIM-86 slice C) ───────────────────────────────────────
+
+        [McpServerTool]
+        [Description(
+            "Renders a run record (run_experiment's or optimize's record argument) as a Markdown appendix for an expert " +
+            "report, in English (\"en\") or German (\"de\"): provenance with the record and model hashes checked, the run's " +
+            "settings, the results with their 95 % intervals, what the run assumed, what the model does not represent, and " +
+            "how to repeat it. Runs nothing (reproduce_run repeats a record). Returns language, record_intact, model_intact " +
+            "and markdown.")]
+        public string ReportRun(
+            [Description("The run record (.json) to render")]
+            string path,
+            [Description("\"en\" (default) or \"de\"")]
+            string? language = null)
+        {
+            try
+            {
+                return JsonSerializer.Serialize(RunReport.Render(path, language), Output);
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { error = ex.Message }, Output);
+            }
+        }
+
         // ── optimize ──────────────────────────────────────────────────────────
 
         [McpServerTool]

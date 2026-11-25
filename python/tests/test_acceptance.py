@@ -120,6 +120,21 @@ def test_a_recorded_run_reproduces_identically_on_another_server(server, tmp_pat
     assert check["identical"] and check["record_intact"] and check["model_intact"], check
 
 
+def test_a_recorded_run_renders_as_a_report_in_english_and_german(server, tmp_path):
+    # SIM-86 slice C: report_run turns a record into the appendix of an expert report
+    model = server.create_model(clinic())
+    path = tmp_path / "run.json"
+    model.run_experiment(duration=540, replications=5, record=path)
+
+    english = server.report_run(path)
+    german = server.report_run(path, language="de")
+
+    assert english["record_intact"] and english["model_intact"], english
+    assert english["markdown"].startswith("# Simulation run report")
+    assert "| Warm-up | 54 |" in english["markdown"]
+    assert german["markdown"].startswith("# Bericht über einen Simulationslauf")
+
+
 def test_a_patch_makes_a_new_version(server):
     model = server.create_model(clinic())
     assert model.version == 1

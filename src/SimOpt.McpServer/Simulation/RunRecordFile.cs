@@ -109,9 +109,19 @@ namespace SimOpt.McpServer.Simulation
             return hash;
         }
 
-        /// <summary>Checks a record's hashes, runs its call on its model, and compares every figure.</summary>
+        /// <summary>
+        /// SIM-86 slice C: a run record as read, its parts, and whether its two hashes still hold: the record's own
+        /// (<c>record_sha256</c>) and its model's (the <c>model_sha256</c> the answer named).
+        /// </summary>
+        internal sealed record Opened(string FullPath, JsonObject Record, JsonObject Call, JsonObject Result,
+                                      TopologyDefinition Topology, bool RecordIntact, bool ModelIntact)
+        {
+            public string? ToolCall => Text(Record["tool_call"]);
+        }
+
+        /// <summary>Reads a record and checks its hashes; runs nothing.</summary>
         /// <exception cref="ArgumentException">No such file, or the file is not a run record.</exception>
-        public static ReproductionReport Reproduce(string path)
+        internal static Opened Open(string path)
         {
             string full = Path.GetFullPath(path);
             if (!File.Exists(full)) throw new ArgumentException($"No file {full}.");
@@ -129,20 +139,33 @@ namespace SimOpt.McpServer.Simulation
                 throw new ArgumentException($"{full} is not a run record: it needs \"record\": \"{Format}\", model, call and result.");
 
             string? stated = Text(record["record_sha256"]);
-            record.Remove("record_sha256");
+            var withoutHash = (JsonObject)record.DeepClone();
+            withoutHash.Remove("record_sha256");
             TopologyDefinition topology = model.Deserialize<TopologyDefinition>(McpJsonUtilities.DefaultOptions)!;
-            List<string> differences = Text(record["tool_call"]) switch
+            return new Opened(full, record, callNode, recorded, topology,
+                RecordIntact: stated != null && stated == Sha256(withoutHash),
+                ModelIntact: Text(recorded["model_sha256"]) == ModelDocument.Sha256(topology));
+        }
+
+        /// <summary>Checks a record's hashes, runs its call on its model, and compares every figure.</summary>
+        /// <exception cref="ArgumentException">No such file, or the file is not a run record.</exception>
+        public static ReproductionReport Reproduce(string path)
+        {
+            Opened opened = Open(path);
+            TopologyDefinition topology = opened.Topology;
+            JsonObject recorded = opened.Result;
+            List<string> differences = opened.ToolCall switch
             {
-                "run_experiment" => RepeatExperiment(topology, callNode.Deserialize<ExperimentCall>(Options)!, recorded),
-                "optimize" => RepeatSearch(topology, callNode.Deserialize<OptimizationCall>(McpJsonUtilities.DefaultOptions)!, recorded),
-                var other => throw new ArgumentException($"{full}: a record of \"{other}\" cannot be repeated; " +
+                "run_experiment" => RepeatExperiment(topology, opened.Call.Deserialize<ExperimentCall>(Options)!, recorded),
+                "optimize" => RepeatSearch(topology, opened.Call.Deserialize<OptimizationCall>(McpJsonUtilities.DefaultOptions)!, recorded),
+                var other => throw new ArgumentException($"{opened.FullPath}: a record of \"{other}\" cannot be repeated; " +
                                                          "run_experiment and optimize can."),
             };
 
             var report = new ReproductionReport
             {
-                RecordIntact = stated != null && stated == Sha256(record),
-                ModelIntact = Text(recorded["model_sha256"]) == ModelDocument.Sha256(topology),
+                RecordIntact = opened.RecordIntact,
+                ModelIntact = opened.ModelIntact,
                 RecordedWith = Text(recorded["tool"]) ?? "unknown",
                 ReproducedWith = ExperimentRunner.ToolVersion,
                 Identical = differences.Count == 0,
