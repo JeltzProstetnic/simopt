@@ -619,3 +619,21 @@ SIM-129, with SIM-130 following SIM-65/66.
 - **The EA's generation is sorted best first.** `ISolution.CompareTo` orders ascending, and the default
   parent selector takes the first µ, so the EA bred from its worst members. Fixed in the algorithm, not
   in the selector, because `ProcessGeneration` documents its input as best first.
+
+## 2026-11-25 (restart #5) — standing rules kept from the commercial-track handoff
+
+`docs/pending-commercial-track.md` (the work order of 2026-08-25) tracked SIM-63..69 and SIM-87, all
+closed, and was deleted. Its standing rules for unattended work that still apply:
+
+- **A review finding is a hypothesis until a failing test confirms it**, and a deterministic test beats a
+  sampled one (the MersenneTwister defect was a 2⁻³¹ event no sampling loop would gate; extracting the
+  pure mapping made it a boundary test).
+- **Re-run the full suite after every change to a random stream; commit per backlog item**, with the
+  finding and its confirmation in the message.
+- **Expose nothing to users ahead of its correctness fix.** A sampler or feature wired into the schema
+  before it is right industrialises the bug (SIM-65 found SIM-102 and SIM-103 this way).
+- **The FMT/GridWorld track (SIM-47..54) is not touched from here**: crucible ported that domain to
+  Python (SIM-61).
+- The beachhead obligations (no claim of court-admissibility, no re-opening of the beachhead) stand as
+  written under D-06 above. Its rule "no UI work before Slice 1 is green" is spent: Slice 1 (SIM-63, SIM-64)
+  is done, and the visualization work is SIM-110.

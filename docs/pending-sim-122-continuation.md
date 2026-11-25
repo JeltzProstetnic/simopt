@@ -169,10 +169,8 @@ the private hand-off (see *Private material*).
    **Next, in order:** SIM-110, then SIM-126's schema build once Q-PROC-SCHEMA is answered, SIM-140 once
    Q-PRIO sets it.
    Older next list (before restart #5): SIM-126's schema part (brief first), SIM-110, SIM-140.
-   **Housekeeping task (tool-doable):** every item `docs/pending-commercial-track.md` tracks is now `[x]`
-   (SIM-68 closed last), but the file still holds standing rules for unattended work ("Method —
-   non-negotiable", "Do not do"). Move those rules into `docs/decisions.md` (or `.claude/CLAUDE.md` where
-   they are rules), then delete the file; it was kept on 2026-11-25 so nothing is lost.
+   **Housekeeping DONE 2026-11-25 (restart #5):** `docs/pending-commercial-track.md` deleted; its standing rules
+   that still apply are in `docs/decisions.md` (2026-11-25, restart #5).
    Older next list (before SIM-130): SIM-130, SIM-126's schema part, SIM-110, SIM-140.
    Older next list (before step 4): SIM-68 step 4 with SIM-59, then SIM-130, SIM-126's schema part, SIM-110.
    SIM-139 waits for **Q-SRC-START**; SIM-137 stays open until it recurs.
