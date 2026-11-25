@@ -22,7 +22,7 @@
 
 | File | Purpose |
 |------|---------|
-| `~/cfg-agent-fleet/cross-project/inbox.md` | One-off cross-project tasks |
+| `~/cfg-agent-fleet/cross-project/inbox/<project>.md`, filed with `bash ~/cfg-agent-fleet/setup/scripts/inbox-file.sh --project <p> --type <t> --body "…"` | One-off cross-project tasks |
 
 ## Project Structure
 
