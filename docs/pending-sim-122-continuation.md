@@ -1,7 +1,7 @@
 <!-- Action: await-user-decision -->
-<!-- Work: stage=findings-written; status=open; next=next unblocked P1 item (SIM-126 schema waits for Q-PROC-SCHEMA, SIM-110 rest waits for Q-VIEW-PATH) - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
-<!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126 -->
-# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130 and SIM-67 done (2026-11-25 night); SIM-126's schema brief written, its build waits for Q-PROC-SCHEMA; next SIM-110
+<!-- Work: stage=findings-written; status=open; next=read MG's answers; SIM-117 or SIM-86 while SIM-126 schema, SIM-110 rest and SIM-93 defaults wait for Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS - MG owes Q-PROC-SCHEMA Q-VIEW-PATH Q-IVO-STATS Q-AUTO Q-STORE Q-SRC-START Q-PRIV-RULE Q-PRIO; approved=2026-11-24 MG (Q-PIN-COMMENT, SIM-124) -->
+<!-- Tracked-by: SIM-122, SIM-123, SIM-124, SIM-125, SIM-126, SIM-110, SIM-93 -->
+# SimPy-gap section: SIM-124..132, SIM-126 slices 1-6, SIM-65, SIM-66, SIM-68, SIM-69, SIM-59, SIM-130, SIM-67 and SIM-118 done; SIM-126's schema, SIM-110's rest and SIM-93's defaults wait for MG (Q-PROC-SCHEMA, Q-VIEW-PATH, Q-IVO-STATS)
 
 This repository is public. The colleague and his repository stay unnamed here; his specifics are in
 the private hand-off (see *Private material*).
@@ -44,6 +44,23 @@ the private hand-off (see *Private material*).
 - **Filed:** SIM-140 (constraints on decision variables, UN-015's headcount limits); a furkansim inbox
   item (its Glass EA uses the default configuration, so its results change, and `GlassSolution` has the
   same wall-clock operators). No comment on his issue #30: his optimiser is his own Python code.
+
+## Session 2026-11-25 early morning, restart #5 (WSL, unattended, cfg caretaking)
+
+- **SIM-126's schema brief** (`95cb253`, `docs/plans/2026-11-25-sim-126-process-schema.md`): processes in the topology
+  JSON as `resource` and `stock` nodes plus a `process` node with a closed step list; the car wash written as a document;
+  measured on the C# car wash that drawing step values on entry and at the step give the same interval for the 2-3 bay
+  difference (common random numbers halve it). Building waits for **Q-PROC-SCHEMA**. Telegram #1678.
+- **SIM-110 in part:** SIM-108 cycle-safe layout (`c52c0a1`), SIM-107 real pause through `ISimulationSurface`
+  (`0157dd2`; furkansim inbox item for its copy of the Space handler), SIM-92 every number on screen from the engine's
+  collectors (`ea287b1`). Not looked at on screen. The rest waits for **Q-VIEW-PATH** (brief
+  `docs/plans/2026-11-25-sim-110-one-model-path.md`, `965b058`, `80cfc57`).
+- **SIM-93 in part** (`a5f1906`): Ivotion runs end exactly on time and report a run cut short, throughput over the time
+  simulated with an optional warm-up, paid against busy labour, configuration figures marked. Run length and warm-up
+  defaults wait for **Q-IVO-STATS** (measured options in it).
+- **SIM-118 done** (`dbb8ea0`): `BootstrapDistribution`; the buffer's refusal hook and full event documented.
+- **Housekeeping** (`81d2bbf`): `docs/pending-commercial-track.md` retired, its standing rules in `docs/decisions.md`.
+- Suite 1361 passed, 1 skipped (`dotnet test tests/SimOpt.Tests/SimOpt.Tests.csproj`). Weekly ultra at 23 % when last read.
 
 ## Decisions for MG (stable IDs; recommended option first)
 
@@ -194,8 +211,12 @@ the private hand-off (see *Private material*).
    resumes (`0157dd2`, furkansim inbox item for its copy), SIM-92 every number on screen is the engine's measure
    (`ea287b1`); suite 1348 passed, 1 skipped. Not yet seen on screen (no window opened while MG is away). The rest
    of SIM-110 (one model path) waits for **Q-VIEW-PATH** (brief `docs/plans/2026-11-25-sim-110-one-model-path.md`).
-   **Next, in order:** the next unblocked P1 item; SIM-126's schema build once Q-PROC-SCHEMA is answered; SIM-110's
-   rest once Q-VIEW-PATH is answered; SIM-140 once Q-PRIO sets it.
+   **Later in restart #5:** SIM-93 in part (Q-IVO-STATS) and SIM-118 done, see the section above.
+   **Next, in order:** read Telegram for MG's answers first. Then: SIM-126's schema build once Q-PROC-SCHEMA is answered;
+   SIM-110's rest once Q-VIEW-PATH is answered (with option one it starts with SIM-70's extraction); SIM-93's defaults once
+   Q-IVO-STATS is answered; SIM-140 once Q-PRIO sets it. Unblocked meanwhile, smaller: SIM-117 (P2, SIM-106 follow-ups),
+   SIM-86 (P1, check what `run_experiment`'s provenance already covers before building). SIM-20 needs a Claude Code session
+   with the server registered, so it waits for MG.
    Older next list (before restart #5): SIM-126's schema part (brief first), SIM-110, SIM-140.
    **Housekeeping DONE 2026-11-25 (restart #5):** `docs/pending-commercial-track.md` deleted; its standing rules
    that still apply are in `docs/decisions.md` (2026-11-25, restart #5).
