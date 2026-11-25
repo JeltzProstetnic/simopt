@@ -49,6 +49,13 @@ the private hand-off (see *Private material*).
   - **Interim, until `--attach` exists:** the same rule, but the note waits in a gitignored path
     outside `tmp/`. It is still a single untracked copy.
   - **The cfg candidate as written.**
+- **Q-SRC-START** (SIM-139, new 2026-11-25 late night): with `autoStartDelay: 0` a source makes its first item
+  at t = 1 (one interval) on a freshly built model and at t = 0 after `Model.Reset`. Both paths must agree.
+  - **First item at t = 0 on both paths (Recommended):** that is what every replicated run and every MCP run
+    already does (they reset first), so no replicated result and none of his frozen reference runs move; only a
+    caller running a freshly built model without a reset gets one item more.
+  - **First item after one interval on both paths,** as SimPy sources usually do: moves every replicated result
+    and his frozen runs (a comment on his issue #30 then).
 - **Q-STAGED**: `docs/staged/manufacturing-simulation-modelling.md` and
   `shopfloor-management-and-governance.md` now live in the fleet (`global/knowledge/`, CFG-894).
   - **Delete the simopt copies (Recommended):** the fleet copy is canonical and two public copies will
