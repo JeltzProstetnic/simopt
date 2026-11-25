@@ -174,6 +174,54 @@ namespace SimOpt.Simulation.Statistics
         public static double MG1_L(double lambda, double meanService, double serviceVariance)
             => lambda * MG1_W(lambda, meanService, serviceVariance);
 
+        // ── M/M/1/K (SIM-97) ────────────────────────────────────────────────
+        //
+        // K places in the system, the one in service included, so a queue in front of one server holds
+        // K − 1. An arrival that finds K present is turned away. The chain is finite, so every load has a
+        // steady state, ρ ≥ 1 included: P_n = (1−ρ)ρⁿ/(1−ρ^(K+1)), and 1/(K+1) at ρ = 1.
+
+        /// <summary>Probability P_n of n in the system, 0 ≤ n ≤ K.</summary>
+        public static double MM1K_P(double lambda, double mu, int k, int n)
+        {
+            double rho = RequireFinite(lambda, mu, k);
+            if (n < 0 || n > k) throw new ArgumentOutOfRangeException(nameof(n), $"n must be from 0 to K = {k}.");
+            return IsOne(rho) ? 1d / (k + 1) : (1d - rho) * Math.Pow(rho, n) / (1d - Math.Pow(rho, k + 1));
+        }
+
+        /// <summary>Share of arrivals turned away, P_K (PASTA: arrivals see the time-average state).</summary>
+        public static double MM1K_Blocking(double lambda, double mu, int k) => MM1K_P(lambda, mu, k, k);
+
+        /// <summary>Rate of arrivals admitted, which in steady state is also the departure rate: λ(1 − P_K).</summary>
+        public static double MM1K_Throughput(double lambda, double mu, int k) => lambda * (1d - MM1K_Blocking(lambda, mu, k));
+
+        /// <summary>Mean number in system L = ρ/(1−ρ) − (K+1)ρ^(K+1)/(1−ρ^(K+1)), and K/2 at ρ = 1.</summary>
+        public static double MM1K_L(double lambda, double mu, int k)
+        {
+            double rho = RequireFinite(lambda, mu, k);
+            if (IsOne(rho)) return k / 2d;
+            double top = Math.Pow(rho, k + 1);
+            return rho / (1d - rho) - (k + 1) * top / (1d - top);
+        }
+
+        /// <summary>Mean number waiting Lq = L − (1 − P_0): the server is busy whenever the system is not empty.</summary>
+        public static double MM1K_Lq(double lambda, double mu, int k) => MM1K_L(lambda, mu, k) - (1d - MM1K_P(lambda, mu, k, 0));
+
+        /// <summary>Mean wait of an admitted arrival, Lq over the admitted rate (Little's law).</summary>
+        public static double MM1K_Wq(double lambda, double mu, int k) => MM1K_Lq(lambda, mu, k) / MM1K_Throughput(lambda, mu, k);
+
+        /// <summary>Mean time in system of an admitted arrival, L over the admitted rate.</summary>
+        public static double MM1K_W(double lambda, double mu, int k) => MM1K_L(lambda, mu, k) / MM1K_Throughput(lambda, mu, k);
+
+        private static double RequireFinite(double lambda, double mu, int k)
+        {
+            RequirePositive(lambda, nameof(lambda));
+            RequirePositive(mu, nameof(mu));
+            if (k < 1) throw new ArgumentOutOfRangeException(nameof(k), "K counts the place in service, so it is at least 1.");
+            return lambda / mu;
+        }
+
+        private static bool IsOne(double rho) => Math.Abs(rho - 1d) < 1e-12;
+
         // ── helpers ─────────────────────────────────────────────────────────
 
         private static void RequirePositive(double value, string name)

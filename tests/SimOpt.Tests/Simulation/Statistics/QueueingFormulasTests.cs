@@ -166,4 +166,35 @@ public class QueueingFormulasTests
         QueueingFormulas.IsStable(2.9999, 1.0, servers: 3).Should().BeTrue();
         QueueingFormulas.IsStable(3.0, 1.0, servers: 3).Should().BeFalse();
     }
+
+    // ── M/M/1/K (SIM-97): K places in the system, the one in service included ────────────────
+
+    /// <summary>
+    /// Exact fractions from the birth-death chain summed directly (P_n proportional to rho^n), not from the
+    /// closed form under test: rho = 0.9 with K = 5, an overloaded rho = 1.5 with K = 3 (a finite queue is
+    /// stable at any load), and rho = 1 with K = 4, where the closed form divides by zero.
+    /// </summary>
+    [Theory]
+    [InlineData(0.9, 1.0, 5, 100000d / 468559, 59049d / 468559, 1028385d / 468559, 659826d / 468559, 368559d / 468559, 73314d / 40951, 114265d / 40951)]
+    [InlineData(1.5, 1.0, 3, 8d / 65, 27d / 65, 129d / 65, 72d / 65, 57d / 65, 24d / 19, 43d / 19)]
+    [InlineData(1.0, 1.0, 4, 1d / 5, 1d / 5, 2d, 6d / 5, 4d / 5, 3d / 2, 5d / 2)]
+    public void MM1K_MatchesTheBirthDeathChain(double lambda, double mu, int k,
+        double p0, double blocking, double l, double lq, double throughput, double wq, double w)
+    {
+        QueueingFormulas.MM1K_P(lambda, mu, k, 0).Should().BeApproximately(p0, Tol);
+        QueueingFormulas.MM1K_Blocking(lambda, mu, k).Should().BeApproximately(blocking, Tol);
+        QueueingFormulas.MM1K_L(lambda, mu, k).Should().BeApproximately(l, Tol);
+        QueueingFormulas.MM1K_Lq(lambda, mu, k).Should().BeApproximately(lq, Tol);
+        QueueingFormulas.MM1K_Throughput(lambda, mu, k).Should().BeApproximately(throughput, Tol);
+        QueueingFormulas.MM1K_Wq(lambda, mu, k).Should().BeApproximately(wq, Tol);
+        QueueingFormulas.MM1K_W(lambda, mu, k).Should().BeApproximately(w, Tol);
+    }
+
+    [Fact]
+    public void MM1K_ApproachesMM1_AsTheRoomGrows()
+    {
+        // with room enough, nobody is turned away and the finite queue is the infinite one
+        QueueingFormulas.MM1K_Wq(0.8, 1.0, 400).Should().BeApproximately(QueueingFormulas.MM1_Wq(0.8, 1.0), 1e-9);
+        QueueingFormulas.MM1K_Blocking(0.8, 1.0, 400).Should().BeLessThan(1e-30);
+    }
 }

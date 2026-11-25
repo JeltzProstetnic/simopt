@@ -43,6 +43,15 @@ public sealed class AnalyticBatteryFixture
     public ReplicationResult MMc { get; }
     public ReplicationResult Jackson { get; }
 
+    /// <summary>SIM-97: M/M/1/K at λ = 0.9, μ = 1, K = 5 (a queue of 4 in front of one server).</summary>
+    public ReplicationResult MM1K { get; }
+
+    /// <summary>SIM-97: per replication, the share of arrivals after the warm-up that the full queue turned away.</summary>
+    public double[] MM1KBlocking { get; }
+
+    public const double MM1KLambda = 0.9;
+    public const int MM1KCapacity = 5;
+
     /// <summary>Identifiers of the M/M/c server pool, in construction order.</summary>
     public IReadOnlyList<string> MMcServerIds { get; }
 
@@ -62,6 +71,7 @@ public sealed class AnalyticBatteryFixture
         MG1Uniform = RunMG1(Uniform(0.5, 1.5), "mg1u");
         (MMc, MMcServerIds) = RunMMc();
         Jackson = RunJackson();
+        (MM1K, MM1KBlocking) = RunMM1K();
         SojournTimes = CollectSojournTimes();
     }
 
@@ -145,6 +155,44 @@ public sealed class AnalyticBatteryFixture
 
         return new ReplicationRunner(model, runLength: 21_000d, warmupTime: 1_000d)
             .Run(Replications, BaseSeed);
+    }
+
+    /// <summary>
+    /// SIM-97: M/M/1/K at λ = 0.9, μ = 1, K = 5: the buffer holds K − 1 = 4, so an arrival that finds
+    /// four waiting and one in service is turned away (the buffer's refusal hook counts it). The chain
+    /// has six states, so it forgets its empty start within a few dozen time units; 200 is ample.
+    /// </summary>
+    private static (ReplicationResult Result, double[] Blocking) RunMM1K()
+    {
+        const double warmup = 200d;
+        var model = new Model("mm1k", 1, 0d);
+        SimpleSource source = PoissonArrivals(model, MM1KLambda, "mm1k");
+        var buffer = new SimpleBuffer(model, QueueRule.FIFO, id: "buf", name: "buf", maxCapacity: MM1KCapacity - 1);
+        SimpleServer server = PassThroughServer(model, Exponential(1.0), "srv", "mm1k");
+        var sink = new SimpleSink(model, id: "snk", name: "snk");
+
+        buffer.ConnectTo(source);
+        server.ConnectTo(buffer);
+        buffer.ItemReceivedEvent.AddHandler((_, _) => { if (server.Idle) server.Start(); });
+        sink.ConnectTo(server);
+
+        int arrived = 0, refused = 0;
+        source.EntityCreatedEvent.AddHandler((_, _) => { if (model.CurrentTime >= warmup) arrived++; });
+        buffer.NotifyItemNotAccepted = _ => { if (model.CurrentTime >= warmup) refused++; };
+        var blocking = new List<double>();
+
+        Instrumentation.ObserveQueueLength(buffer);
+        Instrumentation.ObserveWaitingTime(buffer);
+        Instrumentation.ObserveUtilization(server);
+        Instrumentation.ObserveThroughput(sink);
+
+        ReplicationResult result = new ReplicationRunner(model, runLength: 20_200d, warmupTime: warmup)
+            .Run(Replications, BaseSeed, afterReplication: _ =>
+            {
+                blocking.Add(refused / (double)arrived);
+                arrived = refused = 0;
+            });
+        return (result, blocking.ToArray());
     }
 
     /// <summary>
@@ -392,17 +440,28 @@ public class AnalyticBatteryTests : IClassFixture<AnalyticBatteryFixture>
         metric.Replications.Should().Be(AnalyticBatteryFixture.Replications,
             $"{what}: a replication produced no data, so the interval rests on fewer than intended");
 
-        double[] estimates = metric.ReplicateEstimates.Where(v => !double.IsNaN(v)).ToArray();
+        AgreesWithTheory(metric.Mean, metric.ReplicateEstimates.Where(v => !double.IsNaN(v)).ToArray(), analytic, kappa, what);
+    }
+
+    /// <summary>SIM-97: the same two-sided check on per-replication figures no collector holds (blocking).</summary>
+    private void AgreesWithTheory(double[] estimates, double analytic, double kappa, string what)
+    {
+        estimates.Should().HaveCount(AnalyticBatteryFixture.Replications, what);
+        AgreesWithTheory(estimates.Average(), estimates, analytic, kappa, what);
+    }
+
+    private void AgreesWithTheory(double mean, double[] estimates, double analytic, double kappa, string what)
+    {
         double reported = ReplicationRunner.ConfidenceHalfWidth(estimates, ReportedLevel)!.Value;
         double gate = ReplicationRunner.ConfidenceHalfWidth(estimates, GateLevel)!.Value;
-        double error = Math.Abs(metric.Mean - analytic);
+        double error = Math.Abs(mean - analytic);
 
         output.WriteLine(
-            $"{what,-24} analytic {analytic,9:F5}   simulated {metric.Mean,9:F5} ± {reported,7:F5}" +
+            $"{what,-24} analytic {analytic,9:F5}   simulated {mean,9:F5} ± {reported,7:F5}" +
             $"  ({reported / analytic,6:P2})   error {error,8:F5} = {error / reported,5:F2}·h");
 
         error.Should().BeLessThanOrEqualTo(gate,
-            $"{what}: simulated {metric.Mean:F5} must fall inside the {GateLevel:P1} interval " +
+            $"{what}: simulated {mean:F5} must fall inside the {GateLevel:P1} interval " +
             $"±{gate:F5} around the analytic {analytic:F5} — it is off by {error:F5}");
 
         reported.Should().BeLessThanOrEqualTo(kappa * analytic,
@@ -449,6 +508,34 @@ public class AnalyticBatteryTests : IClassFixture<AnalyticBatteryFixture>
     }
 
     // ── M/D/1 and M/G/1: the battery's only lever on a second moment ──────────
+
+    // ── M/M/1/K (SIM-97) ─────────────────────────────────────────────────────
+
+    [Fact]
+    public void MM1K_AgreesWithTheBirthDeathChain()
+    {
+        const double lambda = AnalyticBatteryFixture.MM1KLambda, mu = 1.0;
+        const int k = AnalyticBatteryFixture.MM1KCapacity;
+
+        AgreesWithTheory(systems.MM1K[Stat("buf", Instrumentation.WaitTime)],
+            QueueingFormulas.MM1K_Wq(lambda, mu, k), Kappa, "M/M/1/K Wq (admitted)");
+        AgreesWithTheory(systems.MM1K[Stat("buf", Instrumentation.QueueLength)],
+            QueueingFormulas.MM1K_Lq(lambda, mu, k), Kappa, "M/M/1/K Lq");
+        AgreesWithTheory(systems.MM1K[Stat("srv", Instrumentation.Utilization)],
+            1d - QueueingFormulas.MM1K_P(lambda, mu, k, 0), Kappa, "M/M/1/K busy");
+        AgreesWithTheory(systems.MM1K[Stat("snk", Instrumentation.Throughput)],
+            QueueingFormulas.MM1K_Throughput(lambda, mu, k), Kappa, "M/M/1/K throughput");
+    }
+
+    [Fact]
+    public void MM1K_TurnsAwayTheShareOfArrivalsTheChainPredicts()
+    {
+        // the engine's blocking (a full queue refusing an item) against P_K; nothing else in the battery
+        // reaches that code
+        AgreesWithTheory(systems.MM1KBlocking,
+            QueueingFormulas.MM1K_Blocking(AnalyticBatteryFixture.MM1KLambda, 1.0, AnalyticBatteryFixture.MM1KCapacity),
+            Kappa, "M/M/1/K blocking");
+    }
 
     [Fact]
     public void MD1_AgreesWithPollaczekKhinchine()
