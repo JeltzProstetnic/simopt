@@ -30,11 +30,13 @@ namespace SimOpt.McpServer.Tools
         [Description(
             "Creates a new simulation model from a JSON topology description. " +
             "Returns a model_id to be used in subsequent calls. " +
-            "Nodes may have types: source, buffer, server, sink. " +
+            "Nodes may have types: source, queue, station, sink (buffer and server are accepted for queue and station). " +
             "Connections flow from source nodes toward sink nodes. " +
-            "Source params: mean_interval (default 1.0). " +
-            "Buffer params: capacity (default unlimited). " +
-            "Server params: service_time (default 1.0). " +
+            "Source params: arrival, a distribution object such as {\"type\":\"exponential\",\"mean\":2} " +
+            "(types: exponential, triangular, uniform, lognormal, gamma, constant, empirical), " +
+            "or mean_interval, an exponential mean (default 1.0). " +
+            "Queue params: capacity (default unlimited), discipline \"fifo\" (default) or \"lifo\". " +
+            "Station params: service, a distribution object, or service_time, an exponential mean (default 1.0); one server. " +
             "Sink has no params. " +
             "Example: {\"name\":\"SQSS\",\"seed\":42," +
             "\"nodes\":[{\"id\":\"src\",\"type\":\"source\",\"params\":{\"mean_interval\":2.0}}," +

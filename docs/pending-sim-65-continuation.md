@@ -24,7 +24,10 @@ are what make the remaining work mechanical rather than open.
 
 ## Status 2026-11-25 (night)
 
-Step 1 (`ParamValue`) is done, commit "SIM-65 step 1"; suite 1091 passed, 1 skipped. Resume at step 2.
+Step 1 (`ParamValue`) is done, commit "SIM-65 step 1"; suite 1091 passed, 1 skipped. Step 2a is done too
+(`queue`/`station` with aliases, `arrival`/`service` distributions, `discipline`, `servers` other than 1
+refused; `TopologyVocabularyTests`, suite 1102). Resume at step 2b: the `delay` node (`SimpleDelay`) and
+`weight` on connections for the router.
 
 ## What is left in SIM-65, in order
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using SimOpt.Mathematics.Stochastics.Distributions;
+using SimOpt.Mathematics.Stochastics.Interfaces;
 using SimOpt.McpServer.Models;
 using SimOpt.Simulation.Engine;
 using SimOpt.Simulation.Entities;
@@ -71,15 +72,12 @@ namespace SimOpt.McpServer.Simulation
 
             foreach (NodeDefinition node in topology.Nodes)
             {
-                switch (node.Type.ToLowerInvariant())
+                string label = Label(node);
+                switch (CanonicalType(node))
                 {
                     case "source":
                     {
-                        double meanInterval = TryGetNumber(node, "Source", "mean_interval", out double mi) ? mi : 1.0;
-                        if (meanInterval <= 0)
-                            throw new InvalidOperationException($"Source '{node.Id}': mean_interval must be positive.");
-
-                        var dist = CreateNegExp(meanInterval);
+                        var dist = TimeDistribution(node, label, "arrival", "mean_interval");
                         int localCounter = entityCounter; // closure capture
                         Func<SimpleEntity> generator = () =>
                         {
@@ -105,14 +103,14 @@ namespace SimOpt.McpServer.Simulation
                         break;
                     }
 
-                    case "buffer":
+                    case "queue":
                     {
-                        int capacity = TryGetNumber(node, "Buffer", "capacity", out double cap)
+                        int capacity = TryGetNumber(node, label, "capacity", out double cap)
                             ? (int)cap
                             : int.MaxValue;
                         var buffer = new SimpleBuffer(
                             model,
-                            QueueRule.FIFO,
+                            Discipline(node, label),
                             id: node.Id,
                             name: node.Id,
                             maxCapacity: capacity);
@@ -120,13 +118,12 @@ namespace SimOpt.McpServer.Simulation
                         break;
                     }
 
-                    case "server":
+                    case "station":
                     {
-                        double serviceTime = TryGetNumber(node, "Server", "service_time", out double st) ? st : 1.0;
-                        if (serviceTime <= 0)
-                            throw new InvalidOperationException($"Server '{node.Id}': service_time must be positive.");
-
-                        var dist = CreateNegExp(serviceTime);
+                        if (TryGetNumber(node, label, "servers", out double count) && count != 1d)
+                            throw new InvalidOperationException(
+                                $"{label} '{node.Id}': servers = {count} is not supported yet; a station has one server in this version.");
+                        var dist = TimeDistribution(node, label, "service", "service_time");
                         var server = new SimpleServer(
                             model,
                             StableHash.Of(node.Id),   // see the source case above
@@ -156,7 +153,8 @@ namespace SimOpt.McpServer.Simulation
 
                     default:
                         throw new InvalidOperationException(
-                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: source, buffer, server, sink.");
+                            $"Unknown node type '{node.Type}' for node '{node.Id}'. Valid types: source, queue, station, sink " +
+                            "(buffer and server are accepted for queue and station).");
                 }
             }
 
@@ -303,6 +301,65 @@ namespace SimOpt.McpServer.Simulation
             var dist = new NegExponentialDistribution();
             dist.ConfigureMean(mean);
             return dist;
+        }
+
+        /// <summary>
+        /// SIM-65 (D1): the v1 name of a node type; <c>buffer</c> and <c>server</c> are aliases of
+        /// <c>queue</c> and <c>station</c>, so every older topology still builds.
+        /// </summary>
+        private static string CanonicalType(NodeDefinition node)
+        {
+            string type = (node.Type ?? string.Empty).Trim().ToLowerInvariant();
+            return type switch
+            {
+                "buffer" => "queue",
+                "server" => "station",
+                _ => type,
+            };
+        }
+
+        /// <summary>The node's type as the topology wrote it, capitalised, for error messages.</summary>
+        private static string Label(NodeDefinition node)
+        {
+            string type = (node.Type ?? string.Empty).Trim().ToLowerInvariant();
+            return type.Length == 0 ? "Node" : char.ToUpperInvariant(type[0]) + type.Substring(1);
+        }
+
+        /// <summary>
+        /// SIM-65: a time given as a distribution object (<paramref name="distName"/>, schema v1) or as
+        /// the older exponential mean (<paramref name="meanName"/>, default 1); giving both is refused.
+        /// </summary>
+        private static IDistribution<double> TimeDistribution(NodeDefinition node, string label, string distName, string meanName)
+        {
+            bool hasMean = TryGetNumber(node, label, meanName, out double mean);
+            if (node.Params.TryGetValue(distName, out ParamValue? given))
+            {
+                if (hasMean)
+                    throw new InvalidOperationException($"{label} '{node.Id}': give {distName} or {meanName}, not both.");
+                if (given?.Distribution == null)
+                    throw new InvalidOperationException(
+                        $"{label} '{node.Id}': {distName} must be a distribution object such as " +
+                        $"{{\"type\": \"exponential\", \"mean\": 2}}, not {given?.ToString() ?? "null"}.");
+                return DistributionFactory.Create(given.Distribution, $"node '{node.Id}', parameter '{distName}'");
+            }
+            if (!hasMean) mean = 1.0;
+            if (mean <= 0)
+                throw new InvalidOperationException($"{label} '{node.Id}': {meanName} must be positive.");
+            return CreateNegExp(mean);
+        }
+
+        /// <summary>SIM-65: a queue's <c>discipline</c>, "fifo" (the default) or "lifo".</summary>
+        private static QueueRule Discipline(NodeDefinition node, string label)
+        {
+            if (!node.Params.TryGetValue("discipline", out ParamValue? given)) return QueueRule.FIFO;
+            switch (given?.Text?.Trim().ToLowerInvariant())
+            {
+                case "fifo": return QueueRule.FIFO;
+                case "lifo": return QueueRule.LIFO;
+                default:
+                    throw new InvalidOperationException(
+                        $"{label} '{node.Id}': discipline must be \"fifo\" or \"lifo\", not {given?.ToString() ?? "null"}.");
+            }
         }
 
         /// <summary>
