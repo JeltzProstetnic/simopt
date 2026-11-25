@@ -1,5 +1,5 @@
 // SIM-129 speed harness. Usage:
-//   dotnet run -c Release --project benchmarks/SimOpt.Benchmarks -- [--scale 1] [--reps 20] [--repeat 3] [--case mm1,...]
+//   dotnet run -c Release --project benchmarks/SimOpt.Benchmarks -- [--scale 1] [--reps 20] [--repeat 3] [--case mm1,...] [--each]
 // Prints per case the events run, the best wall time over the repeats, nanoseconds and bytes allocated
 // per event, and the results fingerprint. A run that changes speed but not results keeps every fingerprint.
 using System;
@@ -16,6 +16,7 @@ namespace SimOpt.Benchmarks
         {
             double scale = 1;
             int reps = 20, repeat = 3, baseSeed = 20_260_826;
+            bool eachRepeat = false;
             IReadOnlyList<string> cases = BenchmarkCases.Names;
             for (int i = 0; i < args.Length; i++)
             {
@@ -26,17 +27,27 @@ namespace SimOpt.Benchmarks
                     case "--repeat": repeat = int.Parse(args[++i]); break;
                     case "--seed": baseSeed = int.Parse(args[++i]); break;
                     case "--case": cases = args[++i].Split(','); break;
+                    case "--each": eachRepeat = true; break;
                     default: Console.Error.WriteLine($"unknown argument {args[i]}"); return 2;
                 }
             }
 
             Console.WriteLine($"# SIM-129 harness: scale {scale}, {reps} replications, best of {repeat}, base seed {baseSeed}");
             Console.WriteLine("case,events,best_s,ns_per_event,bytes_per_event,fingerprint");
+
+            // Warm up every case before timing any, for at least 1.5 s, then give the JIT's background
+            // tier-up time to finish. The JIT stops counting calls while it is still compiling new
+            // methods, so a short warm-up left a case run on its own (md1: 620 instead of 200 ns per
+            // event) on unoptimised code.
+            var warm = Stopwatch.StartNew();
+            while (warm.Elapsed.TotalSeconds < 1.5)
+                foreach (string name in cases) BenchmarkCases.Run(name, 0.1, 2, baseSeed);
+            System.Threading.Thread.Sleep(300);
+
             double totalSeconds = 0;
             long totalEvents = 0;
             foreach (string name in cases)
             {
-                BenchmarkCases.Run(name, scale * 0.05, 2, baseSeed);   // JIT warm-up, not timed
 
                 CaseOutcome outcome = null;
                 double best = double.MaxValue;
@@ -56,6 +67,7 @@ namespace SimOpt.Benchmarks
                         return 1;
                     }
                     outcome = run;
+                    if (eachRepeat) Console.WriteLine($"# {name} repeat {r}: {watch.Elapsed.TotalSeconds:F3} s, {GC.CollectionCount(0)} gen0 collections so far");
                     best = Math.Min(best, watch.Elapsed.TotalSeconds);
                     bytes = Math.Min(bytes, allocated);
                 }

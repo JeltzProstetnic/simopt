@@ -46,10 +46,10 @@ namespace SimOpt.Simulation.Entities
                 else
                     this.seed = Model.GetRandomSeedFor((int)seedID);
 
-                seedGenerator.Reset((int)this.seed);
+                seedGenerator?.Reset((int)this.seed);   // SIM-129: not made yet, it will be from this seed
 
                 foreach (IRandom rnd in randomGenerators)
-                    rnd.Reset(seedGenerator.Next(), Model.Antithetic, Model.NonStochasticMode);
+                    rnd.Reset(SeedGenerator.Next(), Model.Antithetic, Model.NonStochasticMode);
 
                 OnSeedChanged();
             }
@@ -178,6 +178,11 @@ namespace SimOpt.Simulation.Entities
         {
             get
             {
+                // SIM-129: made on first use. A Mersenne Twister holds 2.5 kB of state and most
+                // entities never draw from it; made from the current seed, it is in the state a
+                // generator made at initialisation and reset to that seed would be in.
+                if (seedGenerator == null && seed.HasValue)
+                    seedGenerator = new UniformIntegerDistribution((int)seed, 0, int.MaxValue);
                 return seedGenerator;
             }
             set
@@ -319,7 +324,7 @@ namespace SimOpt.Simulation.Entities
                 this.seed = Model.GetRandomSeedFor((int)seedID);
 
             this.randomGenerators = new List<IRandom>();
-            this.seedGenerator = new UniformIntegerDistribution((int)seed, 0, int.MaxValue);
+            this.seedGenerator = null;   // SIM-129: made from the seed on first use, see SeedGenerator
             this.seedInitialized = true;
 
             OnSeedInitialized();
