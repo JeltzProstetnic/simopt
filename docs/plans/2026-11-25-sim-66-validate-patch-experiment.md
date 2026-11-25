@@ -59,9 +59,12 @@ both (`TopologyLintTests`, an engine-level test).
 is 1 / mean of its arrival distribution. The rate into each node is `λ = γ + λP`, where `P` is the
 routing matrix. A probabilistic router splits by weight (equal split without weights), a shortest-queue
 router splits equally (an estimate, and the issue says so), and every other node passes its whole flow on.
-Rework loops are legal, so the equations are solved by fixed-point iteration. If the iteration does not
-converge, items circulate without an exit, reported as `NO_EXIT_FROM_LOOP`. A queue feeding several
-stations pools them. For a station, ρ = λ × E[S] / c, with E[S] the service distribution's `Mean`, shift
+Rework loops are legal, so the equations are solved exactly, by Gaussian elimination on
+`(I − Pᵀ) λ = γ` (a fixed-point iteration needs thousands of rounds at a 99 % rework share). A loop with no
+way out carries unbounded flow; the lint reports it (`LOOP_WITHOUT_EXIT`) and its nodes are left out of
+the equations, which keeps them solvable. A queue feeding several stations passes its items on in
+proportion to their service capacity (servers / mean service), so they share one pooled load. The load
+is the demand reaching a station if everything upstream keeps up. For a station, ρ = λ × E[S] / c, with E[S] the service distribution's `Mean`, shift
 included since SIM-102.
 - ρ ≥ 1: warning `SATURATED`, *"station 'exam' offered load 1.38: its queue grows without bound"*. The
   suggestion names the smallest server count that brings ρ below 0.9. If the queue has a finite capacity,

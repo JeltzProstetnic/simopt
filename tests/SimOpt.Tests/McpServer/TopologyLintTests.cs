@@ -180,8 +180,10 @@ public class TopologyLintTests
     [Fact]
     public void AReworkLoopWithAnExit_IsFine()
     {
+        // half the items come back, so the station sees twice the arrival rate: 0.5 x 2 x 0.5 = load 0.5
         ValidationReport report = Check(Topology(
-            new[] { Source("in"), Queue("q"), Station("s"), Node("r", "router", ("policy", "probabilistic")), Sink("out") },
+            new[] { Source("in"), Queue("q"), Node("s", "station", ("service", Exponential(0.5))),
+                    Node("r", "router", ("policy", "probabilistic")), Sink("out") },
             ("in", "q"), ("q", "s"), ("s", "r"), ("r", "q"), ("r", "out")));
 
         report.Errors.Should().BeEmpty();

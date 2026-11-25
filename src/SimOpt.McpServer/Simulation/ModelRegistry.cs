@@ -496,6 +496,7 @@ namespace SimOpt.McpServer.Simulation
 
             IReadOnlyDictionary<string, string> metrics = AttachMetrics(model, topology, sources, buffers, stations, sinks, report, failed);
             if (report.Errors.Count > 0) return null;
+            OfferedLoad.Check(topology, report);   // SIM-66 step 3 (D5)
 
             // Apply the real seed. This is the reset that makes every SeedID assignment above take
             // effect; from here on the per-node streams are a pure function of (topology.Seed,
