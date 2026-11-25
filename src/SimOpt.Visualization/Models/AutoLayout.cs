@@ -116,24 +116,63 @@ public static class AutoLayout
             inEdges[conn.To].Add(conn.From);
         }
 
-        var layers = new Dictionary<string, int>();
-        void AssignLayer(string nodeId, int depth)
+        // SIM-108: a node's layer is the longest way to it from the nodes nothing feeds, over the graph
+        // without its back edges (an edge into a node still being explored: a rework loop). The old
+        // recursion followed a loop with an ever larger depth until the stack overflowed. Nodes are found
+        // depth first, in the order the old recursion first reached them, so an acyclic graph lands where
+        // it did before.
+        var found = new List<string>();      // in discovery order: the order within a layer
+        var finished = new List<string>();   // post-order; reversed, a topological order without back edges
+        var seen = new HashSet<string>();
+        var onPath = new HashSet<string>();
+        var backEdges = new HashSet<(string, string)>();
+        void Explore(string root)
         {
-            if (layers.TryGetValue(nodeId, out int current) && current >= depth) return;
-            layers[nodeId] = depth;
-            foreach (var next in outEdges[nodeId])
-                AssignLayer(next, depth + 1);
+            if (!seen.Add(root)) return;
+            found.Add(root);
+            onPath.Add(root);
+            var stack = new Stack<(string Node, int Next)>();
+            stack.Push((root, 0));
+            while (stack.Count > 0)
+            {
+                var (node, next) = stack.Pop();
+                List<string> outs = outEdges[node];
+                if (next == outs.Count)
+                {
+                    onPath.Remove(node);
+                    finished.Add(node);
+                    continue;
+                }
+                stack.Push((node, next + 1));
+                string child = outs[next];
+                if (onPath.Contains(child)) backEdges.Add((node, child));
+                else if (seen.Add(child))
+                {
+                    found.Add(child);
+                    onPath.Add(child);
+                    stack.Push((child, 0));
+                }
+            }
         }
 
         var sources = topology.Nodes.Where(n => inEdges[n.Id].Count == 0).ToList();
         if (sources.Count == 0) sources = new List<VizNode> { topology.Nodes[0] };
-        foreach (var src in sources) AssignLayer(src.Id, 0);
-        foreach (var node in topology.Nodes) layers.TryAdd(node.Id, 0);
+        foreach (var src in sources) Explore(src.Id);
+        foreach (var node in topology.Nodes) Explore(node.Id);   // a loop nothing outside it feeds
+
+        var layers = found.ToDictionary(id => id, _ => 0);
+        for (int k = finished.Count - 1; k >= 0; k--)
+        {
+            string from = finished[k];
+            foreach (string to in outEdges[from])
+                if (!backEdges.Contains((from, to)))
+                    layers[to] = Math.Max(layers[to], layers[from] + 1);
+        }
 
         int maxLayer = layers.Values.DefaultIfEmpty(0).Max();
         var layerGroups = new List<List<string>>();
         for (int i = 0; i <= maxLayer; i++)
-            layerGroups.Add(layers.Where(kv => kv.Value == i).Select(kv => kv.Key).ToList());
+            layerGroups.Add(found.Where(id => layers[id] == i).ToList());
 
         int numLayers = layerGroups.Count;
         double totalW = numLayers * NodeWidth + (numLayers - 1) * HSpacing;
